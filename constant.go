@@ -585,15 +585,15 @@ var (
 const (
 	// Direct streaming without buffering
 	// Each piece of data is sent immediately as it becomes available.
-	STRATEGY_DIRECT StreamingStrategy = "direct"
+	StrategyDirect StreamingStrategy = "direct"
 
 	// Buffered streaming with internal buffer
 	// Data is collected in a buffer and sent in larger chunks to optimize performance.
-	STRATEGY_BUFFERED StreamingStrategy = "buffered"
+	StrategyBuffered StreamingStrategy = "buffered"
 
 	// Chunked streaming with explicit chunk handling
 	// Data is divided into chunks of a specified size and sent sequentially.
-	STRATEGY_CHUNKED StreamingStrategy = "chunked"
+	StrategyChunked StreamingStrategy = "chunked"
 )
 
 // CompressionType defines the type of compression applied to data.

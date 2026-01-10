@@ -448,22 +448,22 @@ func (sw *StreamingWrapper) Start(ctx context.Context) *wrapper {
 	if sw.config.IsReceiving {
 		// Receiving mode: decompress incoming data
 		switch sw.config.Strategy {
-		case STRATEGY_DIRECT:
+		case StrategyDirect:
 			streamErr = sw.streamReceiveDirect(ctx)
-		case STRATEGY_BUFFERED:
+		case StrategyBuffered:
 			streamErr = sw.streamReceiveBuffered(ctx)
-		case STRATEGY_CHUNKED:
+		case StrategyChunked:
 			streamErr = sw.streamReceiveChunked(ctx)
 		default:
 			streamErr = WithErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))
 		}
 	} else {
 		switch sw.config.Strategy {
-		case STRATEGY_DIRECT:
+		case StrategyDirect:
 			streamErr = sw.streamDirect(ctx)
-		case STRATEGY_BUFFERED:
+		case StrategyBuffered:
 			streamErr = sw.streamBuffered(ctx)
-		case STRATEGY_CHUNKED:
+		case StrategyChunked:
 			streamErr = sw.streamChunked(ctx)
 		default:
 			streamErr = WithErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))

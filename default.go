@@ -104,7 +104,7 @@ func NewBufferPool(bufferSize int64, poolSize int) *BufferPool {
 func NewStreamConfig() *StreamConfig {
 	return &StreamConfig{
 		ChunkSize:           65536, // 64KB default
-		Strategy:            STRATEGY_BUFFERED,
+		Strategy:            StrategyBuffered,
 		Compression:         CompressNone,
 		UseBufferPool:       true,
 		MaxConcurrentChunks: 4,

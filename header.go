@@ -1,5 +1,7 @@
 package replify
 
+import "net/http"
+
 // WithCode sets the `code` field of the `header` instance.
 //
 // This function assigns the provided integer value to the `code` field of the `header`
@@ -11,6 +13,9 @@ package replify
 // Returns:
 //   - The updated `header` instance with the `code` field set to the provided value.
 func (h *header) WithCode(v int) *header {
+	if v < 100 || v > 599 {
+		v = http.StatusInternalServerError
+	}
 	h.code = v
 	return h
 }

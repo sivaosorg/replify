@@ -105,7 +105,7 @@ func NewStreamConfig() *StreamConfig {
 	return &StreamConfig{
 		ChunkSize:           65536, // 64KB default
 		Strategy:            STRATEGY_BUFFERED,
-		Compression:         COMP_NONE,
+		Compression:         CompressNone,
 		UseBufferPool:       true,
 		MaxConcurrentChunks: 4,
 		ReadTimeout:         30 * time.Second,

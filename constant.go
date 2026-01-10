@@ -600,16 +600,16 @@ const (
 // It specifies the algorithm used to compress or decompress data.
 const (
 	// No compression applied
-	COMP_NONE CompressionType = "none"
+	CompressNone CompressionType = "none"
 
 	// GZIP compression algorithm
-	COMP_GZIP CompressionType = "gzip"
+	CompressGzip CompressionType = "gzip"
 
 	// Deflate compression algorithm
-	COMP_DEFLATE CompressionType = "deflate"
+	CompressDeflate CompressionType = "deflate"
 
 	// Flate compression algorithm
-	COMP_FLATE CompressionType = "flate"
+	CompressFlate CompressionType = "flate"
 )
 
 // Common constants used across the package.

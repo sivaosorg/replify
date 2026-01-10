@@ -6856,7 +6856,7 @@ func (sw *StreamingWrapper) streamDirect(ctx context.Context) error {
 			}
 
 			// Apply compression if configured
-			if sw.config.Compression != COMP_NONE {
+			if sw.config.Compression != CompressNone {
 				compData, compErr := sw.compressChunk(chunk)
 				if compErr != nil {
 					sw.recordError(compErr)
@@ -7353,7 +7353,7 @@ func (sw *StreamingWrapper) streamBuffered(ctx context.Context) error {
 				}
 
 				// Process chunk
-				if sw.config.Compression != COMP_NONE {
+				if sw.config.Compression != CompressNone {
 					compData, compErr := sw.compressChunk(chunk)
 					if compErr != nil {
 						sw.recordError(compErr)
@@ -7709,7 +7709,7 @@ func (sw *StreamingWrapper) streamChunked(ctx context.Context) error {
 			}
 
 			// Compress if needed
-			if sw.config.Compression != COMP_NONE {
+			if sw.config.Compression != CompressNone {
 				compData, compErr := sw.compressChunk(chunk)
 				if compErr != nil {
 					sw.recordError(compErr)
@@ -7855,7 +7855,7 @@ func (sw *StreamingWrapper) streamReceiveDirect(ctx context.Context) error {
 			}
 
 			// Decompress chunk
-			if sw.config.Compression != COMP_NONE {
+			if sw.config.Compression != CompressNone {
 				decData, decErr := sw.decompressChunk(chunk)
 				if decErr != nil {
 					sw.recordError(decErr)
@@ -7993,7 +7993,7 @@ func (sw *StreamingWrapper) streamReceiveChunked(ctx context.Context) error {
 			}
 
 			// Decompress chunk
-			if sw.config.Compression != COMP_NONE {
+			if sw.config.Compression != CompressNone {
 				decData, decErr := sw.decompressChunk(chunk)
 				if decErr != nil {
 					sw.recordError(decErr)
@@ -8234,7 +8234,7 @@ func (sw *StreamingWrapper) streamReceiveBuffered(ctx context.Context) error {
 				}
 
 				// Decompress chunk
-				if sw.config.Compression != COMP_NONE {
+				if sw.config.Compression != CompressNone {
 					decData, decErr := sw.decompressChunk(chunk)
 					if decErr != nil {
 						sw.recordError(decErr)
@@ -8692,7 +8692,7 @@ func (sw *StreamingWrapper) compressChunk(chunk *StreamChunk) ([]byte, error) {
 	var buf bytes.Buffer
 
 	switch sw.config.Compression {
-	case COMP_GZIP:
+	case CompressGzip:
 		gzipWriter := gzip.NewWriter(&buf)
 		if _, err := gzipWriter.Write(chunk.Data); err != nil {
 			return nil, fmt.Errorf("gzip compression failed: %w", err)
@@ -8701,7 +8701,7 @@ func (sw *StreamingWrapper) compressChunk(chunk *StreamChunk) ([]byte, error) {
 			return nil, fmt.Errorf("gzip close failed: %w", err)
 		}
 
-	case COMP_FLATE:
+	case CompressFlate:
 		deflateWriter, err := flate.NewWriter(&buf, flate.DefaultCompression)
 		if err != nil {
 			return nil, fmt.Errorf("flate writer creation failed: %w", err)
@@ -9068,7 +9068,7 @@ func (sw *StreamingWrapper) decompressChunk(chunk *StreamChunk) ([]byte, error) 
 	}
 
 	switch chunk.CompressionType {
-	case COMP_GZIP:
+	case CompressGzip:
 		gzipReader, err := gzip.NewReader(bytes.NewReader(chunk.Data))
 		if err != nil {
 			return nil, fmt.Errorf("gzip decompression failed: %w", err)
@@ -9081,7 +9081,7 @@ func (sw *StreamingWrapper) decompressChunk(chunk *StreamChunk) ([]byte, error) 
 		}
 		return buf.Bytes(), nil
 
-	case COMP_FLATE:
+	case CompressFlate:
 		deflateReader := flate.NewReader(bytes.NewReader(chunk.Data))
 		defer deflateReader.Close()
 

@@ -1139,7 +1139,7 @@ func IfElse[T any](ptr *T, onPresent func(T), onAbsent func()) {
 // For production code, prefer using If, IfElse, or explicit nil checks.
 func Must[T any](ptr *T) T {
 	if ptr == nil {
-		panic("wrapify: attempted to dereference nil pointer")
+		panic("replify: attempted to dereference nil pointer")
 	}
 	return *ptr
 }
@@ -1170,7 +1170,7 @@ func Must[T any](ptr *T) T {
 //	}
 func MustPtr[T any](ptr *T, message string) T {
 	if ptr == nil {
-		panic("wrapify: " + message)
+		panic("replify: " + message)
 	}
 	return *ptr
 }

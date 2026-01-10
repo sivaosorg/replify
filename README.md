@@ -1,6 +1,6 @@
-# wrapify
+# replify
 
-**wrapify** is a Go library designed to simplify and standardize API response wrapping for RESTful services. It leverages the Decorator Pattern to dynamically add error handling, metadata, pagination, and other response features in a clean and human-readable format. With Wrapify, you can ensure consistent and extensible API responses with minimal boilerplate. Perfect for building robust, maintainable REST APIs in Go!
+**replify** is a Go library designed to simplify and standardize API response wrapping for RESTful services. It leverages the Decorator Pattern to dynamically add error handling, metadata, pagination, and other response features in a clean and human-readable format. With Wrapify, you can ensure consistent and extensible API responses with minimal boilerplate. Perfect for building robust, maintainable REST APIs in Go!
 
 ### Requirements
 
@@ -23,7 +23,7 @@ To install, you can use the following commands based on your preference:
 
 ### Getting started
 
-#### Getting wrapify
+#### Getting replify
 
 With [Go's module support](https://go.dev/wiki/Modules#how-to-use-modules), `go [build|run|test]` automatically fetches the necessary dependencies when you add the import in your code:
 

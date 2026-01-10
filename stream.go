@@ -16,7 +16,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// Start initiates streaming operation and returns *wrapper for consistency with wrapify API.
+// Start initiates streaming operation and returns *wrapper for consistency with replify API.
 //
 // This function is the primary entry point for streaming operations. It validates prerequisites (streaming wrapper
 // not nil, reader configured), prevents concurrent streaming on the same wrapper, selects and executes the configured

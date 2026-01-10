@@ -181,6 +181,22 @@ func (m *meta) WithCustomFieldKVf(key string, format string, args ...any) *meta 
 	return m.WithCustomFieldKV(key, fmt.Sprintf(format, args...))
 }
 
+// WithDeltaValue sets the delta value for the `meta` instance.
+// Represents the magnitude of change introduced by payload normalization or transformation.
+//
+// This function updates the `deltaValue` field of the `meta` instance with the specified float64 value
+// and returns the updated `meta` instance for method chaining.
+//
+// Parameters:
+//   - `value`: A float64 representing the delta value to set.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) WithDeltaValue(value float64) *meta {
+	m.deltaValue = value
+	return m
+}
+
 // Respond generates a map representation of the `meta` instance.
 //
 // This method collects various fields of the `meta` instance (e.g., `apiVersion`, `requestID`, etc.)
@@ -215,6 +231,9 @@ func (m *meta) Respond() map[string]any {
 	}
 	if m.IsCustomFieldPresent() {
 		mk["custom_fields"] = m.customFields
+	}
+	if m.IsDeltaValuePresent() {
+		mk["delta_value"] = m.deltaValue
 	}
 	return mk
 }
@@ -253,4 +272,16 @@ func (m *meta) JsonPretty() string {
 //   - A pointer to the modified `meta` instance, enabling method chaining.
 func (m *meta) RandRequestID() *meta {
 	return m.WithRequestID(cryptoID())
+}
+
+// RandDeltaValue sets a random delta value for the `meta` instance.
+//
+// This function assigns the current Unix nanosecond timestamp (converted to float64)
+// to the `deltaValue` field of the `meta` instance. The modified `meta` instance
+// is returned to allow for method chaining.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) RandDeltaValue() *meta {
+	return m.WithDeltaValue(float64(time.Now().UnixNano()))
 }

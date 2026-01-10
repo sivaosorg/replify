@@ -786,6 +786,18 @@ func (m *meta) IsCustomFieldPresent() bool {
 	return m.Available() && m.customFields != nil && len(m.customFields) > 0
 }
 
+// IsDeltaValuePresent checks whether the delta value is present in the `meta` instance.
+//
+// This function verifies that the `meta` instance is available and that
+// the `deltaValue` field is greater than zero.
+//
+// Returns:
+//   - `true` if `deltaValue` is greater than zero.
+//   - `false` if `meta` is unavailable or `deltaValue` is zero or negative.
+func (m *meta) IsDeltaValuePresent() bool {
+	return m.Available() && m.deltaValue > 0
+}
+
 // IsCustomFieldKeyPresent checks whether a specific key is present in the custom fields of the `meta` instance.
 //
 // This function first verifies that the `customFields` field is available and contains data using
@@ -1466,6 +1478,22 @@ func (w *wrapper) RandRequestID() *wrapper {
 		w.meta = Meta()
 	}
 	w.meta.RandRequestID()
+	return w
+}
+
+// RandDeltaValue generates and sets a random delta value in the `meta` field of the `wrapper` instance.
+//
+// This function checks if the `meta` field is present in the `wrapper`. If it is not,
+// a new `meta` instance is created. Then, it calls the `RandDeltaValue` method on the `meta`
+// instance to generate and set a random delta value.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+func (w *wrapper) RandDeltaValue() *wrapper {
+	if !w.IsMetaPresent() {
+		w.meta = Meta()
+	}
+	w.meta.RandDeltaValue()
 	return w
 }
 

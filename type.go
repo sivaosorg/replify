@@ -298,6 +298,7 @@ type meta struct {
 	locale        string         // Locale used for the request, e.g., "en-US".
 	requestedTime time.Time      // Timestamp when the request was made.
 	customFields  map[string]any // Additional custom metadata fields.
+	deltaValue    float64        // Represents the magnitude of change introduced by payload normalization or transformation.
 }
 
 // header represents a structured header for API responses.

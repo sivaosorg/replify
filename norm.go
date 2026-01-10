@@ -17,7 +17,7 @@ func (w *wrapper) NormPagination() *wrapper {
 		w.pagination = Pages()
 	} else {
 		w.pagination.Normalize()
-		w.RandRequestID() // Indicate that a change has occurred
+		w.RandDeltaValue() // Indicate that a change has occurred
 	}
 	return w
 }
@@ -51,7 +51,7 @@ func (w *wrapper) NormHSC() *wrapper {
 	}
 
 	if hasChanges {
-		w.RandRequestID() // Indicate that a change has occurred
+		w.RandDeltaValue() // Indicate that a change has occurred
 	}
 	return w
 }

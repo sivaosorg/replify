@@ -174,5 +174,6 @@ func defaultMetaValues() *meta {
 		WithLocale("en_US"). // vi_VN, en_US
 		WithApiVersion("v0.0.1").
 		WithRequestedTime(time.Now()).
-		WithRequestID(cryptoID())
+		WithRequestID(cryptoID()).
+		WithDeltaValue(0)
 }

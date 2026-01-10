@@ -1,0 +1,385 @@
+package replify
+
+import (
+	"context"
+	"io"
+	"sync"
+	"time"
+)
+
+// ///////////////////////////
+// Section exported types
+// ///////////////////////////
+
+// R represents a wrapper around the main `wrapper` struct. It is used as a high-level
+// abstraction to provide a simplified interface for handling API responses.
+// The `R` type allows for easier manipulation of the wrapped data, metadata, and other
+// response components, while maintaining the flexibility of the underlying `wrapper` structure.
+type R struct {
+	*wrapper
+}
+
+// StreamingStrategy defines how streaming is performed
+// for large datasets or long-running operations.
+type StreamingStrategy string
+
+// CompressionType defines compression algorithm
+// used for data transmission.
+type CompressionType string
+
+// Frame represents a program counter inside a stack frame.
+// A `Frame` is essentially a single point in the stack trace,
+// representing a program counter (the location in code) at the
+// time of a function call. Historically, for compatibility reasons,
+// a `Frame` is interpreted as a `uintptr`, but the value stored
+// in the `Frame` represents the program counter + 1. This allows
+// for distinguishing between an invalid program counter and a valid one.
+//
+// A `Frame` is typically used within a `StackTrace` to track the
+// sequence of function calls leading to the current point in the program.
+// A frame is a low-level representation of a specific place in the code,
+// helping in debugging by pinpointing the exact line of execution that caused
+// an error or event.
+//
+// Example usage:
+//
+//	var f Frame = Frame(0x1234567890)
+//	fmt.Println(f) // Prints the value of the program counter + 1
+type Frame uintptr
+
+// StackTrace represents a stack of Frames, which are ordered from the
+// innermost (newest) function call to the outermost (oldest) function call
+// in the current stack. It provides a high-level representation of the
+// sequence of function calls (the call stack) that led to the current execution
+// point, typically used for debugging or error reporting. The `StackTrace`
+// contains a slice of `Frame` values, which can be interpreted as program
+// counters in the call stack.
+//
+// The `StackTrace` can be used to generate detailed stack traces when an
+// error occurs, helping developers track down the sequence of function
+// calls that resulted in the error. For example, it may be used in conjunction
+// with the `underlying` and `underlyingStack` types to record where an error
+// occurred in the code (using `Callers()` to populate the stack) and provide
+// information on the call path leading to the error.
+//
+// Example usage:
+//
+//	var trace StackTrace = StackTrace{Frame(0x1234567890), Frame(0x0987654321)}
+//	fmt.Println(trace) // Prints the stack trace with the frames
+type StackTrace []Frame
+
+// BufferPool for efficient buffer reuse
+type BufferPool struct {
+	buffers chan []byte
+	size    int64
+}
+
+// StreamConfig contains streaming configuration
+// options for handling large data transfers.
+type StreamConfig struct {
+	// ChunkSize defines size of each chunk in bytes (default: 64KB)
+	ChunkSize int64 `json:"chunk_size"`
+
+	// IsReceiving indicates if streaming is for receiving data
+	// true if receiving data (decompress incoming), false if sending (compress outgoing)
+	// it's used to determine direction of data flow
+	IsReceiving bool `json:"is_receiving"`
+
+	// Strategy for streaming (direct, buffered, chunked)
+	Strategy StreamingStrategy `json:"strategy"`
+
+	// Compression algorithm to use during streaming
+	Compression CompressionType `json:"compression"`
+
+	// UseBufferPool enables buffer pooling for efficiency
+	UseBufferPool bool `json:"use_buffer_pool"`
+
+	// MaxConcurrentChunks for parallel processing
+	MaxConcurrentChunks int `json:"max_concurrent_chunks"`
+
+	// ReadTimeout for read operations
+	ReadTimeout time.Duration `json:"read_timeout,omitempty"`
+
+	// WriteTimeout for write operations
+	WriteTimeout time.Duration `json:"write_timeout,omitempty"`
+
+	// ThrottleRate in bytes/second (0 = unlimited)
+	// to limit bandwidth usage during streaming
+	// useful for avoiding network congestion
+	ThrottleRate int64 `json:"throttle_rate"`
+}
+
+// StreamProgress tracks streaming progress
+// and statistics.
+type StreamProgress struct {
+	// TotalBytes total data to be streamed
+	TotalBytes int64 `json:"total_bytes"`
+
+	// TransferredBytes bytes transferred so far
+	TransferredBytes int64 `json:"transferred_bytes"`
+
+	// Percentage completion (0-100)
+	Percentage int `json:"percentage"`
+
+	// CurrentChunk chunk number being processed
+	CurrentChunk int64 `json:"current_chunk"`
+
+	// TotalChunks total number of chunks
+	TotalChunks int64 `json:"total_chunks"`
+
+	// ElapsedTime time since streaming started
+	ElapsedTime time.Duration `json:"elapsed_time,omitempty"`
+
+	// EstimatedTimeRemaining estimated time until completion
+	EstimatedTimeRemaining time.Duration `json:"estimated_time_remaining,omitempty"`
+
+	// TransferRate bytes per second
+	TransferRate int64 `json:"transfer_rate"`
+
+	// LastUpdate time of last progress update
+	LastUpdate time.Time `json:"last_update,omitempty"`
+}
+
+// StreamingStats contains streaming statistics
+// and performance metrics.
+type StreamingStats struct {
+	// Time when streaming started
+	StartTime time.Time `json:"start_time,omitempty"`
+
+	// Time when streaming ended
+	EndTime time.Time `json:"end_time,omitempty"`
+
+	// Total bytes processed
+	TotalBytes int64 `json:"total_bytes"`
+
+	// Bytes after compression
+	CompressedBytes int64 `json:"compressed_bytes"`
+
+	// Compression ratio achieved
+	CompressionRatio float64 `json:"compression_ratio"`
+
+	// Average size of each chunk
+	AverageChunkSize int64 `json:"average_chunk_size"`
+
+	// Total number of chunks processed
+	TotalChunks int64 `json:"total_chunks"`
+
+	// Number of chunks that failed
+	FailedChunks int64 `json:"failed_chunks"`
+
+	// Number of chunks that were retried
+	RetriedChunks int64 `json:"retried_chunks"`
+
+	// Average latency per chunk
+	AverageLatency time.Duration `json:"average_latency,omitempty"`
+
+	// Peak bandwidth observed
+	PeakBandwidth int64 `json:"peak_bandwidth"`
+
+	// Average bandwidth during streaming
+	AverageBandwidth int64 `json:"average_bandwidth"`
+
+	// List of errors encountered during streaming
+	Errors []error `json:"-"`
+}
+
+// StreamingCallback function type for async notifications
+// Streamer interface for streaming data with progress tracking
+type StreamingCallback func(progress *StreamProgress, err error)
+
+// StreamingHook is a function type used for asynchronous notifications
+// that provides updates on the progress of a streaming operation along with
+// a reference to the associated R wrapper. This allows the callback
+// to access both the progress information and any relevant response data
+// encapsulated within the R type.
+type StreamingHook func(progress *StreamProgress, wrap *R)
+
+// StreamingWrapper wraps response with streaming capabilities
+// BufferPool represents a pool of reusable byte buffers to optimize memory usage during streaming.
+type StreamingWrapper struct {
+	*wrapper
+	config         *StreamConfig      // Streaming configuration
+	reader         io.Reader          // Source of data to be streamed
+	writer         io.Writer          // Destination for streamed data
+	progress       *StreamProgress    // Progress tracking information
+	stats          *StreamingStats    // Streaming statistics and metrics
+	callback       StreamingCallback  // Callback for progress updates
+	hook           StreamingHook      // Callback with R wrapper for progress updates
+	ctx            context.Context    // Context for managing streaming lifecycle
+	cancel         context.CancelFunc // Function to cancel streaming
+	currentChunk   int64              // Current chunk being processed
+	errors         []error            // Errors encountered during streaming
+	mu             sync.RWMutex       // Mutex for synchronizing access to shared fields
+	isStreaming    bool               // Indicates if streaming is in progress
+	compressionBuf []byte             // Compression buffer for data compression
+	bufferPool     *BufferPool        // Pool of reusable buffers for efficient memory usage
+}
+
+// StreamChunk represents a single chunk of data
+// in a streaming operation.
+type StreamChunk struct {
+	// SequenceNumber incremental chunk number
+	SequenceNumber int64 `json:"sequence_number"`
+
+	// Data chunk content
+	Data []byte `json:"-"`
+
+	// Size of chunk
+	Size int64 `json:"size"`
+
+	// Checksum for integrity verification
+	Checksum uint32 `json:"checksum"`
+
+	// Timestamp when chunk was created
+	Timestamp time.Time `json:"timestamp,omitempty"`
+
+	// Compressed indicates if chunk is compressed
+	Compressed bool `json:"compressed"`
+
+	// CompressionType used for this chunk
+	CompressionType CompressionType `json:"compression_type"`
+
+	// Error if any occurred during chunk processing
+	Error error `json:"-"`
+}
+
+// StreamingMetadata extends wrapper metadata for streaming context
+// Streamer defines methods for streaming data with progress tracking
+type StreamingMetadata struct {
+	// Streaming strategy used
+	Strategy StreamingStrategy `json:"strategy"`
+
+	// Compression algorithm used
+	CompressionType CompressionType `json:"compression_type"`
+
+	// Size of each chunk in bytes
+	ChunkSize int64 `json:"chunk_size"`
+
+	// Total number of chunks
+	TotalChunks int64 `json:"total_chunks"`
+
+	// Estimated total size of data
+	EstimatedTotalSize int64 `json:"estimated_total_size"`
+
+	// Timestamp when streaming started
+	StartedAt time.Time `json:"started_at"`
+
+	// Timestamp when streaming completed
+	CompletedAt time.Time `json:"completed_at"`
+
+	// Indicates if streaming can be paused
+	IsPausable bool `json:"is_pausable"`
+
+	// Indicates if streaming can be resumed
+	IsResumable bool `json:"is_resumable"`
+}
+
+// ///////////////////////////
+// Section unexported types
+// ///////////////////////////
+
+// pagination represents pagination details for paginated API responses.
+type pagination struct {
+	page       int  // Current page number.
+	perPage    int  // Number of items per page.
+	totalPages int  // Total number of pages.
+	totalItems int  // Total number of items available.
+	isLast     bool // Indicates whether this is the last page.
+}
+
+// meta represents metadata information about an API response.
+type meta struct {
+	apiVersion    string         // API version used for the request.
+	requestID     string         // Unique identifier for the request, useful for debugging.
+	locale        string         // Locale used for the request, e.g., "en-US".
+	requestedTime time.Time      // Timestamp when the request was made.
+	customFields  map[string]any // Additional custom metadata fields.
+}
+
+// header represents a structured header for API responses.
+type header struct {
+	code        int    // Application-specific status code.
+	text        string // Human-readable status text.
+	typez       string // Type or category of the status, e.g., "info", "error".
+	description string // Detailed description of the status.
+}
+
+// wrapper is the main structure for wrapping API responses, including metadata, data, and debugging information.
+type wrapper struct {
+	statusCode int            // HTTP status code for the response.
+	total      int            // Total number of items (used in non-paginated responses).
+	message    string         // A message providing additional context about the response.
+	data       any            // The primary data payload of the response.
+	path       string         // Request path for which the response is generated.
+	header     *header        // Structured header details for the response.
+	meta       *meta          // Metadata about the API response.
+	pagination *pagination    // Pagination details, if applicable.
+	debug      map[string]any // Debugging information (useful for development).
+	errors     error          // Internal errors (not exposed in JSON responses).
+	cachedWrap map[string]any // Cached response data for performance optimization.
+	cacheHash  string         // Hash of the cached response, used for cache validation.
+	cacheMutex sync.RWMutex   // Mutex for synchronizing access to the cached response data.
+}
+
+// stack represents a stack of program counters. It is a slice of `uintptr`
+// values that store the addresses (or locations) of program counters
+// from a function call stack. This is useful for tracking where errors
+// or events originated in the code, and it is used by the other error
+// types to capture a stack trace at the time of error creation.
+//
+// The stack is typically populated using a function like `Callers()`,
+// which retrieves the current call stack.
+type stack []uintptr
+
+// underlying represents an error with an associated message and a stack trace.
+// It is used to encapsulate the message (i.e., what went wrong) and the
+// program's call stack (i.e., where the error occurred) at the point when
+// the error is created. This type is used internally by functions like
+// `WithError` and `WithErrorf`.
+//
+// Fields:
+//   - msg: The error message describing what went wrong. This is a string
+//     representation of the error context.
+//   - stack: A pointer to a stack of program counters that represent the
+//     stack trace where the error was created.
+type underlying struct {
+	msg    string // Message that describes the error
+	*stack        // Pointer to the stack trace where the error occurred
+}
+
+// underlyingStack is an error type that contains an existing error and its
+// associated stack trace. It is used when we need to annotate an existing
+// error with a stack trace, preserving the original error while adding
+// additional information such as the place where the annotation occurred.
+//
+// This type is typically used in functions like `Wrap` and `Wrapf`.
+//
+// Fields:
+//   - error: The original error that is being wrapped or annotated.
+//   - stack: A pointer to the stack trace captured at the point this
+//     annotation was added.
+type underlyingStack struct {
+	error  // The original error being wrapped or annotated
+	*stack // Pointer to the stack trace where the annotation occurred
+}
+
+// underlyingMessage represents an error with a cause (another error)
+// and a message. This type is used to create errors that have both
+// an associated message and a "cause," which can be another error
+// that led to the current one. It is commonly used to propagate errors
+// and add context to the original error message.
+//
+// Fields:
+//   - cause: The underlying error that caused this error. This could be
+//     another error returned from a function, allowing us to trace back
+//     the error chain.
+//   - msg: A string message describing the context of the error, which
+//     can be appended to the original cause message to provide more clarity.
+type underlyingMessage struct {
+	cause error  // The original error being wrapped or annotated
+	msg   string // The message describing the additional context for the error
+}
+
+type tools struct{}
+
+var Toolbox tools = tools{}

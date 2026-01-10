@@ -273,6 +273,10 @@ const (
 	//  Example: "application/json"
 	MediaTypeApplicationJSON = "application/json"
 
+	// ApplicationJSONUTF8 specifies that the content is JSON-formatted data with UTF-8 character encoding.
+	//  Example: "application/json; charset=utf-8"
+	MediaTypeApplicationJSONUTF8 = "application/json; charset=utf-8"
+
 	// ApplicationXML specifies that the content is XML-formatted data.
 	//  Example: "application/xml"
 	MediaTypeApplicationXML = "application/xml"

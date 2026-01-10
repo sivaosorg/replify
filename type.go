@@ -19,6 +19,10 @@ type R struct {
 	*wrapper
 }
 
+// Locale represents an IETF-style locale identifier
+// formatted as language_COUNTRY (e.g., en_US).
+type Locale string
+
 // StreamingStrategy defines how streaming is performed
 // for large datasets or long-running operations.
 type StreamingStrategy string

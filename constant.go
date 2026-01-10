@@ -622,3 +622,127 @@ const (
 	// defaultChunkSize is used to limit the size of data chunks when processing large responses or requests.
 	defaultChunkSize int = 1024
 )
+
+// Locale defines the language and regional settings for content localization.
+// It specifies the language and country/region code.
+const (
+	// English (United States)
+	//  Example: en_US
+	LocaleEnUS Locale = "en_US"
+
+	// English (United Kingdom)
+	//  Example: en_GB
+	LocaleEnGB Locale = "en_GB"
+
+	// English (Australia)
+	//  Example: en_AU
+	LocaleEnAU Locale = "en_AU"
+
+	// English (Canada)
+	//  Example: en_CA
+	LocaleEnCA Locale = "en_CA"
+
+	// Vietnamese (Vietnam)
+	//  Example: vi_VN
+	LocaleViVN Locale = "vi_VN"
+
+	// French (France)
+	//  Example: fr_FR
+	LocaleFrFR Locale = "fr_FR"
+
+	// French (Canada)
+	//  Example: fr_CA
+	LocaleFrCA Locale = "fr_CA"
+
+	// German (Germany)
+	//  Example: de_DE
+	LocaleDeDE Locale = "de_DE"
+
+	// Spanish (Spain)
+	//  Example: es_ES
+	LocaleEsES Locale = "es_ES"
+
+	// Spanish (Mexico)
+	//  Example: es_MX
+	LocaleEsMX Locale = "es_MX"
+
+	// Portuguese (Brazil)
+	//  Example: pt_BR
+	LocalePtBR Locale = "pt_BR"
+
+	// Portuguese (Portugal)
+	//  Example: pt_PT
+	LocalePtPT Locale = "pt_PT"
+
+	// Italian (Italy)
+	//  Example: it_IT
+	LocaleItIT Locale = "it_IT"
+
+	// Dutch (Netherlands)
+	//  Example: nl_NL
+	LocaleNlNL Locale = "nl_NL"
+
+	// Russian (Russia)
+	//  Example: ru_RU
+	LocaleRuRU Locale = "ru_RU"
+
+	// Japanese (Japan)
+	//  Example: ja_JP
+	LocaleJaJP Locale = "ja_JP"
+
+	// Korean (South Korea)
+	//  Example: ko_KR
+	LocaleKoKR Locale = "ko_KR"
+
+	// Chinese (Simplified, China)
+	//  Example: zh_CN
+	LocaleZhCN Locale = "zh_CN"
+
+	// Chinese (Traditional, Taiwan)
+	//  Example: zh_TW
+	LocaleZhTW Locale = "zh_TW"
+
+	// Thai (Thailand)
+	//  Example: th_TH
+	LocaleThTH Locale = "th_TH"
+
+	// Indonesian (Indonesia)
+	//  Example: id_ID
+	LocaleIdID Locale = "id_ID"
+
+	// Malay (Malaysia)
+	//  Example: ms_MY
+	LocaleMsMY Locale = "ms_MY"
+
+	// Hindi (India)
+	//  Example: hi_IN
+	LocaleHiIN Locale = "hi_IN"
+
+	// Arabic (Saudi Arabia)
+	//  Example: ar_SA
+	LocaleArSA Locale = "ar_SA"
+
+	// Turkish (Turkey)
+	//  Example: tr_TR
+	LocaleTrTR Locale = "tr_TR"
+
+	// Polish (Poland)
+	//  Example: pl_PL
+	LocalePlPL Locale = "pl_PL"
+
+	// Swedish (Sweden)
+	//  Example: sv_SE
+	LocaleSvSE Locale = "sv_SE"
+
+	// Danish (Denmark)
+	//  Example: da_DK
+	LocaleDaDK Locale = "da_DK"
+
+	// Norwegian (Norway)
+	//  Example: nb_NO
+	LocaleNbNO Locale = "nb_NO"
+
+	// Finnish (Finland)
+	//  Example: fi_FI
+	LocaleFiFI Locale = "fi_FI"
+)

@@ -1035,6 +1035,7 @@ func (w *wrapper) WithStatusCode(code int) *wrapper {
 		code = http.StatusInternalServerError
 	}
 	w.statusCode = code
+	w.header = Header().WithCode(code).WithText(http.StatusText(code))
 	return w
 }
 

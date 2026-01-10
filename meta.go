@@ -82,6 +82,37 @@ func (m *meta) WithLocale(v string) *meta {
 	return m
 }
 
+// WithLocalef sets the locale for the `meta` instance using a formatted string.
+//
+// This function constructs a formatted string for the locale using the provided `format` string
+// and arguments (`args`). It then assigns the formatted value to the `locale` field of the `meta` instance.
+//
+// The method supports method chaining by returning a pointer to the modified `meta` instance.
+//
+// Parameters:
+//   - format: A format string to construct the locale.
+//   - args: A variadic list of arguments to be interpolated into the format string.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) WithLocalef(format string, args ...any) *meta {
+	return m.WithLocale(fmt.Sprintf(format, args...))
+}
+
+// WithLocaleValue sets the locale for the `meta` instance using a `Locale` type.
+//
+// This function updates the `locale` field of the `meta` instance with the string representation
+// of the provided `Locale` value. It returns the updated `meta` instance for method chaining.
+//
+// Parameters:
+//   - `locale`: A `Locale` type representing the locale to set.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) WithLocaleValue(locale Locale) *meta {
+	return m.WithLocale(string(locale))
+}
+
 // WithRequestedTime sets the requested time for the `meta` instance.
 //
 // This function updates the `requestedTime` field of the `meta` instance with the specified value

@@ -16,6 +16,7 @@
     "jsonpretty",
     "jsonptr",
     "Kbps",
+    "Localef",
     "Mbps",
     "Messagef",
     "modcache",
@@ -51,7 +52,6 @@
     "webp",
     "wraperr",
     "Wrapf",
-    "replify",
     "wrapstack",
     "XCSRF",
     "XXSS"

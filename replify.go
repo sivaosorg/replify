@@ -1660,6 +1660,22 @@ func (w *wrapper) WithIsLast(v bool) *wrapper {
 	return w
 }
 
+// NormPagination normalizes the pagination information in the wrapper.
+//
+// If the pagination object is not already initialized, it creates a new one
+// using the `NewPagination` function. It then calls the `Normalize` method
+// on the pagination instance to ensure its values are consistent.
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) NormPagination() *wrapper {
+	if !w.IsPagingPresent() {
+		w.pagination = Pages()
+	}
+	w.pagination.Normalize()
+	return w
+}
+
 // Hash256 generates a hash string for the `wrapper` instance.
 //
 // This method concatenates the values of the `statusCode`, `message`, `data`, and `meta` fields

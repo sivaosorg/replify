@@ -93,6 +93,40 @@ func (p *pagination) WithIsLast(v bool) *pagination {
 	return p
 }
 
+// Normalize adjusts the pagination fields to ensure consistency.
+//
+// This method recalculates the `totalPages` based on `totalItems` and `perPage`,
+// ensuring that the pagination state is coherent. It also adjusts the `page` field
+// to ensure it does not exceed `totalPages`, and sets the `isLast` field appropriately
+// based on the current page position.
+func (p *pagination) Normalize() *pagination {
+	// Calculate total pages only if perPage is valid to avoid division by zero.
+	if p.perPage > 0 {
+		// Calculate total pages (ceiling division)
+		p.totalPages = (p.totalItems + p.perPage - 1) / p.perPage
+	} else {
+		// If perPage is zero or negative, we cannot calculate totalPages
+		p.totalPages = 0
+	}
+
+	// If there are no items, set totalPages to 0 and page to 1.
+	if p.totalItems == 0 {
+		p.totalPages = 0
+		p.page = 1
+		p.isLast = true
+		return p
+	}
+
+	// Adjust the current page if it exceeds totalPages.
+	if p.page > p.totalPages && p.totalPages > 0 {
+		p.page = p.totalPages
+	}
+
+	// Determine if we are on the last page.
+	p.isLast = p.page >= p.totalPages
+	return p
+}
+
 // Respond generates a map representation of the `pagination` instance.
 //
 // This method collects various fields related to pagination (e.g., `page`, `per_page`, etc.)

@@ -15,6 +15,7 @@ func (p *pagination) WithPage(v int) *pagination {
 		v = 1
 	}
 	p.page = v
+	p.calculate()
 	return p
 }
 
@@ -34,6 +35,7 @@ func (p *pagination) WithPerPage(v int) *pagination {
 		v = 10
 	}
 	p.perPage = v
+	p.calculate()
 	return p
 }
 
@@ -72,6 +74,7 @@ func (p *pagination) WithTotalItems(v int) *pagination {
 		v = 0
 	}
 	p.totalItems = v
+	p.calculate()
 	return p
 }
 
@@ -141,4 +144,38 @@ func (p *pagination) Json() string {
 //   - A prettified JSON string representation of the `pagination` instance.
 func (p *pagination) JsonPretty() string {
 	return jsonpretty(p.Respond())
+}
+
+// calculate computes the total pages and determines if the current page is the last one.
+//
+// This method performs calculations based on the `totalItems` and `perPage` fields
+// to derive the `totalPages`. It uses ceiling division to ensure that any remaining
+// items that don't fill a complete page are still counted as an additional page.
+// Additionally, it checks if the current `page` is the last page by comparing it
+// to `totalPages`, setting the `isLast` field accordingly.
+func (p *pagination) calculate() {
+	// Ensure page is at least 1.
+	if p.page <= 0 {
+		p.page = 1
+	}
+
+	// Only calculate if perPage is valid to avoid division by zero.
+	if p.totalItems > 0 && p.perPage > 0 {
+		// Calculate total pages (ceiling division)
+		p.totalPages = (p.totalItems + p.perPage - 1) / p.perPage
+	}
+
+	// If there are no items, there is 1 page (page 1) which is empty,
+	// or 0 pages. Usually, for API consistency, we treat 0 items as being on the last page.
+	if p.totalItems == 0 {
+		p.totalPages = 0
+		p.isLast = true
+		return
+	}
+
+	// Determine if we are on the last page.
+	// We are on the last page if the current page is greater than or equal to totalPages.
+	if p.totalPages > 0 {
+		p.isLast = p.page >= p.totalPages
+	}
 }

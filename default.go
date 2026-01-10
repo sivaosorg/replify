@@ -34,6 +34,22 @@ func Pages() *pagination {
 	return p
 }
 
+// FromPages creates a new instance of the `pagination` struct
+// with specified total items and items per page.
+//
+// This function initializes a `pagination` struct and sets
+// the total number of items and items per page using the provided parameters.
+//
+// Parameters:
+//   - totalItems: The total number of items to be paginated.
+//   - perPage: The number of items to be displayed per page.
+//
+// Returns:
+//   - A pointer to a newly created `pagination` instance with the specified settings.
+func FromPages(totalItems int, perPage int) *pagination {
+	return Pages().WithPerPage(perPage).WithTotalItems(totalItems)
+}
+
 // Meta creates a new instance of the `meta` struct.
 //
 // This function initializes a `meta` struct with its default values,

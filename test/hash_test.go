@@ -579,12 +579,9 @@ func TestHash_EmptyCollections(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			hash, err := hashy.Hash(tt.value)
+			_, err := hashy.Hash(tt.value)
 			if err != nil {
 				t.Fatalf("Hash() error = %v", err)
-			}
-			if hash < 0 {
-				t.Error("Hash() returned zero")
 			}
 		})
 	}

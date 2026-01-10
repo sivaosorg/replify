@@ -505,7 +505,7 @@ To contribute to project, follow these steps:
 2. Navigate to the project directory:
 
    ```bash
-   cd wrapify
+   cd replify
    ```
 
 3. Prepare the project environment:

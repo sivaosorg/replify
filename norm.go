@@ -4,7 +4,19 @@ import (
 	"net/http"
 )
 
-// NormPagination normalizes the pagination information in the wrapper.
+// Normalize performs a comprehensive normalization of the wrapper instance.
+//
+// It sequentially calls the `NormHSC` method to normalize the relationship
+// between the header and status code, followed by the `NormPaging` method
+// to normalize the pagination information.
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) Normalize() *wrapper {
+	return w.NormHSC().NormPaging()
+}
+
+// NormPaging normalizes the pagination information in the wrapper.
 //
 // If the pagination object is not already initialized, it creates a new one
 // using the `NewPagination` function. It then calls the `Normalize` method
@@ -12,7 +24,7 @@ import (
 //
 // Returns:
 //   - A pointer to the updated `wrapper` instance.
-func (w *wrapper) NormPagination() *wrapper {
+func (w *wrapper) NormPaging() *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
 	} else {

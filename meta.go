@@ -3,6 +3,8 @@ package replify
 import (
 	"fmt"
 	"time"
+
+	"github.com/sivaosorg/replify/pkg/randn"
 )
 
 // WithApiVersion sets the API version for the `meta` instance.
@@ -283,5 +285,5 @@ func (m *meta) RandRequestID() *meta {
 // Returns:
 //   - A pointer to the modified `meta` instance, enabling method chaining.
 func (m *meta) RandDeltaValue() *meta {
-	return m.WithDeltaValue(float64(time.Now().UnixNano()))
+	return m.WithDeltaValue(randn.RandFt64())
 }

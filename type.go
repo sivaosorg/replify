@@ -324,6 +324,7 @@ type wrapper struct {
 	cachedWrap map[string]any // Cached response data for performance optimization.
 	cacheHash  string         // Hash of the cached response, used for cache validation.
 	cacheMutex sync.RWMutex   // Mutex for synchronizing access to the cached response data.
+	sorted     bool           // Indicates if the response data is sorted.
 }
 
 // stack represents a stack of program counters. It is a slice of `uintptr`

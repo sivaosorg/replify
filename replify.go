@@ -621,6 +621,20 @@ func (w *wrapper) Reset() *wrapper {
 	return w
 }
 
+// DeltaValue retrieves the delta value from the `meta` instance.
+//
+// This function checks if the `meta` instance is present and returns the `deltaValue` field.
+// If the `meta` instance is not present, it returns a default value of `0`.
+//
+// Returns:
+//   - A float64 representing the delta value.
+func (w *wrapper) DeltaValue() float64 {
+	if !w.IsMetaPresent() {
+		return 0
+	}
+	return w.meta.deltaValue
+}
+
 // Available checks whether the `pagination` instance is non-nil.
 //
 // This function ensures that the `pagination` object exists and is not nil.

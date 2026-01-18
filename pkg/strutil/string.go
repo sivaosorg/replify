@@ -2169,6 +2169,9 @@ func StartsWithIgnoreCase(str string, prefix string) bool {
 //	input2 := "xyz"
 //	result2 := Repeat(input2, 0) // result2 will be "" (empty string).
 func Repeat(str string, repeat int) string {
+	if IsEmpty(str) || repeat <= 0 {
+		return str // return empty string
+	}
 	buff := ""
 	for repeat > 0 {
 		repeat = repeat - 1
@@ -2203,6 +2206,9 @@ func Repeat(str string, repeat int) string {
 //	sep2 := ", "
 //	result2 := RepeatWithSeparator(input2, sep2, 0) // result2 will be "" (empty string).
 func RepeatWithSeparator(str string, sep string, repeat int) string {
+	if IsEmpty(str) || repeat <= 0 {
+		return str // return empty string
+	}
 	buff := ""
 	for repeat > 0 {
 		repeat = repeat - 1

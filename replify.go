@@ -1896,32 +1896,6 @@ func (w *wrapper) AsStreaming(reader io.Reader) *StreamingWrapper {
 	return w.WithStreaming(reader, NewStreamConfig())
 }
 
-// EnableSorting enables sorting for the `wrapper` instance.
-//
-// This function sets the `sorted` field of the `wrapper` to `true`,
-// indicating that sorting is enabled. It returns the modified `wrapper`
-// instance to allow method chaining.
-//
-// Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
-func (w *wrapper) EnableSorting() *wrapper {
-	w.sorted = true
-	return w
-}
-
-// DisableSorting disables sorting for the `wrapper` instance.
-//
-// This function sets the `sorted` field of the `wrapper` to `false`,
-// indicating that sorting is disabled. It returns the modified `wrapper`
-// instance to allow method chaining.
-//
-// Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
-func (w *wrapper) DisableSorting() *wrapper {
-	w.sorted = false
-	return w
-}
-
 // Respond generates a map representation of the `wrapper` instance.
 //
 // This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)

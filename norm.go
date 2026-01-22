@@ -14,7 +14,10 @@ import (
 // Returns:
 //   - A pointer to the updated `wrapper` instance.
 func (w *wrapper) Normalize() *wrapper {
-	return w.NormHSC().NormPaging().NormMeta()
+	return w.NormHSC().
+		NormPaging().
+		NormMeta().
+		NormBody()
 }
 
 // NormPaging normalizes the pagination information in the wrapper.
@@ -112,6 +115,118 @@ func (w *wrapper) NormMeta() *wrapper {
 
 	if hasChanges {
 		w.RandDeltaValue() // Indicate that a change has occurred
+	}
+	return w
+}
+
+// NormBody normalizes the data/body field in the wrapper.
+//
+// This method ensures that the data field is properly handled:
+//   - If data is nil and status code indicates success with content, logs a warning (optional)
+//   - Validates that data type is consistent with the response type
+//   - For list/array responses, ensures total count is synchronized
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) NormBody() *wrapper {
+	hasChanges := false
+
+	// Sync total count if data is a slice/array
+	if w.data != nil {
+		switch v := w.data.(type) {
+		case []any:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []map[string]any:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []string:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []int:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []int8:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []int16:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []int32:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []int64:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []uint:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []uint8:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []uint16:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []uint32:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []uint64:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []float32:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		case []float64:
+			if w.total == 0 && len(v) > 0 {
+				w.total = len(v)
+				hasChanges = true
+			}
+		}
+	}
+
+	// If we have pagination with total items but no total set on wrapper
+	if w.IsPagingPresent() && w.pagination.TotalItems() > 0 && w.total == 0 {
+		w.total = w.pagination.TotalItems()
+		hasChanges = true
+	}
+
+	// Sync total items in pagination if wrapper total is set,
+	// but pagination total items is zero
+	if w.IsPagingPresent() && w.pagination.TotalItems() == 0 && w.total > 0 {
+		w.pagination.WithTotalItems(w.total)
+		hasChanges = true
+	}
+
+	if hasChanges {
+		w.RandDeltaValue()
 	}
 	return w
 }

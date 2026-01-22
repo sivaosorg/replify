@@ -2,6 +2,7 @@ package replify
 
 import (
 	"net/http"
+	"time"
 )
 
 // Normalize performs a comprehensive normalization of the wrapper instance.
@@ -13,7 +14,7 @@ import (
 // Returns:
 //   - A pointer to the updated `wrapper` instance.
 func (w *wrapper) Normalize() *wrapper {
-	return w.NormHSC().NormPaging()
+	return w.NormHSC().NormPaging().NormMeta()
 }
 
 // NormPaging normalizes the pagination information in the wrapper.
@@ -59,6 +60,53 @@ func (w *wrapper) NormHSC() *wrapper {
 			break
 		}
 		w.statusCode = w.header.Code()
+		hasChanges = true
+	}
+
+	if hasChanges {
+		w.RandDeltaValue() // Indicate that a change has occurred
+	}
+	return w
+}
+
+// NormMeta normalizes the metadata in the wrapper.
+//
+// If the meta object is not already initialized, it creates a new one
+// using the `Meta` function. It then ensures that essential fields such as
+// locale, API version, request ID, and requested time are set to default
+// values if they are not already present.
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) NormMeta() *wrapper {
+	hasChanges := false
+
+	if !w.IsMetaPresent() {
+		w.meta = Meta()
+		hasChanges = true
+	}
+
+	// Set default locale if not present
+	if !w.meta.IsLocalePresent() {
+		w.meta.locale = string(LocaleEnUS)
+		hasChanges = true
+	}
+
+	// Set default API version if not present
+	if !w.meta.IsApiVersionPresent() {
+		w.meta.apiVersion = "v0.0.1"
+		hasChanges = true
+	}
+
+	// Generate request ID if not present
+	if !w.meta.IsRequestIDPresent() {
+		w.meta.RandRequestID()
+		hasChanges = true
+	}
+
+	// Set requested time if not present
+	if !w.meta.IsRequestedTimePresent() {
+		w.meta.requestedTime = time.Now()
 		hasChanges = true
 	}
 

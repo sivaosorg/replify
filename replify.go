@@ -785,7 +785,7 @@ func (m *meta) IsLocalePresent() bool {
 //   - `true` if `requestedTime` is not the zero value of `time.Time`.
 //   - `false` if `meta` is unavailable or `requestedTime` is uninitialized.
 func (m *meta) IsRequestedTimePresent() bool {
-	return m.Available() && m.requestedTime != time.Time{}
+	return m.Available() && m.requestedTime != time.Time{} && !m.requestedTime.IsZero()
 }
 
 // IsCustomFieldPresent checks whether custom fields are present in the `meta` instance.

@@ -647,6 +647,20 @@ func (w *wrapper) DeltaValue() float64 {
 	return w.meta.deltaValue
 }
 
+// DeltaCnt retrieves the delta count from the `meta` instance.
+//
+// This function checks if the `meta` instance is present and returns the `deltaCnt` field.
+// If the `meta` instance is not present, it returns a default value of `0`.
+//
+// Returns:
+//   - An integer representing the delta count.
+func (w *wrapper) DeltaCnt() int {
+	if !w.IsMetaPresent() {
+		return 0
+	}
+	return w.meta.deltaCnt
+}
+
 // Available checks whether the `pagination` instance is non-nil.
 //
 // This function ensures that the `pagination` object exists and is not nil.

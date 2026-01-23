@@ -20,9 +20,9 @@ import (
 //   - A pointer to the updated `wrapper` instance.
 func (w *wrapper) NormAll() *wrapper {
 	return w.NormHSC().
-		NormPaging().
 		NormMeta().
 		NormBody().
+		NormPaging().
 		NormMessage()
 }
 

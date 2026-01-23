@@ -7,15 +7,18 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// Normalize performs a comprehensive normalization of the wrapper instance.
+// NormAll performs a comprehensive normalization of the wrapper instance.
 //
-// It sequentially calls the `NormHSC` method to normalize the relationship
-// between the header and status code, followed by the `NormPaging` method
-// to normalize the pagination information.
+// It sequentially calls the following normalization methods:
+//   - NormHSC
+//   - NormPaging
+//   - NormMeta
+//   - NormBody
+//   - NormMessage
 //
 // Returns:
 //   - A pointer to the updated `wrapper` instance.
-func (w *wrapper) Normalize() *wrapper {
+func (w *wrapper) NormAll() *wrapper {
 	return w.NormHSC().
 		NormPaging().
 		NormMeta().

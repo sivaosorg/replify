@@ -463,6 +463,18 @@ func (w *wrapper) IsSuccess() bool {
 	return w.Available() && (200 <= w.statusCode) && (w.statusCode <= 299)
 }
 
+// IsInformational checks whether the HTTP status code indicates an informational response.
+//
+// This function checks if the `statusCode` is between 100 and 199, inclusive, which indicates an informational HTTP response.
+//
+// Returns:
+//   - A boolean value indicating whether the HTTP response is informational:
+//   - `true` if the status code is between 100 and 199 (inclusive).
+//   - `false` if the status code is outside of this range.
+func (w *wrapper) IsInformational() bool {
+	return w.Available() && (100 <= w.statusCode) && (w.statusCode <= 199)
+}
+
 // IsRedirection checks whether the HTTP status code indicates a redirection response.
 //
 // This function checks if the `statusCode` is between 300 and 399, inclusive, which indicates a redirection HTTP response.

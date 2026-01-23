@@ -3,6 +3,8 @@ package replify
 import (
 	"net/http"
 	"time"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // Normalize performs a comprehensive normalization of the wrapper instance.
@@ -17,7 +19,8 @@ func (w *wrapper) Normalize() *wrapper {
 	return w.NormHSC().
 		NormPaging().
 		NormMeta().
-		NormBody()
+		NormBody().
+		NormMessage()
 }
 
 // NormPaging normalizes the pagination information in the wrapper.
@@ -227,6 +230,44 @@ func (w *wrapper) NormBody() *wrapper {
 
 	if hasChanges {
 		w.RandDeltaValue()
+	}
+	return w
+}
+
+// NormMessage normalizes the message field in the wrapper.
+//
+// If the message is empty and a status code is present, it sets a default
+// message based on the status code category (success, redirection, client error,
+// server error).
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) NormMessage() *wrapper {
+	hasChanges := false
+
+	// Set default message based on status code if message is empty
+	if strutil.IsEmpty(w.message) && w.IsStatusCodePresent() {
+		switch {
+		case w.IsInformational(): // 1xx
+			w.message = Continue.Type()
+			hasChanges = true
+		case w.IsSuccess(): // 2xx
+			w.message = OK.Type()
+			hasChanges = true
+		case w.IsRedirection(): // 3xx
+			w.message = MultipleChoices.Type()
+			hasChanges = true
+		case w.IsClientError(): // 4xx
+			w.message = BadRequest.Type()
+			hasChanges = true
+		case w.IsServerError(): // 5xx
+			w.message = InternalServerError.Type()
+			hasChanges = true
+		}
+	}
+
+	if hasChanges {
+		w.RandDeltaValue() // Indicate that a change has occurred
 	}
 	return w
 }

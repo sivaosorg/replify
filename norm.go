@@ -36,10 +36,8 @@ func (w *wrapper) NormAll() *wrapper {
 // Returns:
 //   - A pointer to the updated `wrapper` instance.
 func (w *wrapper) NormPaging() *wrapper {
-	if !w.IsPagingPresent() {
-		w.pagination = Pages()
-	} else {
-		w.pagination.Normalize()
+	if w.IsPagingPresent() {
+		w.pagination.Norm()
 		w.RandDeltaValue() // Indicate that a change has occurred
 	}
 	return w

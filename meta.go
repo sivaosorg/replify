@@ -199,6 +199,42 @@ func (m *meta) WithDeltaValue(value float64) *meta {
 	return m
 }
 
+// WithDeltaCnt sets the delta count for the `meta` instance.
+// Represents the number of changes introduced by payload normalization or transformation.
+//
+// This function updates the `deltaCnt` field of the `meta` instance with the specified int value
+// and returns the updated `meta` instance for method chaining.
+//
+// Parameters:
+//   - `value`: An int representing the delta count to set.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) WithDeltaCnt(value int) *meta {
+	m.deltaCnt = value
+	return m
+}
+
+// IncreaseDeltaCnt increments the delta count for the `meta` instance by 1.
+// Represents an additional change introduced by payload normalization or transformation.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) IncreaseDeltaCnt() *meta {
+	m.deltaCnt++
+	return m
+}
+
+// DecreaseDeltaCnt decrements the delta count for the `meta` instance by 1.
+// Represents the removal of a change introduced by payload normalization or transformation.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) DecreaseDeltaCnt() *meta {
+	m.deltaCnt--
+	return m
+}
+
 // Respond generates a map representation of the `meta` instance.
 //
 // This method collects various fields of the `meta` instance (e.g., `apiVersion`, `requestID`, etc.)
@@ -233,6 +269,9 @@ func (m *meta) Respond() map[string]any {
 	}
 	if m.IsCustomFieldPresent() {
 		mk["custom_fields"] = m.customFields
+	}
+	if m.IsDeltaCntPresent() {
+		mk["delta_cnt"] = m.deltaCnt
 	}
 	if m.IsDeltaValuePresent() {
 		mk["delta_value"] = m.deltaValue

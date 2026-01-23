@@ -299,6 +299,7 @@ type meta struct {
 	requestedTime time.Time      // Timestamp when the request was made.
 	customFields  map[string]any // Additional custom metadata fields.
 	deltaValue    float64        // Represents the magnitude of change introduced by payload normalization or transformation.
+	deltaCnt      int            // Count of normalization or transformation operations performed on the payload.
 }
 
 // header represents a structured header for API responses.

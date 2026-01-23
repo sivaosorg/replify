@@ -824,6 +824,18 @@ func (m *meta) IsDeltaValuePresent() bool {
 	return m.Available() && m.deltaValue > 0
 }
 
+// IsDeltaCntPresent checks whether the delta count is present in the `meta` instance.
+//
+// This function verifies that the `meta` instance is available and that
+// the `deltaCnt` field is greater than zero.
+//
+// Returns:
+//   - `true` if `deltaCnt` is greater than zero.
+//   - `false` if `meta` is unavailable or `deltaCnt` is zero or negative.
+func (m *meta) IsDeltaCntPresent() bool {
+	return m.Available() && m.deltaCnt > 0
+}
+
 // IsCustomFieldKeyPresent checks whether a specific key is present in the custom fields of the `meta` instance.
 //
 // This function first verifies that the `customFields` field is available and contains data using
@@ -1520,6 +1532,37 @@ func (w *wrapper) RandDeltaValue() *wrapper {
 		w.meta = Meta()
 	}
 	w.meta.RandDeltaValue()
+	w.meta.IncreaseDeltaCnt()
+	return w
+}
+
+// IncreaseDeltaCnt increments the delta count in the `meta` field of the `wrapper` instance.
+//
+// This function ensures the `meta` field is present, creating a new instance if needed, and
+// increments the delta count in the `meta` using the `IncreaseDeltaCnt` method.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+func (w *wrapper) IncreaseDeltaCnt() *wrapper {
+	if !w.IsMetaPresent() {
+		w.meta = Meta()
+	}
+	w.meta.IncreaseDeltaCnt()
+	return w
+}
+
+// DecreaseDeltaCnt decrements the delta count in the `meta` field of the `wrapper` instance.
+//
+// This function ensures the `meta` field is present, creating a new instance if needed, and
+// decrements the delta count in the `meta` using the `DecreaseDeltaCnt` method.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+func (w *wrapper) DecreaseDeltaCnt() *wrapper {
+	if !w.IsMetaPresent() {
+		w.meta = Meta()
+	}
+	w.meta.DecreaseDeltaCnt()
 	return w
 }
 

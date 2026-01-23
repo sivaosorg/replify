@@ -93,13 +93,13 @@ func (p *pagination) WithIsLast(v bool) *pagination {
 	return p
 }
 
-// Normalize adjusts the pagination fields to ensure consistency.
+// Norm adjusts the pagination fields to ensure consistency.
 //
 // This method recalculates the `totalPages` based on `totalItems` and `perPage`,
 // ensuring that the pagination state is coherent. It also adjusts the `page` field
 // to ensure it does not exceed `totalPages`, and sets the `isLast` field appropriately
 // based on the current page position.
-func (p *pagination) Normalize() *pagination {
+func (p *pagination) Norm() *pagination {
 	// Calculate total pages only if perPage is valid to avoid division by zero.
 	if p.perPage > 0 {
 		// Calculate total pages (ceiling division)

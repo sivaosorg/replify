@@ -23,7 +23,8 @@ func (w *wrapper) NormAll() *wrapper {
 		NormMeta().
 		NormBody().
 		NormPaging().
-		NormMessage()
+		NormMessage().
+		NormDebug()
 }
 
 // NormPaging normalizes the pagination information in the wrapper.
@@ -265,6 +266,33 @@ func (w *wrapper) NormMessage() *wrapper {
 			hasChanges = true
 		case w.IsServerError(): // 5xx
 			w.message = InternalServerError.Type()
+			hasChanges = true
+		}
+	}
+
+	if hasChanges {
+		w.RandDeltaValue() // Indicate that a change has occurred
+	}
+	return w
+}
+
+// NormDebug normalizes the debug information in the wrapper.
+//
+// This method removes any debug entries that have nil values to ensure
+// the debug map only contains meaningful information.
+//
+// Returns:
+//   - A pointer to the updated `wrapper` instance.
+func (w *wrapper) NormDebug() *wrapper {
+	if w.debug == nil {
+		return w
+	}
+	hasChanges := false
+
+	// Remove debug entries with nil values
+	for key, value := range w.debug {
+		if value == nil {
+			delete(w.debug, key)
 			hasChanges = true
 		}
 	}

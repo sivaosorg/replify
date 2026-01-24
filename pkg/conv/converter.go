@@ -8,9 +8,9 @@ import (
 // Section:  Converter struct
 // ///////////////////////////
 
-// converter implements type conversions with configurable options.
+// Converter implements type conversions with configurable options.
 // It is safe for concurrent use by multiple goroutines.
-type converter struct {
+type Converter struct {
 	strictMode  bool     // If true, returns error for lossy conversions
 	dateFormats []string // Custom date formats for time parsing
 	locale      string   // Locale for parsing (future use)
@@ -27,8 +27,8 @@ type converter struct {
 //
 // Returns:
 //   - A pointer to a newly created Converter instance.
-func NewConverter() *converter {
-	return &converter{
+func NewConverter() *Converter {
+	return &Converter{
 		dateFormats: defaultDateFormats(),
 		nilAsZero:   true,
 		emptyAsZero: true,
@@ -44,7 +44,7 @@ func NewConverter() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithStrictMode(v bool) *converter {
+func (c *Converter) WithStrictMode(v bool) *Converter {
 	c.strictMode = v
 	return c
 }
@@ -57,7 +57,7 @@ func (c *converter) WithStrictMode(v bool) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithDateFormats(formats ...string) *converter {
+func (c *Converter) WithDateFormats(formats ...string) *Converter {
 	c.dateFormats = formats
 	return c
 }
@@ -69,7 +69,7 @@ func (c *converter) WithDateFormats(formats ...string) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithLocale(locale string) *converter {
+func (c *Converter) WithLocale(locale string) *Converter {
 	c.locale = locale
 	return c
 }
@@ -81,7 +81,7 @@ func (c *converter) WithLocale(locale string) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithTrimStrings(v bool) *converter {
+func (c *Converter) WithTrimStrings(v bool) *Converter {
 	c.trimStrings = v
 	return c
 }
@@ -90,7 +90,7 @@ func (c *converter) WithTrimStrings(v bool) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) EnableTrimStrings() *converter {
+func (c *Converter) EnableTrimStrings() *Converter {
 	return c.WithTrimStrings(true)
 }
 
@@ -98,7 +98,7 @@ func (c *converter) EnableTrimStrings() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) DisableTrimStrings() *converter {
+func (c *Converter) DisableTrimStrings() *Converter {
 	return c.WithTrimStrings(false)
 }
 
@@ -109,7 +109,7 @@ func (c *converter) DisableTrimStrings() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithNilAsZero(v bool) *converter {
+func (c *Converter) WithNilAsZero(v bool) *Converter {
 	c.nilAsZero = v
 	return c
 }
@@ -118,7 +118,7 @@ func (c *converter) WithNilAsZero(v bool) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) EnableNilAsZero() *converter {
+func (c *Converter) EnableNilAsZero() *Converter {
 	return c.WithNilAsZero(true)
 }
 
@@ -126,7 +126,7 @@ func (c *converter) EnableNilAsZero() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) DisableNilAsZero() *converter {
+func (c *Converter) DisableNilAsZero() *Converter {
 	return c.WithNilAsZero(false)
 }
 
@@ -137,7 +137,7 @@ func (c *converter) DisableNilAsZero() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) WithEmptyAsZero(v bool) *converter {
+func (c *Converter) WithEmptyAsZero(v bool) *Converter {
 	c.emptyAsZero = v
 	return c
 }
@@ -146,7 +146,7 @@ func (c *converter) WithEmptyAsZero(v bool) *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) EnableEmptyAsZero() *converter {
+func (c *Converter) EnableEmptyAsZero() *Converter {
 	return c.WithEmptyAsZero(true)
 }
 
@@ -154,7 +154,7 @@ func (c *converter) EnableEmptyAsZero() *converter {
 //
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
-func (c *converter) DisableEmptyAsZero() *converter {
+func (c *Converter) DisableEmptyAsZero() *Converter {
 	return c.WithEmptyAsZero(false)
 }
 
@@ -166,7 +166,7 @@ func (c *converter) DisableEmptyAsZero() *converter {
 //
 // Returns:
 //   - A boolean indicating if strict mode is enabled.
-func (c *converter) IsStrictMode() bool {
+func (c *Converter) IsStrictMode() bool {
 	return c.strictMode
 }
 
@@ -174,7 +174,7 @@ func (c *converter) IsStrictMode() bool {
 //
 // Returns:
 //   - A slice of strings representing the date formats.
-func (c *converter) DateFormats() []string {
+func (c *Converter) DateFormats() []string {
 	return c.dateFormats
 }
 
@@ -182,7 +182,7 @@ func (c *converter) DateFormats() []string {
 //
 // Returns:
 //   - A string representing the locale.
-func (c *converter) Locale() string {
+func (c *Converter) Locale() string {
 	return c.locale
 }
 
@@ -194,8 +194,8 @@ func (c *converter) Locale() string {
 //
 // Returns:
 //   - A pointer to the cloned Converter instance.
-func (c *converter) Clone() *converter {
-	clone := &converter{
+func (c *Converter) Clone() *Converter {
+	clone := &Converter{
 		strictMode:  c.strictMode,
 		locale:      c.locale,
 		trimStrings: c.trimStrings,
@@ -213,7 +213,7 @@ func (c *converter) Clone() *converter {
 //
 // Returns:
 //   - A pointer to the reset Converter instance.
-func (c *converter) Reset() *converter {
+func (c *Converter) Reset() *Converter {
 	c.strictMode = false
 	c.dateFormats = defaultDateFormats()
 	c.locale = ""

@@ -38,7 +38,7 @@ type boolConverter interface {
 // Returns:
 //   - The converted bool value.
 //   - An error if conversion fails.
-func (c *converter) Bool(from any) (bool, error) {
+func (c *Converter) Bool(from any) (bool, error) {
 	// Handle nil
 	if from == nil {
 		if c.nilAsZero {
@@ -91,7 +91,7 @@ func (c *converter) Bool(from any) (bool, error) {
 //
 // Returns:
 //   - A boolean value representing the converted string.
-func (c *converter) stringToBool(v string) (bool, error) {
+func (c *Converter) stringToBool(v string) (bool, error) {
 	if strutil.IsEmpty(v) {
 		if c.emptyAsZero {
 			return false, nil
@@ -126,7 +126,7 @@ func (c *converter) stringToBool(v string) (bool, error) {
 // Returns:
 //   - A boolean value representing the converted input.
 //   - An error if the conversion fails.
-func (c *converter) boolFromReflect(from any) (bool, error) {
+func (c *Converter) boolFromReflect(from any) (bool, error) {
 	value := indirectValue(reflect.ValueOf(from))
 	if !value.IsValid() {
 		if c.nilAsZero {

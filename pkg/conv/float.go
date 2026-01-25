@@ -1,6 +1,7 @@
 package conv
 
 import (
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -115,6 +116,147 @@ func (c *Converter) Float64(from any) (float64, error) {
 
 	// Use reflection for other types
 	return c.float64FromReflect(from)
+}
+
+// ///////////////////////////
+// Section:  Float32 conversion
+// ///////////////////////////
+
+// Float32 attempts to convert the given value to float32, returns the zero value
+// and an error on failure.
+//
+// Note: Values exceeding float32 range are clamped to max/min float32.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted float32 value.
+//   - An error if conversion fails.
+func (c *Converter) Float32(from any) (float32, error) {
+	if v, ok := from.(float32); ok {
+		return v, nil
+	}
+
+	f64, err := c.Float64(from)
+	if err != nil {
+		return 0, newConvError(from, "float32")
+	}
+
+	// Overflow protection
+	if f64 > math.MaxFloat32 {
+		f64 = math.MaxFloat32
+	} else if f64 < -math.MaxFloat32 {
+		f64 = -math.MaxFloat32
+	}
+
+	return float32(f64), nil
+}
+
+// ///////////////////////////
+// Section: Package-level Float functions
+// ///////////////////////////
+
+// MustFloat64 returns the converted float64 or panics if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted float64 value.
+func MustFloat64(from any) float64 {
+	v, err := defaultConverter.Float64(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// MustFloat32 returns the converted float32 or panics if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted float32 value.
+func MustFloat32(from any) float32 {
+	v, err := defaultConverter.Float32(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Float32OrDefault returns the converted float32 or the provided default if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted float32 value or the default value.
+func Float32OrDefault(from any, defaultValue float32) float32 {
+	if v, err := defaultConverter.Float32(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// ///////////////////////////
+// Section: Special float values
+// ///////////////////////////
+
+// IsNaN checks if the given value converts to NaN which indicates "Not a Number".
+//
+// Parameters:
+//   - from: The value to check.
+//
+// Returns:
+//   - A boolean indicating whether the converted value is NaN.
+func IsNaN(from any) bool {
+	if v, err := defaultConverter.Float64(from); err == nil {
+		return math.IsNaN(v)
+	}
+	return false
+}
+
+// IsInf checks if the given value converts to infinity.
+// sign > 0 checks for positive infinity, sign < 0 for negative infinity,
+// sign == 0 checks for either.
+//
+// Parameters:
+//   - from: The value to check.
+//   - sign: The sign of infinity to check for.
+//
+// Returns:
+//   - A boolean indicating whether the converted value is infinite with the specified sign.
+//
+// Example:
+//   - IsInf(value, 1) checks for positive infinity.
+//   - IsInf(value, -1) checks for negative infinity.
+//   - IsInf(value, 0) checks for either positive or negative infinity.
+func IsInf(from any, sign int) bool {
+	if v, err := defaultConverter.Float64(from); err == nil {
+		return math.IsInf(v, sign)
+	}
+	return false
+}
+
+// IsFinite checks if the given value converts to a finite number. That is, it is neither NaN nor infinite.
+//
+// Parameters:
+//   - from: The value to check.
+//
+// Returns:
+//   - A boolean indicating whether the converted value is finite (not NaN or infinite).
+//
+// Example:
+//   - IsFinite(value) returns true if value is a finite number.
+func IsFinite(from any) bool {
+	if v, err := defaultConverter.Float64(from); err == nil {
+		return !math.IsNaN(v) && !math.IsInf(v, 0)
+	}
+	return false
 }
 
 // stringToFloat64 attempts to convert a string to float64.

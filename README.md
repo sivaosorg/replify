@@ -169,8 +169,8 @@ func (w *wrapper) WithDebuggingKVf(key string, format string, args ...interface{
 func (w *wrapper) WithErrMessage(err error, message string) *wrapper
 // WithErrMessagef adds a formatted contextual message to an existing error and sets it for the `wrapper` instance.
 func (w *wrapper) WithErrMessagef(err error, format string, args ...interface{}) *wrapper
-// WithErrSck sets an error with a stack trace for the `wrapper` instance.
-func (w *wrapper) WithErrSck(err error) *wrapper
+// WithErrorAck sets an error with a stack trace for the `wrapper` instance.
+func (w *wrapper) WithErrorAck(err error) *wrapper
 // WithErrWrap wraps an existing error with an additional message and sets it for the `wrapper` instance.
 func (w *wrapper) WithErrWrap(err error, message string) *wrapper
 // WithErrWrapf wraps an existing error with a formatted message and sets it for the `wrapper` instance.

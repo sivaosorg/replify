@@ -1302,7 +1302,7 @@ func (w *wrapper) WithErrorf(format string, args ...any) *wrapper {
 	return w
 }
 
-// WithErrSck sets an error with a stack trace for the `wrapper` instance.
+// WithErrorAck sets an error with a stack trace for the `wrapper` instance.
 //
 // This function wraps the provided error with stack trace information, assigns it
 // to the `errors` field of the `wrapper`, and returns the modified instance.
@@ -1312,7 +1312,7 @@ func (w *wrapper) WithErrorf(format string, args ...any) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
-func (w *wrapper) WithErrSck(err error) *wrapper {
+func (w *wrapper) WithErrorAck(err error) *wrapper {
 	w.errors = NewErrorAck(err)
 	return w
 }
@@ -1784,7 +1784,7 @@ func (w *wrapper) Hash256() (string, *wrapper) {
 	if err != nil {
 		return "", New().
 			WithHeader(InternalServerError).
-			WithErrSck(err).
+			WithErrorAck(err).
 			WithMessage("Failed to generate hash")
 	}
 	return h, New().
@@ -1824,7 +1824,7 @@ func (w *wrapper) Hash() (uint64, *wrapper) {
 	if err != nil {
 		return 0, New().
 			WithHeader(InternalServerError).
-			WithErrSck(err).
+			WithErrorAck(err).
 			WithMessage("Failed to generate hash")
 	}
 	return h, New().

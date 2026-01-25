@@ -155,7 +155,7 @@ import (
 //	Field                           Source                      Format                  Purpose
 //	────────────────────────────────────────────────────────────────────────────────────────
 //	StatusCode                      Constant                    500 (HTTP error)        Failure indicator
-//	Error (via WithErrSck)          streamErr                   Error message           Error details
+//	Error (via WithErrorAck)          streamErr                   Error message           Error details
 //	failed_chunks                   sw.stats.FailedChunks       int64                   Failed chunk count
 //	total_errors                    len(sw.errors)              int64                   Error count
 //
@@ -478,7 +478,7 @@ func (sw *StreamingWrapper) Start(ctx context.Context) *wrapper {
 	if streamErr != nil {
 		sw.stats.EndTime = time.Now()
 		sw.wrapper.
-			WithErrSck(streamErr).
+			WithErrorAck(streamErr).
 			WithStatusCode(http.StatusInternalServerError).
 			WithDebuggingKV("failed_chunks", sw.stats.FailedChunks).
 			WithDebuggingKV("total_errors", len(sw.errors))

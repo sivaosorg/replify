@@ -1329,7 +1329,7 @@ func (w *wrapper) WithErrSck(err error) *wrapper {
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
 func (w *wrapper) WithErrWrap(err error, message string) *wrapper {
-	w.errors = WithErrWrap(err, message)
+	w.errors = WithErrorAck(err, message)
 	return w
 }
 

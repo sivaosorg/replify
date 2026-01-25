@@ -41,7 +41,7 @@ func TestWithErrStack(t *testing.T) {
 
 func TestWrap(t *testing.T) {
 	originalErr := errors.New("file not found")
-	wrappedErr := replify.WithErrorAck(originalErr, "Failed to read the file")
+	wrappedErr := replify.AppendErrorAck(originalErr, "Failed to read the file")
 	if wrappedErr == nil {
 		t.Errorf("Expected wrapped error, got nil")
 	}
@@ -85,7 +85,7 @@ func TestWithMessagef(t *testing.T) {
 
 func TestCause(t *testing.T) {
 	originalErr := errors.New("file not found")
-	wrappedErr := replify.WithErrorAck(originalErr, "Failed to open file")
+	wrappedErr := replify.AppendErrorAck(originalErr, "Failed to open file")
 	causeErr := replify.Cause(wrappedErr)
 	if causeErr == nil {
 		t.Errorf("Expected cause error, got nil")

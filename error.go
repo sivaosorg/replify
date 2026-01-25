@@ -76,16 +76,16 @@ func NewErrorAckf(err error, format string, args ...any) error {
 	}
 }
 
-// WithErrorAck returns an error that annotates the provided error with a new message
-// and a stack trace at the point WithErrorAck was called. If the provided error is nil,
-// WithErrorAck returns nil.
+// AppendErrorAck returns an error that annotates the provided error with a new message
+// and a stack trace at the point AppendErrorAck was called. If the provided error is nil,
+// AppendErrorAck returns nil.
 //
 // Usage example:
 //
 //	err := errors.New("file not found")
-//	wrappedErr := WithErrorAck(err, "Failed to read the file")
+//	wrappedErr := AppendErrorAck(err, "Failed to read the file")
 //	fmt.Println(wrappedErr) // "Failed to read the file: file not found" with stack trace
-func WithErrorAck(err error, message string) error {
+func AppendErrorAck(err error, message string) error {
 	if err == nil {
 		return nil
 	}

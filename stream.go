@@ -455,7 +455,7 @@ func (sw *StreamingWrapper) Start(ctx context.Context) *wrapper {
 		case StrategyChunked:
 			streamErr = sw.streamReceiveChunked(ctx)
 		default:
-			streamErr = WithErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))
+			streamErr = NewErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))
 		}
 	} else {
 		switch sw.config.Strategy {
@@ -466,7 +466,7 @@ func (sw *StreamingWrapper) Start(ctx context.Context) *wrapper {
 		case StrategyChunked:
 			streamErr = sw.streamChunked(ctx)
 		default:
-			streamErr = WithErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))
+			streamErr = NewErrorf("unknown streaming strategy: %s", string(sw.config.Strategy))
 		}
 	}
 

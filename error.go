@@ -20,15 +20,15 @@ func NewError(message string) error {
 	}
 }
 
-// WithErrorf formats the given arguments according to the format specifier and
+// NewErrorf formats the given arguments according to the format specifier and
 // returns the formatted string as an error. It also records the stack trace at
 // the point it was called.
 //
 // Usage example:
 //
-//	err := WithErrorf("Failed to load file %s", filename)
+//	err := NewErrorf("Failed to load file %s", filename)
 //	fmt.Println(err) // "Failed to load file <filename>" along with stack trace
-func WithErrorf(format string, args ...any) error {
+func NewErrorf(format string, args ...any) error {
 	return &underlying{
 		msg:   fmt.Sprintf(format, args...),
 		stack: Callers(),

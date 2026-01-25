@@ -40,7 +40,7 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 		return nil, WithErrStack(err)
 	}
 	if len(data) == 0 {
-		return nil, WithErrorf("the wrapper response is empty with JSON string: %v", json)
+		return nil, NewErrorf("the wrapper response is empty with JSON string: %v", json)
 	}
 	w = &wrapper{}
 	if value, exists := data["status_code"].(float64); exists {
@@ -163,7 +163,7 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 //	}
 func WrapFrom(data map[string]any) (w *wrapper, err error) {
 	if len(data) == 0 {
-		return nil, WithErrorf("data is nil/null")
+		return nil, NewErrorf("data is nil/null")
 	}
 	json := jsonpass(data)
 	return UnwrapJSON(json)

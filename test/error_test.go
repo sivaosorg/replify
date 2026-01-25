@@ -19,7 +19,7 @@ func TestWithError(t *testing.T) {
 }
 
 func TestWithErrorf(t *testing.T) {
-	err := replify.WithErrorf("Failed to load file %s", "test.txt")
+	err := replify.NewErrorf("Failed to load file %s", "test.txt")
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}

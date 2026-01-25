@@ -1298,7 +1298,7 @@ func (w *wrapper) WithError(message string) *wrapper {
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
 func (w *wrapper) WithErrorf(format string, args ...any) *wrapper {
-	w.errors = WithErrorf(format, args...)
+	w.errors = NewErrorf(format, args...)
 	return w
 }
 

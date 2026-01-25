@@ -74,7 +74,7 @@ func TestWithMessage(t *testing.T) {
 
 func TestWithMessagef(t *testing.T) {
 	originalErr := errors.New("original error")
-	errWithMessagef := replify.WithMessagef(originalErr, "Context: %s", "something went wrong")
+	errWithMessagef := replify.AppendErrorf(originalErr, "Context: %s", "something went wrong")
 	if errWithMessagef == nil {
 		t.Errorf("Expected error with message, got nil")
 	}

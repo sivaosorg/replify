@@ -76,6 +76,42 @@ func NewErrorAckf(err error, format string, args ...any) error {
 	}
 }
 
+// AppendError annotates an existing error with a new message. If the error is nil,
+// it returns nil.
+//
+// Usage example:
+//
+//	err := errors.New("original error")
+//	errWithMessage := AppendError(err, "Additional context")
+//	fmt.Println(errWithMessage) // "Additional context: original error"
+func AppendError(err error, message string) error {
+	if err == nil {
+		return nil
+	}
+	return &underlyingMessage{
+		cause: err,
+		msg:   message,
+	}
+}
+
+// AppendErrorf annotates an existing error with a formatted message. If the error
+// is nil, it returns nil.
+//
+// Usage example:
+//
+//	err := errors.New("original error")
+//	errWithMessage := AppendErrorf(err, "Context: %s", "something went wrong")
+//	fmt.Println(errWithMessage) // "Context: something went wrong: original error"
+func AppendErrorf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	return &underlyingMessage{
+		cause: err,
+		msg:   fmt.Sprintf(format, args...),
+	}
+}
+
 // AppendErrorAck returns an error that annotates the provided error with a new message
 // and a stack trace at the point AppendErrorAck was called. If the provided error is nil,
 // AppendErrorAck returns nil.
@@ -96,42 +132,6 @@ func AppendErrorAck(err error, message string) error {
 	return &underlyingStack{
 		err,
 		Callers(),
-	}
-}
-
-// AppendError annotates an existing error with a new message. If the error is nil,
-// it returns nil.
-//
-// Usage example:
-//
-//	err := errors.New("original error")
-//	errWithMessage := AppendError(err, "Additional context")
-//	fmt.Println(errWithMessage) // "Additional context: original error"
-func AppendError(err error, message string) error {
-	if err == nil {
-		return nil
-	}
-	return &underlyingMessage{
-		cause: err,
-		msg:   message,
-	}
-}
-
-// WithMessagef annotates an existing error with a formatted message. If the error
-// is nil, it returns nil.
-//
-// Usage example:
-//
-//	err := errors.New("original error")
-//	errWithMessage := WithMessagef(err, "Context: %s", "something went wrong")
-//	fmt.Println(errWithMessage) // "Context: something went wrong: original error"
-func WithMessagef(err error, format string, args ...any) error {
-	if err == nil {
-		return nil
-	}
-	return &underlyingMessage{
-		cause: err,
-		msg:   fmt.Sprintf(format, args...),
 	}
 }
 

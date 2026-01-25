@@ -1393,7 +1393,11 @@ func (w *wrapper) AppendErrorf(err error, format string, args ...any) *wrapper {
 //   - A pointer to the modified `wrapper` instance (enabling method chaining).
 func (w *wrapper) BindCause() *wrapper {
 	if strutil.IsNotEmpty(w.message) {
-		w.errors = NewError(w.message)
+		if w.errors == nil {
+			w.errors = NewError(w.message)
+		} else {
+			w.errors = AppendErrorAck(w.errors, w.message)
+		}
 	}
 	return w
 }

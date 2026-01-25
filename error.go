@@ -135,6 +135,29 @@ func AppendErrorAck(err error, message string) error {
 	}
 }
 
+// AppendErrorAckf returns an error that annotates the provided error with a formatted message
+// and a stack trace at the point AppendErrorAckf was called. If the provided error is nil,
+// AppendErrorAckf returns nil.
+//
+// Usage example:
+//
+//	err := errors.New("file not found")
+//	wrappedErr := AppendErrorAckf(err, "Failed to read file %s", filename)
+//	fmt.Println(wrappedErr) // "Failed to read file <filename>: file not found" with stack trace
+func AppendErrorAckf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	err = &underlyingMessage{
+		cause: err,
+		msg:   fmt.Sprintf(format, args...),
+	}
+	return &underlyingStack{
+		err,
+		Callers(),
+	}
+}
+
 // Cause traverses the error chain and returns the underlying cause of the error
 // if it implements the `Cause()` method. If the error doesn't implement `Cause()`,
 // it simply returns the original error. If the error is nil, nil is returned.

@@ -53,6 +53,29 @@ func NewErrorAck(err error) error {
 	}
 }
 
+// NewErrorAckf returns an error that annotates the provided error with a formatted message
+// and a stack trace at the point NewErrorAckf was called. If the provided error is nil,
+// NewErrorAckf returns nil.
+//
+// Usage example:
+//
+//	err := errors.New("file not found")
+//	wrappedErr := NewErrorAckf(err, "Failed to load file %s", filename)
+//	fmt.Println(wrappedErr) // "Failed to load file <filename>: file not found" with stack trace
+func NewErrorAckf(err error, format string, args ...any) error {
+	if err == nil {
+		return nil
+	}
+	err = &underlyingMessage{
+		cause: err,
+		msg:   fmt.Sprintf(format, args...),
+	}
+	return &underlyingStack{
+		err,
+		Callers(),
+	}
+}
+
 // WithErrWrap returns an error that annotates the provided error with a new message
 // and a stack trace at the point WithErrWrap was called. If the provided error is nil,
 // WithErrWrap returns nil.
@@ -69,29 +92,6 @@ func WithErrWrap(err error, message string) error {
 	err = &underlyingMessage{
 		cause: err,
 		msg:   message,
-	}
-	return &underlyingStack{
-		err,
-		Callers(),
-	}
-}
-
-// WithErrWrapf returns an error that annotates the provided error with a formatted message
-// and a stack trace at the point WithErrWrapf was called. If the provided error is nil,
-// WithErrWrapf returns nil.
-//
-// Usage example:
-//
-//	err := errors.New("file not found")
-//	wrappedErr := WithErrWrapf(err, "Failed to load file %s", filename)
-//	fmt.Println(wrappedErr) // "Failed to load file <filename>: file not found" with stack trace
-func WithErrWrapf(err error, format string, args ...any) error {
-	if err == nil {
-		return nil
-	}
-	err = &underlyingMessage{
-		cause: err,
-		msg:   fmt.Sprintf(format, args...),
 	}
 	return &underlyingStack{
 		err,

@@ -52,7 +52,7 @@ func TestWrap(t *testing.T) {
 
 func TestWrapf(t *testing.T) {
 	originalErr := errors.New("file not found")
-	wrappedErr := replify.WithErrWrapf(originalErr, "Failed to open file %s", "data.txt")
+	wrappedErr := replify.NewErrorAckf(originalErr, "Failed to open file %s", "data.txt")
 	if wrappedErr == nil {
 		t.Errorf("Expected wrapped error, got nil")
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestWithError(t *testing.T) {
-	err := replify.WithError("Test error")
+	err := replify.NewError("Test error")
 	if err == nil {
 		t.Errorf("Expected error, got nil")
 	}
@@ -96,7 +96,7 @@ func TestCause(t *testing.T) {
 }
 
 func TestErrorFormatting(t *testing.T) {
-	err := replify.WithError("Test error")
+	err := replify.NewError("Test error")
 	if err.Error() != "Test error" {
 		t.Errorf("Expected 'Test error', got %s", err.Error())
 	}

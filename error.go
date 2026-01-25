@@ -5,15 +5,15 @@ import (
 	"io"
 )
 
-// WithError returns an error with the supplied message and records the stack trace
+// NewError returns an error with the supplied message and records the stack trace
 // at the point it was called. The error contains the message and the stack trace
 // which can be used for debugging or logging the error along with the call stack.
 //
 // Usage example:
 //
-//	err := WithError("Something went wrong")
+//	err := NewError("Something went wrong")
 //	fmt.Println(err) // "Something went wrong" along with stack trace
-func WithError(message string) error {
+func NewError(message string) error {
 	return &underlying{
 		msg:   message,
 		stack: Callers(),

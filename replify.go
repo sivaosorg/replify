@@ -1282,7 +1282,7 @@ func (w *wrapper) WithDebugging(v map[string]any) *wrapper {
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
 func (w *wrapper) WithError(message string) *wrapper {
-	w.errors = WithError(message)
+	w.errors = NewError(message)
 	return w
 }
 
@@ -1393,7 +1393,7 @@ func (w *wrapper) WithErrMessagef(err error, format string, args ...any) *wrappe
 //   - A pointer to the modified `wrapper` instance (enabling method chaining).
 func (w *wrapper) BindCause() *wrapper {
 	if strutil.IsNotEmpty(w.message) {
-		w.errors = WithError(w.message)
+		w.errors = NewError(w.message)
 	}
 	return w
 }

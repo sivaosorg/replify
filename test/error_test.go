@@ -109,7 +109,7 @@ func TestErrorFormatting(t *testing.T) {
 
 // func TestUnwrap(t *testing.T) {
 // 	originalErr := errors.New("file not found")
-// 	wrappedErr := replify.WithErrWrap(originalErr, "Failed to open file")
+// 	wrappedErr := replify.AppendErrorAck(originalErr, "Failed to open file")
 // 	unwrappedErr := wrappedErr.(*replify.underlyingStack).Unwrap()
 // 	if unwrappedErr == nil {
 // 		t.Errorf("Expected unwrapped error, got nil")

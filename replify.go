@@ -1317,7 +1317,7 @@ func (w *wrapper) WithErrorAck(err error) *wrapper {
 	return w
 }
 
-// WithErrWrap wraps an existing error with an additional message and sets it for the `wrapper` instance.
+// AppendErrorAck wraps an existing error with an additional message and sets it for the `wrapper` instance.
 //
 // This function adds context to the provided error by wrapping it with an additional message.
 // The resulting error is assigned to the `errors` field of the `wrapper`.
@@ -1328,7 +1328,7 @@ func (w *wrapper) WithErrorAck(err error) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
-func (w *wrapper) WithErrWrap(err error, message string) *wrapper {
+func (w *wrapper) AppendErrorAck(err error, message string) *wrapper {
 	w.errors = AppendErrorAck(err, message)
 	return w
 }
@@ -1350,7 +1350,7 @@ func (w *wrapper) WithErrorAckf(err error, format string, args ...any) *wrapper 
 	return w
 }
 
-// WithErrMessage adds a plain contextual message to an existing error and sets it for the `wrapper` instance.
+// AppendError adds a plain contextual message to an existing error and sets it for the `wrapper` instance.
 //
 // This function wraps the provided error with an additional plain message and assigns it
 // to the `errors` field of the `wrapper`.
@@ -1361,7 +1361,7 @@ func (w *wrapper) WithErrorAckf(err error, format string, args ...any) *wrapper 
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
-func (w *wrapper) WithErrMessage(err error, message string) *wrapper {
+func (w *wrapper) AppendError(err error, message string) *wrapper {
 	w.errors = AppendError(err, message)
 	return w
 }

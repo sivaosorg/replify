@@ -3091,7 +3091,7 @@ func (sw *StreamingWrapper) Close() *wrapper {
 		if err := closer.Close(); err != nil {
 			sw.wrapper.
 				WithStatusCode(http.StatusInternalServerError).
-				WithErrWrap(err, "failed to close reader")
+				AppendErrorAck(err, "failed to close reader")
 		}
 	}
 
@@ -3099,7 +3099,7 @@ func (sw *StreamingWrapper) Close() *wrapper {
 		if err := closer.Close(); err != nil {
 			sw.wrapper.
 				WithStatusCode(http.StatusInternalServerError).
-				WithErrWrap(err, "failed to close writer")
+				AppendErrorAck(err, "failed to close writer")
 		}
 	}
 

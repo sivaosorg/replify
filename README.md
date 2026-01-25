@@ -165,14 +165,14 @@ func (w *wrapper) WithDebugging(v map[string]interface{}) *wrapper
 func (w *wrapper) WithDebuggingKV(key string, value interface{}) *wrapper
 // WithDebuggingKVf adds a formatted key-value pair to the debugging information in the `wrapper` instance.
 func (w *wrapper) WithDebuggingKVf(key string, format string, args ...interface{}) *wrapper
-// WithErrMessage adds a plain contextual message to an existing error and sets it for the `wrapper` instance.
-func (w *wrapper) WithErrMessage(err error, message string) *wrapper
+// AppendError adds a plain contextual message to an existing error and sets it for the `wrapper` instance.
+func (w *wrapper) AppendError(err error, message string) *wrapper
 // AppendErrorf adds a formatted contextual message to an existing error and sets it for the `wrapper` instance.
 func (w *wrapper) AppendErrorf(err error, format string, args ...interface{}) *wrapper
 // WithErrorAck sets an error with a stack trace for the `wrapper` instance.
 func (w *wrapper) WithErrorAck(err error) *wrapper
-// WithErrWrap wraps an existing error with an additional message and sets it for the `wrapper` instance.
-func (w *wrapper) WithErrWrap(err error, message string) *wrapper
+// AppendErrorAck wraps an existing error with an additional message and sets it for the `wrapper` instance.
+func (w *wrapper) AppendErrorAck(err error, message string) *wrapper
 // WithErrorAckf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
 func (w *wrapper) WithErrorAckf(err error, format string, args ...interface{}) *wrapper
 // WithError sets an error for the `wrapper` instance using a plain error message.

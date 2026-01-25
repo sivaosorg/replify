@@ -1366,7 +1366,7 @@ func (w *wrapper) WithErrMessage(err error, message string) *wrapper {
 	return w
 }
 
-// WithErrMessagef adds a formatted contextual message to an existing error and sets it for the `wrapper` instance.
+// AppendErrorf adds a formatted contextual message to an existing error and sets it for the `wrapper` instance.
 //
 // This function wraps the provided error with an additional formatted message and assigns it
 // to the `errors` field of the `wrapper`.
@@ -1378,7 +1378,7 @@ func (w *wrapper) WithErrMessage(err error, message string) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
-func (w *wrapper) WithErrMessagef(err error, format string, args ...any) *wrapper {
+func (w *wrapper) AppendErrorf(err error, format string, args ...any) *wrapper {
 	w.errors = AppendErrorf(err, format, args...)
 	return w
 }

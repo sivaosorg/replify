@@ -90,7 +90,7 @@ func (f Frame) Format(s fmt.State, verb rune) {
 	case 'd':
 		io.WriteString(s, strconv.Itoa(f.line()))
 	case 'n':
-		io.WriteString(s, getFuncName(f.name()))
+		io.WriteString(s, f.shortName(f.name()))
 	case 'v':
 		f.Format(s, 's')
 		io.WriteString(s, ":")
@@ -229,6 +229,21 @@ func (f Frame) name() string {
 	return fn.Name()
 }
 
+// shortName extracts the function name without its path prefix.
+//
+// Usage:
+// Useful for displaying function names in a compact format.
+//
+// Example:
+//
+//	shortName := shortName("path/to/package.FunctionName")
+func (f Frame) shortName(name string) string {
+	i := strings.LastIndex(name, "/")
+	name = name[i+1:]
+	i = strings.Index(name, ".")
+	return name[i+1:]
+}
+
 // StackTrace.fmtSlice formats the StackTrace as a slice of Frames for `%s` or `%v`.
 //
 // Usage:
@@ -245,19 +260,4 @@ func (st StackTrace) fmtSlice(s fmt.State, verb rune) {
 		f.Format(s, verb)
 	}
 	io.WriteString(s, "]")
-}
-
-// getFuncName extracts the function name without its path prefix.
-//
-// Usage:
-// Useful for displaying function names in a compact format.
-//
-// Example:
-//
-//	shortName := getFuncName("path/to/package.FunctionName")
-func getFuncName(name string) string {
-	i := strings.LastIndex(name, "/")
-	name = name[i+1:]
-	i = strings.Index(name, ".")
-	return name[i+1:]
 }

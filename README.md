@@ -173,8 +173,8 @@ func (w *wrapper) WithErrMessagef(err error, format string, args ...interface{})
 func (w *wrapper) WithErrorAck(err error) *wrapper
 // WithErrWrap wraps an existing error with an additional message and sets it for the `wrapper` instance.
 func (w *wrapper) WithErrWrap(err error, message string) *wrapper
-// WithErrWrapf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
-func (w *wrapper) WithErrWrapf(err error, format string, args ...interface{}) *wrapper
+// WithErrorAckf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
+func (w *wrapper) WithErrorAckf(err error, format string, args ...interface{}) *wrapper
 // WithError sets an error for the `wrapper` instance using a plain error message.
 func (w *wrapper) WithError(message string) *wrapper
 // WithErrorf sets a formatted error for the `wrapper` instance.

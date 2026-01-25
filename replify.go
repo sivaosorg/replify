@@ -1333,7 +1333,7 @@ func (w *wrapper) WithErrWrap(err error, message string) *wrapper {
 	return w
 }
 
-// WithErrWrapf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
+// WithErrorAckf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
 //
 // This function adds context to the provided error by wrapping it with a formatted message.
 // The resulting error is assigned to the `errors` field of the `wrapper`.
@@ -1345,7 +1345,7 @@ func (w *wrapper) WithErrWrap(err error, message string) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance to support method chaining.
-func (w *wrapper) WithErrWrapf(err error, format string, args ...any) *wrapper {
+func (w *wrapper) WithErrorAckf(err error, format string, args ...any) *wrapper {
 	w.errors = NewErrorAckf(err, format, args...)
 	return w
 }

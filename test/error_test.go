@@ -63,7 +63,7 @@ func TestWrapf(t *testing.T) {
 
 func TestWithMessage(t *testing.T) {
 	originalErr := errors.New("original error")
-	errWithMessage := replify.WithMessage(originalErr, "Additional context")
+	errWithMessage := replify.AppendError(originalErr, "Additional context")
 	if errWithMessage == nil {
 		t.Errorf("Expected error with message, got nil")
 	}

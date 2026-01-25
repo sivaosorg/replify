@@ -99,15 +99,15 @@ func AppendErrorAck(err error, message string) error {
 	}
 }
 
-// WithMessage annotates an existing error with a new message. If the error is nil,
+// AppendError annotates an existing error with a new message. If the error is nil,
 // it returns nil.
 //
 // Usage example:
 //
 //	err := errors.New("original error")
-//	errWithMessage := WithMessage(err, "Additional context")
+//	errWithMessage := AppendError(err, "Additional context")
 //	fmt.Println(errWithMessage) // "Additional context: original error"
-func WithMessage(err error, message string) error {
+func AppendError(err error, message string) error {
 	if err == nil {
 		return nil
 	}

@@ -1775,12 +1775,12 @@ func (w *wrapper) WithIsLast(v bool) *wrapper {
 	return w
 }
 
-// Hash256 generates a hash string for the `wrapper` instance.
+// MustHash256 generates a hash string for the `wrapper` instance.
 //
 // This method concatenates the values of the `statusCode`, `message`, `data`, and `meta` fields
-// into a single string and then computes a hash of that string using the `strutil.Hash256` function.
+// into a single string and then computes a hash of that string using the `strutil.MustHash256` function.
 // The resulting hash string can be used for various purposes, such as caching or integrity checks.
-func (w *wrapper) Hash256() (string, *wrapper) {
+func (w *wrapper) MustHash256() (string, *wrapper) {
 	if !w.Available() {
 		return "", w
 	}
@@ -1796,7 +1796,7 @@ func (w *wrapper) Hash256() (string, *wrapper) {
 		WithMessage("Successfully generated hash")
 }
 
-// Hash256Safe generates a hash string for the `wrapper` instance.
+// Hash256 generates a hash string for the `wrapper` instance.
 //
 // This method generates a hash string for the `wrapper` instance using the `Hash256` method.
 // If the `wrapper` instance is not available or the hash generation fails, it returns an empty string.
@@ -1804,23 +1804,23 @@ func (w *wrapper) Hash256() (string, *wrapper) {
 // Returns:
 //   - A string representing the hash value.
 //   - An empty string if the `wrapper` instance is not available or the hash generation fails.
-func (w *wrapper) Hash256Safe() string {
-	hash, _w := w.Hash256()
+func (w *wrapper) Hash256() string {
+	hash, _w := w.MustHash256()
 	if _w.IsError() {
 		return ""
 	}
 	return hash
 }
 
-// Hash generates a hash value for the `wrapper` instance.
+// MustHash generates a hash value for the `wrapper` instance.
 //
-// This method generates a hash value for the `wrapper` instance using the `Hash` method.
+// This method generates a hash value for the `wrapper` instance using the `MustHash` method.
 // If the `wrapper` instance is not available or the hash generation fails, it returns an error.
 //
 // Returns:
 //   - A uint64 representing the hash value.
 //   - An error if the `wrapper` instance is not available or the hash generation fails.
-func (w *wrapper) Hash() (uint64, *wrapper) {
+func (w *wrapper) MustHash() (uint64, *wrapper) {
 	if !w.Available() {
 		return 0, w
 	}
@@ -1844,8 +1844,8 @@ func (w *wrapper) Hash() (uint64, *wrapper) {
 // Returns:
 //   - A string representing the hash value.
 //   - An empty string if the `wrapper` instance is not available or the hash generation fails.
-func (w *wrapper) HashSafe() uint64 {
-	hash, _w := w.Hash()
+func (w *wrapper) Hash() uint64 {
+	hash, _w := w.MustHash()
 	if _w.IsError() {
 		return 0
 	}
@@ -2007,7 +2007,7 @@ func (w *wrapper) Respond() map[string]any {
 		return nil
 	}
 	w.cacheMutex.RLock()
-	hash := w.Hash256Safe()
+	hash := w.Hash256()
 
 	if w.cacheHash == hash && w.cachedWrap != nil {
 		defer w.cacheMutex.RUnlock()

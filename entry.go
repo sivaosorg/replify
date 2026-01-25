@@ -37,7 +37,7 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 	var data map[string]any
 	err = encoding.UnmarshalFromString(json, &data)
 	if err != nil {
-		return nil, WithErrStack(err)
+		return nil, NewErrorAck(err)
 	}
 	if len(data) == 0 {
 		return nil, NewErrorf("the wrapper response is empty with JSON string: %v", json)

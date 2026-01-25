@@ -1,4 +1,4 @@
-package mapsort
+package msort
 
 import (
 	"sort"
@@ -56,7 +56,7 @@ func (items items[K, V]) Top(n int) items[K, V] {
 //
 // Example:
 //
-//	sorted := mapsort.ByValue(m).Top(10)
+//	sorted := msort.ByValue(m).Top(10)
 //	topMap := sorted.ToMap() // Get top 10 as a map
 func (items items[K, V]) ToMap() map[K]V {
 	result := make(map[K]V, len(items))
@@ -71,7 +71,7 @@ func (items items[K, V]) ToMap() map[K]V {
 //
 // Example:
 //
-//	sortedKeys := mapsort.ByValue(m).Keys()
+//	sortedKeys := msort.ByValue(m).Keys()
 func (items items[K, V]) Keys() []K {
 	keys := make([]K, len(items))
 	for i, item := range items {
@@ -85,7 +85,7 @@ func (items items[K, V]) Keys() []K {
 //
 // Example:
 //
-//	sortedValues := mapsort.ByKey(m).Values()
+//	sortedValues := msort.ByKey(m).Values()
 func (items items[K, V]) Values() []V {
 	values := make([]V, len(items))
 	for i, item := range items {
@@ -101,7 +101,7 @@ func (items items[K, V]) Values() []V {
 // Example:
 //
 //	m := map[string]int{"a": 3, "b": 1, "c": 2}
-//	sorted := mapsort.SortFunc(m, func(x, y mapsort.Item[string, int]) bool {
+//	sorted := msort.SortFunc(m, func(x, y msort.Item[string, int]) bool {
 //	    return x.Value < y.Value
 //	})
 func SortFunc[K comparable, V any](m map[K]V, less LessFunc[K, V]) items[K, V] {
@@ -124,7 +124,7 @@ func SortFunc[K comparable, V any](m map[K]V, less LessFunc[K, V]) items[K, V] {
 // Example:
 //
 //	m := map[string]int{"charlie": 3, "alice": 1, "bob": 2}
-//	sorted := mapsort.SortKey(m) // Returns items ordered: alice, bob, charlie
+//	sorted := msort.SortKey(m) // Returns items ordered: alice, bob, charlie
 func SortKey[K Ordered, V any](m map[K]V) items[K, V] {
 	items := make(items[K, V], 0, len(m))
 	for k, v := range m {
@@ -145,7 +145,7 @@ func SortKey[K Ordered, V any](m map[K]V) items[K, V] {
 // Example:
 //
 //	m := map[string]int{"charlie": 3, "alice": 1, "bob": 2}
-//	sorted := mapsort.SortKeyDesc(m) // Returns items ordered: charlie, bob, alice
+//	sorted := msort.SortKeyDesc(m) // Returns items ordered: charlie, bob, alice
 func SortKeyDesc[K Ordered, V any](m map[K]V) items[K, V] {
 	items := make(items[K, V], 0, len(m))
 	for k, v := range m {
@@ -166,7 +166,7 @@ func SortKeyDesc[K Ordered, V any](m map[K]V) items[K, V] {
 // Example:
 //
 //	m := map[string]int{"a": 3, "b": 1, "c": 2}
-//	sorted := mapsort.SortValue(m) // Returns items ordered by values: 1, 2, 3
+//	sorted := msort.SortValue(m) // Returns items ordered by values: 1, 2, 3
 func SortValue[K comparable, V Ordered](m map[K]V) items[K, V] {
 	items := make(items[K, V], 0, len(m))
 	for k, v := range m {
@@ -187,7 +187,7 @@ func SortValue[K comparable, V Ordered](m map[K]V) items[K, V] {
 // Example:
 //
 //	m := map[string]int{"a": 3, "b": 1, "c": 2}
-//	sorted := mapsort.SortValueDesc(m) // Returns items ordered by values: 3, 2, 1
+//	sorted := msort.SortValueDesc(m) // Returns items ordered by values: 3, 2, 1
 func SortValueDesc[K comparable, V Ordered](m map[K]V) items[K, V] {
 	items := make(items[K, V], 0, len(m))
 	for k, v := range m {
@@ -208,7 +208,7 @@ func SortValueDesc[K comparable, V Ordered](m map[K]V) items[K, V] {
 //
 // Example:
 //
-//	sorted := mapsort.ByValue(m).Top(5) // Get top 5 items
+//	sorted := msort.ByValue(m).Top(5) // Get top 5 items
 func (items timeItems[K]) Top(n int) timeItems[K] {
 	if n > len(items) {
 		n = len(items)
@@ -223,7 +223,7 @@ func (items timeItems[K]) Top(n int) timeItems[K] {
 //
 // Example:
 //
-//	sorted := mapsort.ByValue(m).Top(10)
+//	sorted := msort.ByValue(m).Top(10)
 //	topMap := sorted.ToMap() // Get top 10 as a map
 func (items timeItems[K]) ToMap() map[K]time.Time {
 	result := make(map[K]time.Time, len(items))
@@ -238,7 +238,7 @@ func (items timeItems[K]) ToMap() map[K]time.Time {
 //
 // Example:
 //
-//	sortedKeys := mapsort.ByValue(m).Keys()
+//	sortedKeys := msort.ByValue(m).Keys()
 func (items timeItems[K]) Keys() []K {
 	keys := make([]K, len(items))
 	for i, item := range items {
@@ -252,7 +252,7 @@ func (items timeItems[K]) Keys() []K {
 //
 // Example:
 //
-//	sortedValues := mapsort.ByKey(m).Values()
+//	sortedValues := msort.ByKey(m).Values()
 func (items timeItems[K]) Values() []time.Time {
 	values := make([]time.Time, len(items))
 	for i, item := range items {
@@ -271,7 +271,7 @@ func (items timeItems[K]) Values() []time.Time {
 //	    "event1": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 //	    "event2": time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
 //	}
-//	sorted := mapsort.SortTimeValue(m) // event2 comes before event1
+//	sorted := msort.SortTimeValue(m) // event2 comes before event1
 func SortTimeValue[K comparable](m map[K]time.Time) timeItems[K] {
 	items := make(timeItems[K], 0, len(m))
 	for k, v := range m {
@@ -295,7 +295,7 @@ func SortTimeValue[K comparable](m map[K]time.Time) timeItems[K] {
 //	    "event1": time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
 //	    "event2": time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
 //	}
-//	sorted := mapsort.SortTimeValueDesc(m) // event1 comes before event2
+//	sorted := msort.SortTimeValueDesc(m) // event1 comes before event2
 func SortTimeValueDesc[K comparable](m map[K]time.Time) timeItems[K] {
 	items := make(timeItems[K], 0, len(m))
 	for k, v := range m {
@@ -332,7 +332,7 @@ func SortKeyStable[K Ordered, V any](m map[K]V) items[K, V] {
 // Example:
 //
 //	m := map[string]int{"a": 1, "b": 2, "c": 1, "d": 2}
-//	sorted := mapsort.SortValueStable(m) // Equal values maintain iteration order
+//	sorted := msort.SortValueStable(m) // Equal values maintain iteration order
 func SortValueStable[K comparable, V Ordered](m map[K]V) items[K, V] {
 	items := make(items[K, V], 0, len(m))
 	for k, v := range m {

@@ -35,15 +35,15 @@ func NewErrorf(format string, args ...any) error {
 	}
 }
 
-// WithErrStack annotates an existing error with a stack trace at the point
-// WithErrStack was called. If the provided error is nil, it simply returns nil.
+// NewErrorAck annotates an existing error with a stack trace at the point
+// NewErrorAck was called. If the provided error is nil, it simply returns nil.
 //
 // Usage example:
 //
 //	err := errors.New("original error")
-//	errWithStack := WithErrStack(err)
+//	errWithStack := NewErrorAck(err)
 //	fmt.Println(errWithStack) // original error with stack trace
-func WithErrStack(err error) error {
+func NewErrorAck(err error) error {
 	if err == nil {
 		return nil
 	}

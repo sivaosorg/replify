@@ -30,7 +30,7 @@ func TestWithErrorf(t *testing.T) {
 
 func TestWithErrStack(t *testing.T) {
 	originalErr := errors.New("original error")
-	errWithStack := replify.WithErrStack(originalErr)
+	errWithStack := replify.NewErrorAck(originalErr)
 	if errWithStack == nil {
 		t.Errorf("Expected error with stack, got nil")
 	}

@@ -163,7 +163,7 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 //	}
 func WrapFrom(data map[string]any) (w *wrapper, err error) {
 	if len(data) == 0 {
-		return nil, NewErrorf("data is nil/null")
+		return nil, NewError("data is nil/null")
 	}
 	json := jsonpass(data)
 	return UnwrapJSON(json)

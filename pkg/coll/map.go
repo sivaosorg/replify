@@ -442,3 +442,72 @@ func JoinMapKeys[V any](m map[string]V, separator string) string {
 	}
 	return strings.Join(joined_keys, separator)
 }
+
+// Keys returns all keys of a map.
+//
+// This function takes a map `m` with keys of type `K` and values of type `V`, and
+// creates a new slice containing all the keys from the map. The function iterates
+// over the map and appends each key to the `keys` slice. The resulting slice will have
+// the same number of elements as the map has key-value pairs, and the order of keys
+// will correspond to the order in which they were iterated over (which is not guaranteed
+// to be in any particular order).
+//
+// The function is generic, allowing it to work with maps of any key type `K` and value type `V`.
+//
+// Parameters:
+//   - `m`: The input map from which to extract the keys. The keys are of type `K`
+//
+// Returns:
+//   - A slice of type `[]K` containing all the keys from the map `m`.
+//
+// Example:
+//
+//	// Extracting keys from a map of strings to integers
+//	map1 := map[string]int{"a": 1, "b": 2, "c": 3}
+//	keys := Keys(map1)
+//	// keys will be []string{"a", "b", "c"}
+func Keys[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Merge merges multiple maps into a new map.
+// Later maps override earlier ones for duplicate keys.
+//
+// This function takes a variable number of maps with keys of type `K` and values of type `V`,
+// and merges them into a single resulting map. It iterates through each input map,
+// adding all key-value pairs to the `result` map. If a key already exists in `result`,
+// the corresponding value from the current map will overwrite the existing value.
+//
+// The function is generic, allowing it to work with maps where the keys are of any
+// comparable type `K` and the values are of any type `V`.
+//
+// Parameters:
+//   - `maps`: A variadic parameter representing multiple maps to be merged. Each map has keys
+//     of type `K` and values of type `V`.
+//
+// Returns:
+//
+//   - A new map of type `map[K]V` containing the merged key-value pairs. If there are
+//
+//     key conflicts, the last map's value will be used.
+//
+// Example:
+//
+//	// Merging two maps with string keys and integer values
+//	map1 := map[string]int{"a": 1, "b": 2}
+//	map2 := map[string]int{"b": 3, "c": 4}
+//	merged := Merge(map1, map2)
+//	// merged will be map[string]int{"a": 1, "b": 3, "c": 4}
+func Merge[K comparable, V any](maps ...map[K]V) map[K]V {
+	result := make(map[K]V)
+	for _, m := range maps {
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}

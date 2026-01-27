@@ -1,10 +1,14 @@
 package common
 
-import "reflect"
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+)
 
-// DeepEqual compares two values of any comparable type to determine if they are deeply equal.
+// DeepEqualComp compares two values of any comparable type to determine if they are deeply equal.
 //
-// This function uses the `reflect.DeepEqual` function from the `reflect` package to compare
+// This function uses the `reflect.DeepEqualComp` function from the `reflect` package to compare
 // two values `a` and `b`. It checks for deep equality, meaning it considers nested structures,
 // such as slices, maps, or structs, and compares them element-by-element or field-by-field.
 // If the values are deeply equal, the function returns `true`; otherwise, it returns `false`.
@@ -22,22 +26,65 @@ import "reflect"
 // Example:
 //
 //	// Comparing two integer values
-//	isEqual := DeepEqual(5, 5)
+//	isEqual := DeepEqualComp(5, 5)
 //	// isEqual will be true as both integers are equal
 //
 //	// Comparing two slices with the same elements
 //	sliceA := []int{1, 2, 3}
 //	sliceB := []int{1, 2, 3}
-//	isEqual = DeepEqual(sliceA, sliceB)
+//	isEqual = DeepEqualComp(sliceA, sliceB)
 //	// isEqual will be true as both slices have identical elements in the same order
 //
 //	// Comparing two different maps
 //	mapA := map[string]int{"a": 1, "b": 2}
 //	mapB := map[string]int{"a": 1, "b": 3}
-//	isEqual = DeepEqual(mapA, mapB)
+//	isEqual = DeepEqualComp(mapA, mapB)
 //	// isEqual will be false as the values for key "b" differ between the maps
-func DeepEqual[T comparable](a, b T) bool {
+func DeepEqualComp[T comparable](a, b T) bool {
 	return reflect.DeepEqual(a, b)
+}
+
+// DeepEqual compares two values for equality via JSON serialization.
+//
+// This function serializes both input values `a` and `b` to JSON format using the `json.Marshal` function.
+// It then compares the resulting JSON byte slices using `bytes.Equal`. If the serialized JSON representations
+// are identical, the function returns `true`, indicating that the two values are considered equal in terms of their JSON representation.
+//
+// Parameters:
+//   - `a`: The first value to compare. It can be of any type.
+//   - `b`: The second value to compare. It can also be of any type.
+//
+// Returns:
+//   - `true` if the JSON representations of `a` and `b` are equal; `false` otherwise.
+//
+// Example:
+//
+//	// Comparing two structs with the same data
+//	type Person struct {
+//	    Name string
+//	    Age  int
+//	}
+//	personA := Person{Name: "Alice", Age: 30}
+//	personB := Person{Name: "Alice", Age: 30}
+//	isEqual := DeepEqual(personA, personB)
+//	// isEqual will be true as both structs serialize to the same JSON
+//	// Comparing two different maps
+//	mapA := map[string]int{"a": 1, "b": 2}
+//	mapB := map[string]int{"a": 1, "b": 3}
+//	isEqual = DeepEqual(mapA, mapB)
+//	// isEqual will be false as the JSON representations differ
+func DeepEqual(a, b any) bool {
+	aJSON, err := json.Marshal(a)
+	if err != nil {
+		return false
+	}
+
+	bJSON, err := json.Marshal(b)
+	if err != nil {
+		return false
+	}
+
+	return bytes.Equal(aJSON, bJSON)
 }
 
 // IsScalarType checks whether the given value is a primitive type in Go.

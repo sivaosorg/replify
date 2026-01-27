@@ -342,7 +342,7 @@ func (w *wrapper) IsDebuggingPresent() bool {
 //   - `true` if the `debug` field is present and contains the specified key.
 //   - `false` if `debug` is nil or does not contain the key.
 func (w *wrapper) IsDebuggingKeyPresent(key string) bool {
-	return w.IsDebuggingPresent() && coll.MapContainsKey(w.debug, key)
+	return w.IsDebuggingPresent() && coll.ContainsKeyComp(w.debug, key)
 }
 
 // IsBodyPresent checks whether the body data is present in the `wrapper` instance.
@@ -862,7 +862,7 @@ func (m *meta) IsDeltaCntPresent() bool {
 //   - `true` if the `customFields` map is available and contains the specified key.
 //   - `false` if `customFields` is nil, empty, or does not contain the specified key.
 func (m *meta) IsCustomFieldKeyPresent(key string) bool {
-	return m.IsCustomFieldPresent() && coll.MapContainsKey(m.customFields, key)
+	return m.IsCustomFieldPresent() && coll.ContainsKeyComp(m.customFields, key)
 }
 
 // OnKeyCustomField retrieves the value associated with a specific key in the custom fields of the `meta` instance.

@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-// MapContainsKey checks if a specified key is present within a given map.
+// ContainsKeyComp checks if a specified key is present within a given map.
 //
 // This function takes a map with keys of any comparable type `K` and values of
 // any type `V`. It checks if the specified `key` exists in the map `m`. If the key
@@ -25,11 +25,11 @@ import (
 // Example:
 //
 //	ages := map[string]int{"Alice": 30, "Bob": 25}
-//	isPresent := MapContainsKey(ages, "Alice") // isPresent will be true as "Alice" is a key in the map
+//	isPresent := ContainsKeyComp(ages, "Alice") // isPresent will be true as "Alice" is a key in the map
 //
 //	prices := map[int]float64{1: 9.99, 2: 19.99}
-//	isPresent := MapContainsKey(prices, 3) // isPresent will be false as 3 is not a key in the map
-func MapContainsKey[K comparable, V any](m map[K]V, key K) bool {
+//	isPresent := ContainsKeyComp(prices, 3) // isPresent will be false as 3 is not a key in the map
+func ContainsKeyComp[K comparable, V any](m map[K]V, key K) bool {
 	_, ok := m[key]
 	return ok
 }
@@ -168,7 +168,7 @@ func ToSlice[T any, U any](slice []T, mapper func(T) U) []U {
 	return mappedSlice
 }
 
-// MergeMap combines multiple maps into a single map. If there are any key conflicts,
+// Merge combines multiple maps into a single map. If there are any key conflicts,
 // the value from the last map will be used.
 //
 // This function accepts a variable number of maps of type `map[interface{}]V` and merges
@@ -194,19 +194,19 @@ func ToSlice[T any, U any](slice []T, mapper func(T) U) []U {
 //	// Merging two maps with integer keys and string values
 //	map1 := map[interface{}]string{"a": "apple", "b": "banana"}
 //	map2 := map[interface{}]string{"b": "blueberry", "c": "cherry"}
-//	merged := MergeMap(map1, map2)
+//	merged := Merge(map1, map2)
 //	// merged will be map[interface{}]string{"a": "apple", "b": "blueberry", "c": "cherry"}
 //
 //	// Merging maps with different value types (e.g., int and string)
 //	map3 := map[interface{}]int{"x": 10, "y": 20}
 //	map4 := map[interface{}]string{"y": "yellow", "z": "zebra"}
-//	mergedMixed := MergeMap(map3, map4)
+//	mergedMixed := Merge(map3, map4)
 //	// mergedMixed will be map[interface{}]string{"x": "10", "y": "yellow", "z": "zebra"}
 //
 //	// Merging an empty slice of maps returns an empty map
-//	mergedEmpty := MergeMap()
+//	mergedEmpty := Merge()
 //	// mergedEmpty will be an empty map
-func MergeMap[K any, V any](maps ...map[any]V) map[any]V {
+func Merge[K any, V any](maps ...map[any]V) map[any]V {
 	merged := make(map[any]V)
 	for _, m := range maps {
 		for k, v := range m {
@@ -216,7 +216,7 @@ func MergeMap[K any, V any](maps ...map[any]V) map[any]V {
 	return merged
 }
 
-// DeepMergeMap merges two maps, deeply combining values from the source map into the target map.
+// DeepMerge merges two maps, deeply combining values from the source map into the target map.
 //
 // This function takes two maps: `target` and `source`, both with string keys and interface{} values. It recursively merges
 // the values from the `source` map into the `target` map. If a key exists in both maps, the function checks if the values
@@ -241,7 +241,7 @@ func MergeMap[K any, V any](maps ...map[any]V) map[any]V {
 //		"vegetable": map[string]interface{}{"spinach": 5},
 //		"grain": 100,
 //	}
-//	DeepMergeMap(target, source)
+//	DeepMerge(target, source)
 //	// target will now be:
 //	// map[string]interface{}{
 //	//		"fruit": map[string]interface{}{"apple": 5, "banana": 7, "orange": 2},
@@ -251,12 +251,12 @@ func MergeMap[K any, V any](maps ...map[any]V) map[any]V {
 //
 //	// If there is no conflict, the value from the source is added as is.
 //	// If the source value is a nested map, the function will perform a deep merge.
-func DeepMergeMap(target, source map[string]any) {
+func DeepMerge(target, source map[string]any) {
 	for key, sourceValue := range source {
 		if targetValue, exists := target[key]; exists {
 			if sourceMap, sourceIsMap := sourceValue.(map[string]any); sourceIsMap {
 				if targetMap, targetIsMap := targetValue.(map[string]any); targetIsMap {
-					DeepMergeMap(targetMap, sourceMap)
+					DeepMerge(targetMap, sourceMap)
 				}
 			} else {
 				target[key] = sourceValue
@@ -265,49 +265,6 @@ func DeepMergeMap(target, source map[string]any) {
 			target[key] = sourceValue
 		}
 	}
-}
-
-// MergeMapStr merges multiple maps of type map[string]string into a single map.
-//
-// This function takes a variadic number of maps of type map[string]string and combines their key-value pairs into a
-// single resulting map. If there are duplicate keys across the input maps, the value from the last map in the
-// variadic list will overwrite the earlier ones.
-//
-// The function creates a new map to hold the merged results, iterating over each input map and adding its
-// key-value pairs to the result map.
-//
-// Parameters:
-//   - `maps`: A variadic parameter that takes one or more maps of type map[string]string to be merged.
-//
-// Returns:
-//   - A new map of type map[string]string that contains all the key-value pairs from the input maps.
-//     If a key appears in multiple maps, the value from the last map will be used.
-//
-// Example:
-//
-//	// Merging two maps
-//	map1 := map[string]string{"a": "apple", "b": "banana"}
-//	map2 := map[string]string{"b": "blueberry", "c": "cherry"}
-//	merged := MergeMapStr(map1, map2)
-//	// merged will be map[string]string{"a": "apple", "b": "blueberry", "c": "cherry"}
-//
-//	// Merging more than two maps
-//	map3 := map[string]string{"d": "date"}
-//	mergedAll := MergeMapStr(map1, map2, map3)
-//	// mergedAll will be map[string]string{"a": "apple", "b": "blueberry", "c": "cherry", "d": "date"}
-//
-//	// If duplicate keys exist, the value from the last map wins
-//	map4 := map[string]string{"a": "apricot"}
-//	mergedWithDup := MergeMapStr(map1, map4)
-//	// mergedWithDup will be map[string]string{"a": "apricot", "b": "banana"}
-func MergeMapStr(maps ...map[string]string) map[string]string {
-	result := make(map[string]string)
-	for _, m := range maps {
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-	return result
 }
 
 // FilterMap filters the key-value pairs of a map based on a condition provided by the filter function.
@@ -404,7 +361,7 @@ func Values[K any, V any](m map[any]V) []V {
 	return values
 }
 
-// JoinMapKeys concatenates the keys of a map into a single string, with each key separated by a specified separator.
+// JoinKeySep concatenates the keys of a map into a single string, with each key separated by a specified separator.
 //
 // This function takes a map `m` with string keys and any type of values `V`, and a `separator` string.
 // It collects all the keys of the map into a slice, then joins them into a single string using the provided separator.
@@ -423,19 +380,19 @@ func Values[K any, V any](m map[any]V) []V {
 //
 //	// Concatenating the keys of a map with a comma separator
 //	m := map[string]int{"apple": 1, "banana": 2, "cherry": 3}
-//	joinedKeys := JoinMapKeys(m, ", ")
+//	joinedKeys := JoinKeySep(m, ", ")
 //	// joinedKeys will be "apple, banana, cherry"
 //
 //	// Using a different separator
 //	m = map[string]bool{"cat": true, "dog": true}
-//	joinedKeys = JoinMapKeys(m, " | ")
+//	joinedKeys = JoinKeySep(m, " | ")
 //	// joinedKeys will be "cat | dog"
 //
 //	// With an empty map
 //	emptyMap := map[string]int{}
-//	joinedKeys = JoinMapKeys(emptyMap, ",")
+//	joinedKeys = JoinKeySep(emptyMap, ",")
 //	// joinedKeys will be ""
-func JoinMapKeys[V any](m map[string]V, separator string) string {
+func JoinKeySep[V any](m map[string]V, separator string) string {
 	joined_keys := []string{}
 	for key := range m {
 		joined_keys = append(joined_keys, key)
@@ -443,7 +400,7 @@ func JoinMapKeys[V any](m map[string]V, separator string) string {
 	return strings.Join(joined_keys, separator)
 }
 
-// Keys returns all keys of a map.
+// KeyComp returns all keys of a map.
 //
 // This function takes a map `m` with keys of type `K` and values of type `V`, and
 // creates a new slice containing all the keys from the map. The function iterates
@@ -464,9 +421,9 @@ func JoinMapKeys[V any](m map[string]V, separator string) string {
 //
 //	// Extracting keys from a map of strings to integers
 //	map1 := map[string]int{"a": 1, "b": 2, "c": 3}
-//	keys := Keys(map1)
+//	keys := KeyComp(map1)
 //	// keys will be []string{"a", "b", "c"}
-func Keys[K comparable, V any](m map[K]V) []K {
+func KeyComp[K comparable, V any](m map[K]V) []K {
 	keys := make([]K, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
@@ -474,7 +431,7 @@ func Keys[K comparable, V any](m map[K]V) []K {
 	return keys
 }
 
-// Merge merges multiple maps into a new map.
+// MergeComp merges multiple maps into a new map.
 // Later maps override earlier ones for duplicate keys.
 //
 // This function takes a variable number of maps with keys of type `K` and values of type `V`,
@@ -500,12 +457,46 @@ func Keys[K comparable, V any](m map[K]V) []K {
 //	// Merging two maps with string keys and integer values
 //	map1 := map[string]int{"a": 1, "b": 2}
 //	map2 := map[string]int{"b": 3, "c": 4}
-//	merged := Merge(map1, map2)
+//	merged := MergeComp(map1, map2)
 //	// merged will be map[string]int{"a": 1, "b": 3, "c": 4}
-func Merge[K comparable, V any](maps ...map[K]V) map[K]V {
+func MergeComp[K comparable, V any](maps ...map[K]V) map[K]V {
 	result := make(map[K]V)
 	for _, m := range maps {
 		for k, v := range m {
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// PickComp creates a new map by selecting specific keys from the input map.
+//
+// This function takes an input map `m` with keys of type `K` and values of type `V`,
+// along with a variadic list of keys to select. It iterates over the provided keys
+// and checks if each key exists in the input map. If a key is found, it adds the corresponding
+// key-value pair to the `result` map. The function returns a new map containing only
+// the selected key-value pairs.
+//
+// The function is generic, allowing it to work with maps where the keys are of any
+// comparable type `K` and the values are of any type `V`.
+//
+// Parameters:
+//   - `m`: The input map from which to select key-value pairs. It has keys of type `K` and values of type `V`.
+//   - `keys`: A variadic parameter representing the keys to select from the input map.
+//
+// Returns:
+//   - A new map of type `map[K]V` containing only the key-value pairs for the specified keys.
+//
+// Example:
+//
+//	// Selecting specific keys from a map with string keys and integer values
+//	m := map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}
+//	selected := PickComp(m, "b", "d")
+//	// selected will be map[string]int{"b": 2, "d": 4}
+func PickComp[K comparable, V any](m map[K]V, keys ...K) map[K]V {
+	result := make(map[K]V, len(keys))
+	for _, k := range keys {
+		if v, ok := m[k]; ok {
 			result[k] = v
 		}
 	}

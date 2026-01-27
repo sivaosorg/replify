@@ -251,20 +251,43 @@ func Merge[K any, V any](maps ...map[any]V) map[any]V {
 //
 //	// If there is no conflict, the value from the source is added as is.
 //	// If the source value is a nested map, the function will perform a deep merge.
-func DeepMerge(target, source map[string]any) {
-	for key, sourceValue := range source {
-		if targetValue, exists := target[key]; exists {
-			if sourceMap, sourceIsMap := sourceValue.(map[string]any); sourceIsMap {
-				if targetMap, targetIsMap := targetValue.(map[string]any); targetIsMap {
-					DeepMerge(targetMap, sourceMap)
-				}
-			} else {
-				target[key] = sourceValue
-			}
-		} else {
-			target[key] = sourceValue
-		}
+func DeepMerge(dst, src map[string]any) map[string]any {
+	// for key, sourceValue := range source {
+	// 	if targetValue, exists := target[key]; exists {
+	// 		if sourceMap, sourceIsMap := sourceValue.(map[string]any); sourceIsMap {
+	// 			if targetMap, targetIsMap := targetValue.(map[string]any); targetIsMap {
+	// 				DeepMerge(targetMap, sourceMap)
+	// 			}
+	// 		} else {
+	// 			target[key] = sourceValue
+	// 		}
+	// 	} else {
+	// 		target[key] = sourceValue
+	// 	}
+	// }
+
+	result := make(map[string]any, len(dst))
+
+	// Copy dst
+	for k, v := range dst {
+		result[k] = v
 	}
+
+	// Merge src
+	for k, v := range src {
+		if dstVal, ok := result[k]; ok {
+			// If both are maps, merge recursively
+			if dstMap, isDstMap := dstVal.(map[string]any); isDstMap {
+				if srcMap, isSrcMap := v.(map[string]any); isSrcMap {
+					result[k] = DeepMerge(dstMap, srcMap)
+					continue
+				}
+			}
+		}
+		result[k] = v
+	}
+
+	return result
 }
 
 // FilterMap filters the key-value pairs of a map based on a condition provided by the filter function.
@@ -359,6 +382,42 @@ func Values[K any, V any](m map[any]V) []V {
 		i++
 	}
 	return values
+}
+
+// ValuesComp applies a transformation function to each value in a map
+// and returns a new map with the same keys and transformed values.
+//
+// This function iterates over each key-value pair in the input map `m`, applies the
+// provided transformation function `fn` to each value, and stores the result in a new map
+// `result`. The keys in the resulting map remain the same as in the input map,
+// while the values are transformed according to the function `fn`.
+//
+// The function is generic, allowing it to work with maps where the keys are of any
+// comparable type `K`, the original values are of type `V`, and the transformed values
+// are of type `U`.
+//
+// Parameters:
+//   - `m`: The input map with keys of type `K` and values of type `V`.
+//   - `fn`: A function that takes a value of type `V` and returns a transformed value of type `U`.
+//
+// Returns:
+//   - A new map of type `map[K]U`, where each value is the result of applying `fn` to the
+//     corresponding value in the input map `m`.
+//
+// Example:
+//
+//	// Transforming a map of integers to their string representations
+//	m := map[string]int{"one": 1, "two": 2, "three": 3}
+//	transformed := ValuesComp(m, func(v int) string {
+//		return fmt.Sprintf("Number %d", v)
+//	})
+//	// transformed will be map[string]string{"one": "Number 1", "two": "Number 2", "three": "Number 3"}
+func ValuesComp[K comparable, V, U any](m map[K]V, fn func(V) U) map[K]U {
+	result := make(map[K]U, len(m))
+	for k, v := range m {
+		result[k] = fn(v)
+	}
+	return result
 }
 
 // JoinKeySep concatenates the keys of a map into a single string, with each key separated by a specified separator.
@@ -500,5 +559,254 @@ func PickComp[K comparable, V any](m map[K]V, keys ...K) map[K]V {
 			result[k] = v
 		}
 	}
+	return result
+}
+
+// OmitComp creates a new map by excluding specific keys from the input map.
+//
+// This function takes an input map `m` with keys of type `K` and values of type `V`,
+// along with a variadic list of keys to exclude. It first constructs a set of keys
+// to omit, then iterates over the input map and adds key-value pairs to the `result` map
+// only if the key is not in the omit set. The function returns a new map containing
+// only the key-value pairs that are not excluded.
+//
+// The function is generic, allowing it to work with maps where the keys are of any
+// comparable type `K` and the values are of any type `V`.
+//
+// Parameters:
+//   - `m`: The input map from which to exclude key-value pairs. It has keys of type `K` and values of type `V`.
+//   - `keys`: A variadic parameter representing the keys to exclude from the input map.
+//
+// Returns:
+//   - A new map of type `map[K]V` containing only the key-value pairs that are not excluded.
+//
+// Example:
+//
+//	// Excluding specific keys from a map with string keys and integer values
+//	m := map[string]int{"a": 1, "b": 2, "c": 3, "d": 4}
+//	omitted := OmitComp(m, "b", "d")
+//	// omitted will be map[string]int{"a": 1, "c": 3}
+func OmitComp[K comparable, V any](m map[K]V, keys ...K) map[K]V {
+	keySet := make(map[K]struct{}, len(keys))
+	for _, k := range keys {
+		keySet[k] = struct{}{}
+	}
+
+	result := make(map[K]V, len(m))
+	for k, v := range m {
+		if _, ok := keySet[k]; !ok {
+			result[k] = v
+		}
+	}
+	return result
+}
+
+// InvertComp inverts the keys and values of a map.
+//
+// This function takes an input map `m` with keys of type `K` and values of type `V`,
+// and creates a new map where the keys and values are swapped. It iterates over each
+// key-value pair in the input map and adds an entry to the `result` map with the value
+// as the key and the key as the value.
+//
+// The function is generic, allowing it to work with maps where both the keys and values
+// are of any comparable type.
+//
+// Parameters:
+//   - `m`: The input map to be inverted, with keys of type `K` and values of type `V`.
+//
+// Returns:
+//   - A new map of type `map[V]K`, where the keys and values from the input map `m` are swapped.
+//
+// Example:
+//
+//	// Inverting a map with string keys and integer values
+//	m := map[string]int{"a": 1, "b": 2, "c": 3}
+//	inverted := InvertComp(m)
+//	// inverted will be map[int]string{1: "a", 2: "b", 3: "c"}
+func InvertComp[K, V comparable](m map[K]V) map[V]K {
+	result := make(map[V]K, len(m))
+	for k, v := range m {
+		result[v] = k
+	}
+	return result
+}
+
+// GetOrDefault retrieves the value for a given key from the map.
+//
+// This function checks if the specified `key` exists in the map `m`. If the key
+// is found, it returns the corresponding value. If the key is not found, it returns
+// the provided `defaultValue`.
+//
+// The function is generic, allowing it to work with maps where the keys are of any
+// comparable type `K` and the values are of any type `V`.
+//
+// Parameters:
+//   - `m`: The map from which to retrieve the value. It has keys of type `K` and values of type `V`.
+//   - `key`: The key to look for in the map. It should be of the same type `K` as the keys in `m`.
+//   - `defaultValue`: The value to return if the key is not found in the map.
+//
+// Returns:
+//   - The value associated with the specified `key` if it exists in the map `m`.
+//   - The `defaultValue` if the key is not found.
+//
+// Example:
+//
+//	// Retrieving a value from a map with a default fallback
+//	m := map[string]int{"a": 1, "b": 2, "c": 3}
+//	value := GetOrDefault(m, "b", 0)
+//	// value will be 2 as "b" exists in the map
+func GetOrDefault[K comparable, V any](m map[K]V, key K, defaultValue V) V {
+	if v, ok := m[key]; ok {
+		return v
+	}
+	return defaultValue
+}
+
+// HasKey checks if a specified key is present within a given map.
+//
+// This function takes a map with keys of any comparable type `K` and values of
+// any type `V`. It checks if the specified `key` exists in the map `m`. If the key
+// is found, it returns `true`; otherwise, it returns `false`.
+//
+// The function is generic and can be used with maps that have keys of any type
+// that supports comparison (e.g., int, string). The value type `V` can be any type.
+//
+// Parameters:
+//   - `m`: The map in which to search for the key. The map has keys of type `K`
+//     and values of type `V`.
+//   - `key`: The key to search for within `m`. It should be of the same type `K` as
+//     the keys in `m`.
+//
+// Returns:
+//   - `true` if `key` is found in `m`, `false` otherwise.
+//
+// Example:
+//
+//	ages := map[string]int{"Alice": 30, "Bob": 25}
+//	isPresent := HasKey(ages, "Alice") // isPresent will be true as "Alice" is a key in the map
+//	prices := map[int]float64{1: 9.99, 2: 19.99}
+//	isPresent := HasKey(prices, 3) // isPresent will be false as 3 is not a key in the map
+func HasKey[K comparable, V any](m map[K]V, key K) bool {
+	_, ok := m[key]
+	return ok
+}
+
+// FlattenMap flattens a nested map into a single-level map with dot-separated keys.
+//
+// This function takes a nested map `m` where the keys are strings and the values can be
+// either primitive values or other nested maps. It recursively traverses the nested structure,
+// constructing new keys by concatenating parent keys with child keys using a dot (".") as a separator.
+//
+// The function returns a new map where all nested keys are flattened into a single level,
+// with the keys representing the path to each value in the original nested map.
+//
+// Parameters:
+//   - `m`: The nested map to be flattened. It has string keys and values of type `any`.
+//   - `prefix`: A string prefix used to build the keys during recursion. This is typically an empty string
+//     when the function is called initially.
+//
+// Returns:
+//   - A new map of type `map[string]any`, where all nested keys from the input map `m` are flattened
+//     into a single level with dot-separated keys.
+//
+// Example:
+//
+//	nestedMap := map[string]any{
+//		"user": map[string]any{
+//			"name": "Alice",
+//			"address": map[string]any{
+//				"city": "Wonderland",
+//				"zip":  "12345",
+//			},
+//		},
+//		"age": 30,
+//	}
+//	flattened := FlattenMap(nestedMap, "")
+//	// flattened will be:
+//	// map[string]any{
+//	//		"user.name": "Alice",
+//	//		"user.address.city": "Wonderland",
+//	//		"user.address.zip": "12345",
+//	//		"age": 30,
+//	// }
+func FlattenMap(m map[string]any, prefix string) map[string]any {
+	result := make(map[string]any)
+
+	for k, v := range m {
+		key := k
+		if prefix != "" {
+			key = prefix + "." + k
+		}
+
+		if nested, ok := v.(map[string]any); ok {
+			for nk, nv := range FlattenMap(nested, key) {
+				result[nk] = nv
+			}
+		} else {
+			result[key] = v
+		}
+	}
+
+	return result
+}
+
+// UnflattenMap converts a flat map with dot-separated keys into a nested map structure.
+//
+// This function takes a flat map `m` where the keys are strings that may contain dot (".")
+// separators, indicating a nested structure. It reconstructs the nested map by splitting
+// the keys at each dot and creating nested maps accordingly.
+//
+// The function returns a new map where the keys are organized into nested maps based
+// of the original flat map.
+//
+// Parameters:
+//   - `m`: The flat map to be unflattened. It has string keys and values of type `any`.
+//   - `prefix`: A string prefix to be removed from the keys before processing. This is typically
+//     an empty string when the function is called initially.
+//
+// Returns:
+//   - A new map of type `map[string]any`, where the keys from the input map `m` are organized
+//     into a nested structure based on the dot-separated keys.
+//
+// Example:
+//
+//	flatMap := map[string]any{
+//		"user.name": "Alice",
+//		"user.address.city": "Wonderland",
+//		"user.address.zip": "12345",
+//		"age": 30,
+//	}
+//	unflattened := UnflattenMap(flatMap, "")
+//	// unflattened will be:
+//	// map[string]any{
+//	//		"user": map[string]any{
+//	//			"name": "Alice",
+//	//			"address": map[string]any{
+//	//				"city": "Wonderland",
+//	//				"zip": "12345",
+//	//			},
+//	//		},
+//	//		"age": 30,
+//	// }
+func UnflattenMap(m map[string]any, prefix string) map[string]any {
+	result := make(map[string]any)
+
+	for k, v := range m {
+		k = strings.TrimPrefix(k, prefix)
+		parts := strings.Split(k, ".")
+		current := result
+
+		for i, part := range parts {
+			if i == len(parts)-1 {
+				current[part] = v
+			} else {
+				if _, ok := current[part]; !ok {
+					current[part] = make(map[string]any)
+				}
+				current = current[part].(map[string]any)
+			}
+		}
+	}
+
 	return result
 }

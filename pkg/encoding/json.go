@@ -178,3 +178,31 @@ func JsonSafePretty(data any) string {
 	}
 	return string(result)
 }
+
+// IsValidJSON checks if a given string is a valid JSON format.
+//
+// This function uses the json.Valid method from the standard json library
+// to determine if the input string `s` is a valid JSON representation.
+//
+// Parameters:
+//   - `s`: The string to be validated as JSON.
+//
+// Returns:
+//   - A boolean indicating whether the input string is valid JSON.
+func IsValidJSON(s string) bool {
+	return json.Valid([]byte(s))
+}
+
+// IsValidJSONBytes checks if a given byte slice is a valid JSON format.
+//
+// This function uses the json.Valid method from the standard json library
+// to determine if the input byte slice `data` is a valid JSON representation.
+//
+// Parameters:
+//   - `data`: The byte slice to be validated as JSON.
+//
+// Returns:
+//   - A boolean indicating whether the input byte slice is valid JSON.
+func IsValidJSONBytes(data []byte) bool {
+	return json.Valid(data)
+}

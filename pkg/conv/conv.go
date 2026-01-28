@@ -371,3 +371,319 @@ func MustTime(from any) time.Time {
 	}
 	return v
 }
+
+// Float32 will convert the given value to a float32, returns the default value
+// of 0.0 if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Float32("3.14")
+//	// val -> 3.14
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted float32 value.
+//   - An error if conversion fails.
+func Float32(from any) (float32, error) {
+	return defaultConverter.Float32(from)
+}
+
+// Float64 will convert the given value to a float64, returns the default value
+// of 0.0 if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Float64("2.71828")
+//	// val -> 2.71828
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted float64 value.
+//   - An error if conversion fails.
+func Float64(from any) (float64, error) {
+	return defaultConverter.Float64(from)
+}
+
+// Float64OrDefault returns the converted float64 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Float64OrDefault("invalid", 1.61803)
+//	// val -> 1.61803
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted float64 value, or defaultValue if conversion fails.
+func Float64OrDefault(from any, defaultValue float64) float64 {
+	if v, err := defaultConverter.Float64(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Int will convert the given value to an int, returns the default value of 0 if
+// a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Int("123")
+//	// val -> 123
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int value.
+//   - An error if conversion fails.
+func Int(from any) (int, error) {
+	return defaultConverter.Int(from)
+}
+
+// IntOrDefault returns the converted int or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.IntOrDefault("invalid", 42)
+//	// val -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted int value, or defaultValue if conversion fails.
+func IntOrDefault(from any, defaultValue int) int {
+	if v, err := defaultConverter.Int(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// MustInt returns the converted int or panics if conversion fails.
+//
+// Example:
+//
+//	val := conv.MustInt("456")
+//	// val -> 456
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int value.
+func MustInt(from any) int {
+	v, err := defaultConverter.Int(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// Int8 will convert the given value to an int8, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Int8("127")
+//	// val -> 127
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int8 value.
+//   - An error if conversion fails.
+func Int8(from any) (int8, error) {
+	return defaultConverter.Int8(from)
+}
+
+// Int16 will convert the given value to an int16, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Int16("32000")
+//	// val -> 32000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int16 value.
+//   - An error if conversion fails.
+func Int16(from any) (int16, error) {
+	return defaultConverter.Int16(from)
+}
+
+// Int32 will convert the given value to an int32, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Int32("2000000000")
+//	// val -> 2000000000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int32 value.
+//   - An error if conversion fails.
+func Int32(from any) (int32, error) {
+	return defaultConverter.Int32(from)
+}
+
+// Int64 will convert the given value to an int64, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Int64("9000000000")
+//	// val -> 9000000000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted int64 value.
+//   - An error if conversion fails.
+func Int64(from any) (int64, error) {
+	return defaultConverter.Int64(from)
+}
+
+// Int64OrDefault returns the converted int64 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Int64OrDefault("invalid", 1234567890)
+//	// val -> 1234567890
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted int64 value, or defaultValue if conversion fails.
+func Int64OrDefault(from any, defaultValue int64) int64 {
+	if v, err := defaultConverter.Int64(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Uint will convert the given value to a uint, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Uint("12345")
+//	// val -> 12345
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted uint value.
+//   - An error if conversion fails.
+func Uint(from any) (uint, error) {
+	return defaultConverter.Uint(from)
+}
+
+// Uint8 will convert the given value to a uint8, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Uint8("255")
+//	// val -> 255
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted uint8 value.
+//   - An error if conversion fails.
+func Uint8(from any) (uint8, error) {
+	return defaultConverter.Uint8(from)
+}
+
+// Uint16 will convert the given value to a uint16, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Uint16("65000")
+//	// val -> 65000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted uint16 value.
+//   - An error if conversion fails.
+func Uint16(from any) (uint16, error) {
+	return defaultConverter.Uint16(from)
+}
+
+// Uint32 will convert the given value to a uint32, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Uint32("4000000000")
+//	// val -> 4000000000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted uint32 value.
+//   - An error if conversion fails.
+func Uint32(from any) (uint32, error) {
+	return defaultConverter.Uint32(from)
+}
+
+// Uint64 will convert the given value to a uint64, returns the default value of 0
+// if a conversion cannot be made.
+//
+// Example:
+//
+//	val, err := conv.Uint64("9000000000")
+//	// val -> 9000000000
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted uint64 value.
+//   - An error if conversion fails.
+func Uint64(from any) (uint64, error) {
+	return defaultConverter.Uint64(from)
+}
+
+// Uint64OrDefault returns the converted uint64 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Uint64OrDefault("invalid", 9876543210)
+//	// val -> 9876543210
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted uint64 value, or defaultValue if conversion fails.
+func Uint64OrDefault(from any, defaultValue uint64) uint64 {
+	if v, err := defaultConverter.Uint64(from); err == nil {
+		return v
+	}
+	return defaultValue
+}

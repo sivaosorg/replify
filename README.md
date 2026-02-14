@@ -856,6 +856,7 @@ Part of the **replify** ecosystem:
 - [randn](https://github.com/sivaosorg/replify/pkg/randn) - Random data generation
 - [ref](https://github.com/sivaosorg/replify/pkg/ref) - Pointer utilities
 - [strutil](https://github.com/sivaosorg/replify/pkg/strutil) - String utilities
+- [truncate](https://github.com/sivaosorg/replify/pkg/truncate) - String truncation utilities
 
 ## Support
 

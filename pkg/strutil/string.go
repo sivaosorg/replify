@@ -8,6 +8,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/sivaosorg/replify/pkg/truncate"
 )
 
 var (
@@ -1934,6 +1936,35 @@ func Overlay(str string, overlay string, start int, end int) string {
 		start, end = end, start
 	}
 	return str[:start] + overlay + str[end:]
+}
+
+// Truncate truncates the input string s to the specified length.
+// If the input string is longer than the specified length, it is truncated to the specified length.
+// Otherwise, the original string is returned.
+//
+// Parameters:
+//   - `s`: The input string to be truncated.
+//   - `length`: The maximum length of the truncated string.
+//
+// Returns:
+//   - A new string that is the truncated version of the input string.
+//
+// Example:
+//
+//	original := "Hello, World!"
+//	newString := Truncate(original, 5) // newString will be "Hello..."
+func Truncate(s string, length int) string {
+	if IsEmpty(s) {
+		return s
+	}
+	if length < 0 {
+		return s
+	}
+	if len(s) <= length {
+		return s
+	}
+	strategy := truncate.NewCutEllipsisStrategy()
+	return strategy.Truncate(s, length)
 }
 
 // Remove removes all occurrences of a specified substring from the source string.

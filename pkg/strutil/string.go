@@ -1960,9 +1960,6 @@ func Truncate(s string, length int) string {
 	if length < 0 {
 		return s
 	}
-	if len(s) <= length {
-		return s
-	}
 	strategy := truncate.NewCutEllipsisStrategy()
 	return strategy.Truncate(s, length)
 }

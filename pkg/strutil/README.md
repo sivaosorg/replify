@@ -176,13 +176,6 @@ strutil.ContainsIgnoreCase(text, "world")      // true
 strutil.ContainsAny(text, "Foo", "World")      // true
 strutil.ContainsNone(text, "xyz", "123")       // true
 
-// Counting
-strutil.CountMatches("hello hello", "ll")      // 2
-strutil.CountOccurrences("banana", "a")        // 3
-
-// Finding
-strutil.IndexOf(text, "World")                 // 6
-strutil.LastIndexOf(text, "l")                 // 9
 ```
 
 ### 5. String Manipulation
@@ -224,7 +217,6 @@ strutil.Abbreviate("Long text", 10)            // "Long te..."
 
 // Joining
 parts := []string{"hello", "world"}
-strutil.Join(parts, ", ")                      // "hello, world"
 strutil.JoinUnary(parts, "-")                  // "hello-world"
 ```
 

@@ -2658,6 +2658,391 @@ func InitialsDelimited(str string, delimiters ...string) string {
 	return string(buff[:count])
 }
 
+// IsAllEmpty checks if all of the provided strings are empty or consist solely of whitespace characters.
+//
+// This function takes a variadic number of string arguments and iterates through
+// each string to verify that all of them are empty (i.e., have a length of zero
+// or consist solely of whitespace characters). If any string in the provided list
+// is found to be non-empty, the function immediately returns false. If all strings
+// are empty, it returns true.
+//
+// Parameters:
+//   - ss: A variadic parameter that allows passing multiple strings to be checked.
+//
+// Returns:
+//   - true if all of the provided strings are empty; false if at least one
+//     string is non-empty.
+//
+// Example:
+//
+//	result := IsAllEmpty("", "   ", "")    // result will be true because all strings are empty or whitespace.
+//	result2 := IsAllEmpty("", "hello", "") // result2 will be false because one string is non-empty.
+func IsAllEmpty(ss ...string) bool {
+	for _, s := range ss {
+		if !IsEmpty(s) {
+			return false
+		}
+	}
+	return true
+}
+
+// StartsWithAny checks if the string s starts with any of the specified prefixes.
+//
+// This function iterates through each prefix and returns true as soon as a match
+// is found. If none of the prefixes match, it returns false.
+//
+// Parameters:
+//   - s: The input string to check.
+//   - prefixes: A variadic list of prefix strings to test.
+//
+// Returns:
+//   - true if s starts with at least one of the provided prefixes; false otherwise.
+//
+// Example:
+//
+//	result := StartsWithAny("Hello", "Hi", "He")  // result will be true
+//	result = StartsWithAny("Hello", "Foo", "Bar") // result will be false
+func StartsWithAny(s string, prefixes ...string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// EndsWithAny checks if the string s ends with any of the specified suffixes.
+//
+// This function iterates through each suffix and returns true as soon as a match
+// is found. If none of the suffixes match, it returns false.
+//
+// Parameters:
+//   - s: The input string to check.
+//   - suffixes: A variadic list of suffix strings to test.
+//
+// Returns:
+//   - true if s ends with at least one of the provided suffixes; false otherwise.
+//
+// Example:
+//
+//	result := EndsWithAny("Hello", "lo", "llo")   // result will be true
+//	result = EndsWithAny("Hello", "Foo", "Bar")   // result will be false
+func EndsWithAny(s string, suffixes ...string) bool {
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(s, suffix) {
+			return true
+		}
+	}
+	return false
+}
+
+// RemoveAll removes all occurrences of the specified substring from the input string.
+//
+// This function replaces every instance of the remove substring with an empty string,
+// effectively deleting all occurrences from the original string.
+//
+// Parameters:
+//   - s: The input string from which substrings will be removed.
+//   - remove: The substring to remove from s.
+//
+// Returns:
+//   - A new string with all occurrences of remove deleted.
+//
+// Example:
+//
+//	result := RemoveAll("a-b-c", "-")         // result will be "abc"
+//	result = RemoveAll("hello world", "o")    // result will be "hell wrld"
+func RemoveAll(s string, remove string) string {
+	return strings.ReplaceAll(s, remove, "")
+}
+
+// Replace replaces the first n non-overlapping occurrences of old with new in the string s.
+// If n < 0, there is no limit on the number of replacements.
+//
+// Parameters:
+//   - s: The input string in which replacements will be made.
+//   - old: The substring to be replaced.
+//   - new: The replacement substring.
+//   - n: The maximum number of replacements to perform. Use -1 for unlimited.
+//
+// Returns:
+//   - A new string with up to n replacements applied.
+//
+// Example:
+//
+//	result := Replace("hello", "l", "L", 1) // result will be "heLlo"
+//	result = Replace("hello", "l", "L", -1) // result will be "heLLo"
+func Replace(s string, old string, new string, n int) string {
+	return strings.Replace(s, old, new, n)
+}
+
+// ReplaceAll replaces all non-overlapping occurrences of old with new in the string s.
+//
+// Parameters:
+//   - s: The input string in which replacements will be made.
+//   - old: The substring to be replaced.
+//   - new: The replacement substring.
+//
+// Returns:
+//   - A new string with all occurrences of old replaced by new.
+//
+// Example:
+//
+//	result := ReplaceAll("hello", "l", "L") // result will be "heLLo"
+func ReplaceAll(s string, old string, new string) string {
+	return strings.ReplaceAll(s, old, new)
+}
+
+// ReplaceIgnoreCase replaces the first occurrence of old with new in the string s,
+// performing a case-insensitive match. If old is not found (case-insensitively),
+// the original string is returned unchanged.
+//
+// Parameters:
+//   - s: The input string in which the replacement will be made.
+//   - old: The substring to search for (case-insensitive).
+//   - new: The replacement substring.
+//
+// Returns:
+//   - A new string with the first case-insensitive match of old replaced by new.
+//
+// Example:
+//
+//	result := ReplaceIgnoreCase("Hello", "hello", "Hi") // result will be "Hi"
+//	result = ReplaceIgnoreCase("WORLD", "world", "Go")  // result will be "Go"
+//	result = ReplaceIgnoreCase("abc", "xyz", "123")     // result will be "abc" (no match)
+func ReplaceIgnoreCase(s string, old string, new string) string {
+	lower := strings.ToLower(s)
+	oldLower := strings.ToLower(old)
+	idx := strings.Index(lower, oldLower)
+	if idx < 0 {
+		return s
+	}
+	return s[:idx] + new + s[idx+len(old):]
+}
+
+// PadLeft pads the string s on the left side with the pad string until the total
+// rune length reaches at least size. If the string is already longer than or equal
+// to size, it is returned unchanged.
+//
+// Parameters:
+//   - s: The input string to pad.
+//   - size: The desired minimum rune length of the result.
+//   - pad: The string to use as padding. If empty, the original string is returned.
+//
+// Returns:
+//   - A new string padded on the left to the specified size.
+//
+// Example:
+//
+//	result := PadLeft("5", 3, "0")     // result will be "005"
+//	result = PadLeft("hello", 3, "0")  // result will be "hello" (already >= 3)
+//	result = PadLeft("1", 5, "ab")     // result will be "abab1"
+func PadLeft(s string, size int, pad string) string {
+	if IsEmpty(pad) {
+		return s
+	}
+	sLen := utf8.RuneCountInString(s)
+	if sLen >= size {
+		return s
+	}
+	padLen := utf8.RuneCountInString(pad)
+	var sb strings.Builder
+	remaining := size - sLen
+	sb.Grow(len(s) + remaining*len(pad)/padLen + len(pad))
+	for remaining > 0 {
+		if padLen <= remaining {
+			sb.WriteString(pad)
+			remaining -= padLen
+		} else {
+			sb.WriteString(string([]rune(pad)[:remaining]))
+			remaining = 0
+		}
+	}
+	sb.WriteString(s)
+	return sb.String()
+}
+
+// PadRight pads the string s on the right side with the pad string until the total
+// rune length reaches at least size. If the string is already longer than or equal
+// to size, it is returned unchanged.
+//
+// Parameters:
+//   - s: The input string to pad.
+//   - size: The desired minimum rune length of the result.
+//   - pad: The string to use as padding. If empty, the original string is returned.
+//
+// Returns:
+//   - A new string padded on the right to the specified size.
+//
+// Example:
+//
+//	result := PadRight("5", 3, "0")     // result will be "500"
+//	result = PadRight("hello", 3, "0")  // result will be "hello" (already >= 3)
+//	result = PadRight("1", 5, "ab")     // result will be "1abab"
+func PadRight(s string, size int, pad string) string {
+	if IsEmpty(pad) {
+		return s
+	}
+	sLen := utf8.RuneCountInString(s)
+	if sLen >= size {
+		return s
+	}
+	padLen := utf8.RuneCountInString(pad)
+	var sb strings.Builder
+	remaining := size - sLen
+	sb.Grow(len(s) + remaining*len(pad)/padLen + len(pad))
+	sb.WriteString(s)
+	for remaining > 0 {
+		if padLen <= remaining {
+			sb.WriteString(pad)
+			remaining -= padLen
+		} else {
+			sb.WriteString(string([]rune(pad)[:remaining]))
+			remaining = 0
+		}
+	}
+	return sb.String()
+}
+
+// Center centres the string s within a field of the specified size by padding equally
+// on both sides with the pad string. If the padding does not divide evenly, the extra
+// character is placed on the right side.
+//
+// Parameters:
+//   - s: The input string to centre.
+//   - size: The desired total rune length of the result.
+//   - pad: The string to use as padding. If empty, the original string is returned.
+//
+// Returns:
+//   - A new string centred within the specified size.
+//
+// Example:
+//
+//	result := Center("Hi", 6, " ")  // result will be "  Hi  "
+//	result = Center("Hi", 7, "-")   // result will be "--Hi---"
+//	result = Center("Hello", 3, " ") // result will be "Hello" (already >= 3)
+func Center(s string, size int, pad string) string {
+	if IsEmpty(pad) {
+		return s
+	}
+	sLen := utf8.RuneCountInString(s)
+	if sLen >= size {
+		return s
+	}
+	total := size - sLen
+	leftPad := total / 2
+	rightPad := total - leftPad
+	return PadLeft(s, sLen+leftPad, pad)[:0] +
+		padRepeat(pad, leftPad) + s + padRepeat(pad, rightPad)
+}
+
+// Unwrap removes the specified wrapper string from both the beginning and the end
+// of the input string s. Both the leading and trailing wrapper must be present for
+// the unwrapping to occur; otherwise the original string is returned unchanged.
+//
+// Parameters:
+//   - s: The input string to unwrap.
+//   - wrapper: The string to remove from both ends.
+//
+// Returns:
+//   - A new string with the wrapper removed from both sides, or the original
+//     string if it is not wrapped.
+//
+// Example:
+//
+//	result := Unwrap("***hello***", "***")  // result will be "hello"
+//	result = Unwrap("'hello'", "'")         // result will be "hello"
+//	result = Unwrap("hello***", "***")      // result will be "hello***" (not wrapped on both sides)
+func Unwrap(s string, wrapper string) string {
+	if IsEmpty(wrapper) {
+		return s
+	}
+	if strings.HasPrefix(s, wrapper) && strings.HasSuffix(s, wrapper) {
+		wLen := len(wrapper)
+		if len(s) >= 2*wLen {
+			return s[wLen : len(s)-wLen]
+		}
+	}
+	return s
+}
+
+// DefaultIfEmpty returns the provided default value if the input string s is empty
+// or consists solely of whitespace characters. Otherwise, it returns s unchanged.
+//
+// Parameters:
+//   - s: The input string to check.
+//   - defaultValue: The fallback value to return if s is empty.
+//
+// Returns:
+//   - s if it is non-empty, or defaultValue otherwise.
+//
+// Example:
+//
+//	result := DefaultIfEmpty("", "default")      // result will be "default"
+//	result = DefaultIfEmpty("value", "default")  // result will be "value"
+func DefaultIfEmpty(s string, defaultValue string) string {
+	if IsEmpty(s) {
+		return defaultValue
+	}
+	return s
+}
+
+// DefaultIfBlank returns the provided default value if the input string s is blank
+// (empty or contains only whitespace characters). Otherwise, it returns s unchanged.
+//
+// Parameters:
+//   - s: The input string to check.
+//   - defaultValue: The fallback value to return if s is blank.
+//
+// Returns:
+//   - s if it is non-blank, or defaultValue otherwise.
+//
+// Example:
+//
+//	result := DefaultIfBlank("   ", "default")    // result will be "default"
+//	result = DefaultIfBlank("value", "default")   // result will be "value"
+func DefaultIfBlank(s string, defaultValue string) string {
+	if IsBlank(s) {
+		return defaultValue
+	}
+	return s
+}
+
+// Equals checks if two strings are exactly equal.
+//
+// Parameters:
+//   - a: The first string.
+//   - b: The second string.
+//
+// Returns:
+//   - true if a and b are identical; false otherwise.
+//
+// Example:
+//
+//	result := Equals("hello", "hello") // result will be true
+//	result = Equals("hello", "world")  // result will be false
+func Equals(a string, b string) bool {
+	return a == b
+}
+
+// EqualsIgnoreCase checks if two strings are equal, ignoring case differences.
+// Both strings are converted to lowercase before comparison.
+//
+// Parameters:
+//   - a: The first string.
+//   - b: The second string.
+//
+// Returns:
+//   - true if a and b are equal when compared case-insensitively; false otherwise.
+//
+// Example:
+//
+//	result := EqualsIgnoreCase("Hello", "hello") // result will be true
+//	result = EqualsIgnoreCase("Hello", "world")  // result will be false
+func EqualsIgnoreCase(a string, b string) bool {
+	return strings.EqualFold(a, b)
+}
+
 // isDelimiter checks if a character is a delimiter.
 //
 // This helper function determines whether a given character `c` is a
@@ -3546,4 +3931,26 @@ func isSeparator(r rune) bool {
 	}
 	// Otherwise, all we can do for now is treat spaces as separators.
 	return unicode.IsSpace(r)
+}
+
+// padRepeat is a helper that builds a padding string of exactly n runes
+// by repeating the pad string and truncating if necessary.
+func padRepeat(pad string, n int) string {
+	if n <= 0 {
+		return ""
+	}
+	padLen := utf8.RuneCountInString(pad)
+	var sb strings.Builder
+	sb.Grow(n * len(pad) / padLen)
+	remaining := n
+	for remaining > 0 {
+		if padLen <= remaining {
+			sb.WriteString(pad)
+			remaining -= padLen
+		} else {
+			sb.WriteString(string([]rune(pad)[:remaining]))
+			remaining = 0
+		}
+	}
+	return sb.String()
 }

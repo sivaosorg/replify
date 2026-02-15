@@ -454,6 +454,60 @@ right:
 	return s
 }
 
+// TrimLeft removes all leading occurrences of the specified cutset string from the
+// input string s. It repeatedly strips the cutset from the left side until no more
+// leading matches remain.
+//
+// Parameters:
+//   - s: The input string to trim.
+//   - cutset: The substring to remove from the left side. If cutset is empty,
+//     the original string is returned unchanged.
+//
+// Returns:
+//   - A new string with all leading occurrences of cutset removed.
+//
+// Example:
+//
+//	result := TrimLeft("###hello", "#")   // result will be "hello"
+//	result = TrimLeft("ababHi", "ab")     // result will be "Hi"
+//	result = TrimLeft("hello", "#")       // result will be "hello" (no change)
+func TrimLeft(s string, cutset string) string {
+	if IsEmpty(cutset) {
+		return s
+	}
+	for strings.HasPrefix(s, cutset) {
+		s = s[len(cutset):]
+	}
+	return s
+}
+
+// TrimRight removes all trailing occurrences of the specified cutset string from the
+// input string s. It repeatedly strips the cutset from the right side until no more
+// trailing matches remain.
+//
+// Parameters:
+//   - s: The input string to trim.
+//   - cutset: The substring to remove from the right side. If cutset is empty,
+//     the original string is returned unchanged.
+//
+// Returns:
+//   - A new string with all trailing occurrences of cutset removed.
+//
+// Example:
+//
+//	result := TrimRight("hello###", "#")   // result will be "hello"
+//	result = TrimRight("Hiabab", "ab")     // result will be "Hi"
+//	result = TrimRight("hello", "#")       // result will be "hello" (no change)
+func TrimRight(s string, cutset string) string {
+	if IsEmpty(cutset) {
+		return s
+	}
+	for strings.HasSuffix(s, cutset) {
+		s = s[:len(s)-len(cutset)]
+	}
+	return s
+}
+
 // Quote formats a string argument for safe output, escaping any special characters
 // and enclosing the result in double quotes.
 //

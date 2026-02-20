@@ -851,7 +851,7 @@ func (m *meta) IsDeltaCntPresent() bool {
 	return m.Available() && m.deltaCnt > 0
 }
 
-// IsCustomFieldKeyPresent checks whether a specific key is present in the custom fields of the `meta` instance.
+// IsCustomPresent checks whether a specific key is present in the custom fields of the `meta` instance.
 //
 // This function first verifies that the `customFields` field is available and contains data using
 // `IsCustomFieldPresent`. If so, it checks if the specified key exists within the `customFields` map.
@@ -862,7 +862,7 @@ func (m *meta) IsDeltaCntPresent() bool {
 // Returns:
 //   - `true` if the `customFields` map is available and contains the specified key.
 //   - `false` if `customFields` is nil, empty, or does not contain the specified key.
-func (m *meta) IsCustomFieldKeyPresent(key string) bool {
+func (m *meta) IsCustomPresent(key string) bool {
 	return m.IsCustomFieldPresent() && coll.ContainsKeyComp(m.customFields, key)
 }
 
@@ -879,7 +879,7 @@ func (m *meta) IsCustomFieldKeyPresent(key string) bool {
 //   - The value associated with the specified key in the `customFields` map if the key is present.
 //   - `nil` if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) OnCustom(key string) any {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return nil
 	}
 	return m.customFields[key]
@@ -900,7 +900,7 @@ func (m *meta) OnCustom(key string) any {
 //   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt(key string, defaultValue int) int {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return defaultValue
 	}
 	return conv.IntOrDefault(m.customFields[key], defaultValue)
@@ -921,7 +921,7 @@ func (m *meta) CustomInt(key string, defaultValue int) int {
 //   - The value associated with the specified key in the `customFields` map as a string if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomString(key string, defaultValue string) string {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return defaultValue
 	}
 	return conv.StringOrDefault(m.customFields[key], defaultValue)
@@ -942,7 +942,7 @@ func (m *meta) CustomString(key string, defaultValue string) string {
 //   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomBool(key string, defaultValue bool) bool {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return defaultValue
 	}
 	return conv.BoolOrDefault(m.customFields[key], defaultValue)
@@ -963,7 +963,7 @@ func (m *meta) CustomBool(key string, defaultValue bool) bool {
 //   - The value associated with the specified key in the `customFields` map as a float64 if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return defaultValue
 	}
 	return conv.Float64OrDefault(m.customFields[key], defaultValue)
@@ -984,7 +984,7 @@ func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 //   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
-	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+	if !m.Available() || !m.IsCustomPresent(key) {
 		return defaultValue
 	}
 	return conv.TimeOrDefault(m.customFields[key], defaultValue)

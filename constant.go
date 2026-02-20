@@ -620,7 +620,7 @@ const (
 const (
 	// ErrUnknown is a constant string used to represent an unknown or unspecified value in the context of XC (cross-cutting) concerns.
 	// It is typically used as a placeholder when the actual value is not available or not applicable.
-	ErrUnknown string = "unknown"
+	ErrUnknown string = "replify: error unknown"
 
 	// defaultChunkSize defines the maximum number of bytes in each chunk.
 	// defaultChunkSize is used to limit the size of data chunks when processing large responses or requests.

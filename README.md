@@ -340,7 +340,7 @@ func main() {
     }
     
     fmt.Printf("Exe time: %+v\n", diff.String())
-    fmt.Printf("%+v\n", w.OnKeyDebugging("___abc"))
+    fmt.Printf("%+v\n", w.OnDebugging("___abc"))
     fmt.Printf("%+v\n", w.JsonPretty())
 }
 ```
@@ -600,7 +600,7 @@ The `R` type is a high-level abstraction providing a simplified interface for ha
 | `Header()` | `*header` | Gets header object |
 | `Pagination()` | `*pagination` | Gets pagination object |
 | `Debugging()` | `map[string]interface{}` | Gets debug information |
-| `OnKeyDebugging(key string)` | `interface{}` | Gets specific debug value |
+| `OnDebugging(key string)` | `interface{}` | Gets specific debug value |
 
 ### Conditional Check Methods
 

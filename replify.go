@@ -259,7 +259,7 @@ func (w *wrapper) Debugging() map[string]any {
 	return w.debug
 }
 
-// OnKeyDebugging retrieves the value of a specific debugging key from the `wrapper` instance.
+// OnDebugging retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
@@ -271,7 +271,7 @@ func (w *wrapper) Debugging() map[string]any {
 // Returns:
 //   - The value associated with the specified debugging key if it exists.
 //   - `nil` if the `wrapper` is unavailable or the key is not present in the `debug` map.
-func (w *wrapper) OnKeyDebugging(key string) any {
+func (w *wrapper) OnDebugging(key string) any {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return nil
 	}

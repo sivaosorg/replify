@@ -866,7 +866,7 @@ func (m *meta) IsCustomFieldKeyPresent(key string) bool {
 	return m.IsCustomFieldPresent() && coll.ContainsKeyComp(m.customFields, key)
 }
 
-// OnKeyCustomField retrieves the value associated with a specific key in the custom fields of the `meta` instance.
+// OnCustom retrieves the value associated with a specific key in the custom fields of the `meta` instance.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key.
@@ -878,7 +878,7 @@ func (m *meta) IsCustomFieldKeyPresent(key string) bool {
 // Returns:
 //   - The value associated with the specified key in the `customFields` map if the key is present.
 //   - `nil` if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
-func (m *meta) OnKeyCustomField(key string) any {
+func (m *meta) OnCustom(key string) any {
 	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
 		return nil
 	}

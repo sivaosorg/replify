@@ -283,7 +283,7 @@ func main() {
     fmt.Println(w.Respond())
     
     // Check metadata
-    fmt.Println(w.Meta().IsCustomFieldPresent())
+    fmt.Println(w.Meta().IsCustomPresent())
     fmt.Println(w.Meta().IsApiVersionPresent())
     fmt.Println(w.Meta().IsRequestIDPresent())
     fmt.Println(w.Meta().IsRequestedTimePresent())

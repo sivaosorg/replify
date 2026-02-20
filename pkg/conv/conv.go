@@ -76,26 +76,6 @@ func To[T any](from any) (T, error) {
 	return result.(T), nil
 }
 
-// MustTo converts the given value to type T, panicking if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustTo[int]("42")
-//	// val -> 42
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted value of type T.
-func MustTo[T any](from any) T {
-	v, err := To[T](from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // Infer will perform conversion by inferring the conversion operation from
 // the base type of a pointer to a supported type. The value is assigned
 // directly so only an error is returned.
@@ -139,26 +119,6 @@ func Bool(from any) (bool, error) {
 	return defaultConverter.Bool(from)
 }
 
-// MustBool returns the converted bool value or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustBool("true")
-//	// val -> true
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted bool value.
-func MustBool(from any) bool {
-	v, err := defaultConverter.Bool(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // Duration will convert the given value to a time.Duration, returns the default
 // value of 0 if a conversion cannot be made.
 //
@@ -174,26 +134,6 @@ func MustBool(from any) bool {
 //   - The converted time.Duration value.
 func Duration(from any) (time.Duration, error) {
 	return defaultConverter.Duration(from)
-}
-
-// MustDuration returns the converted duration or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustDuration("1h15m")
-//	// val -> 1h15m0s
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted time.Duration value.
-func MustDuration(from any) time.Duration {
-	v, err := defaultConverter.Duration(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 // String will convert the given value to a string, returns the default value
@@ -214,26 +154,6 @@ func String(from any) (string, error) {
 	return defaultConverter.String(from)
 }
 
-// MustString returns the converted string or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustString(1001)
-//	// val -> "1001"
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted string value.
-func MustString(from any) string {
-	v, err := defaultConverter.String(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // Time will convert the given value to a time.Time, returns the empty struct
 // time.Time{} if a conversion cannot be made.
 //
@@ -250,26 +170,6 @@ func MustString(from any) string {
 //   - An error if conversion fails.
 func Time(from any) (time.Time, error) {
 	return defaultConverter.Time(from)
-}
-
-// MustTime returns the converted time or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustTime("2024-12-25T10:00:00Z")
-//	// val -> 2024-12-25 10:00:00 +0000 UTC
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted time.Time value.
-func MustTime(from any) time.Time {
-	v, err := defaultConverter.Time(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 // Float32 will convert the given value to a float32, returns the default value
@@ -324,26 +224,6 @@ func Float64(from any) (float64, error) {
 //   - An error if conversion fails.
 func Int(from any) (int, error) {
 	return defaultConverter.Int(from)
-}
-
-// MustInt returns the converted int or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustInt("456")
-//	// val -> 456
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted int value.
-func MustInt(from any) int {
-	v, err := defaultConverter.Int(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
 }
 
 // Int8 will convert the given value to an int8, returns the default value of 0

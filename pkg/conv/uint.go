@@ -235,66 +235,6 @@ func MustUint(from any) uint {
 	return v
 }
 
-// UintOrDefault returns the converted uint or the provided default if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted uint value or the default value.
-func UintOrDefault(from any, defaultValue uint) uint {
-	if v, err := defaultConverter.Uint(from); err == nil {
-		return v
-	}
-	return defaultValue
-}
-
-// Uint8OrDefault returns the converted uint8 or the provided default if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted uint8 value or the default value.
-func Uint8OrDefault(from any, defaultValue uint8) uint8 {
-	if v, err := defaultConverter.Uint8(from); err == nil {
-		return v
-	}
-	return defaultValue
-}
-
-// Uint16OrDefault returns the converted uint16 or the provided default if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted uint16 value or the default value.
-func Uint16OrDefault(from any, defaultValue uint16) uint16 {
-	if v, err := defaultConverter.Uint16(from); err == nil {
-		return v
-	}
-	return defaultValue
-}
-
-// Uint32OrDefault returns the converted uint32 or the provided default if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted uint32 value or the default value.
-func Uint32OrDefault(from any, defaultValue uint32) uint32 {
-	if v, err := defaultConverter.Uint32(from); err == nil {
-		return v
-	}
-	return defaultValue
-}
-
 // stringToUint64 attempts to convert a string to uint64.
 //
 // Parameters:

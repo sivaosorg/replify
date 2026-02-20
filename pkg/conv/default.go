@@ -122,6 +122,66 @@ func IntOrDefault(from any, defaultValue int) int {
 	return defaultValue
 }
 
+// Int8OrDefault returns the converted int8 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Int8OrDefault("invalid", 42)
+//	// val -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted int8 value, or defaultValue if conversion fails.
+func Int8OrDefault(from any, defaultValue int8) int8 {
+	if v, err := defaultConverter.Int8(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Int16OrDefault returns the converted int16 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Int16OrDefault("invalid", 42)
+//	// val -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted int16 value, or defaultValue if conversion fails.
+func Int16OrDefault(from any, defaultValue int16) int16 {
+	if v, err := defaultConverter.Int16(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Int32OrDefault returns the converted int32 or the provided default if conversion fails.
+//
+// Example:
+//
+//	val := conv.Int32OrDefault("invalid", 42)
+//	// val -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The value to return if conversion fails.
+//
+// Returns:
+//   - The converted int32 value, or defaultValue if conversion fails.
+func Int32OrDefault(from any, defaultValue int32) int32 {
+	if v, err := defaultConverter.Int32(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
 // Int64OrDefault returns the converted int64 or the provided default if conversion fails.
 //
 // Example:
@@ -137,6 +197,66 @@ func IntOrDefault(from any, defaultValue int) int {
 //   - The converted int64 value, or defaultValue if conversion fails.
 func Int64OrDefault(from any, defaultValue int64) int64 {
 	if v, err := defaultConverter.Int64(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// UintOrDefault returns the converted uint or the provided default if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted uint value or the default value.
+func UintOrDefault(from any, defaultValue uint) uint {
+	if v, err := defaultConverter.Uint(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Uint8OrDefault returns the converted uint8 or the provided default if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted uint8 value or the default value.
+func Uint8OrDefault(from any, defaultValue uint8) uint8 {
+	if v, err := defaultConverter.Uint8(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Uint16OrDefault returns the converted uint16 or the provided default if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted uint16 value or the default value.
+func Uint16OrDefault(from any, defaultValue uint16) uint16 {
+	if v, err := defaultConverter.Uint16(from); err == nil {
+		return v
+	}
+	return defaultValue
+}
+
+// Uint32OrDefault returns the converted uint32 or the provided default if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted uint32 value or the default value.
+func Uint32OrDefault(from any, defaultValue uint32) uint32 {
+	if v, err := defaultConverter.Uint32(from); err == nil {
 		return v
 	}
 	return defaultValue

@@ -167,21 +167,6 @@ func MustFloat32(from any) float32 {
 	return v
 }
 
-// Float32OrDefault returns the converted float32 or the provided default if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted float32 value or the default value.
-func Float32OrDefault(from any, defaultValue float32) float32 {
-	if v, err := defaultConverter.Float32(from); err == nil {
-		return v
-	}
-	return defaultValue
-}
-
 // ///////////////////////////
 // Section: Special float values
 // ///////////////////////////

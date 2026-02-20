@@ -134,40 +134,6 @@ func (c *Converter) Float32(from any) (float32, error) {
 }
 
 // ///////////////////////////
-// Section: Package-level Float functions
-// ///////////////////////////
-
-// MustFloat64 returns the converted float64 or panics if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//
-// Returns:
-//   - The converted float64 value.
-func MustFloat64(from any) float64 {
-	v, err := defaultConverter.Float64(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// MustFloat32 returns the converted float32 or panics if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//
-// Returns:
-//   - The converted float32 value.
-func MustFloat32(from any) float32 {
-	v, err := defaultConverter.Float32(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
-// ///////////////////////////
 // Section: Special float values
 // ///////////////////////////
 

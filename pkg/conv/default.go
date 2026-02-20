@@ -22,6 +22,29 @@ func ToOrDefault[T any](from any, defaultValue T) T {
 	return defaultValue
 }
 
+// InferOrDefault attempts to infer conversion, using default value on failure.
+//
+// Example:
+//
+//	val := conv.InferOrDefault[int]("not an int", 100)
+//	// val -> 100
+//	val2 := conv.InferOrDefault[int]("42", 100)
+//	// val2 -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//   - defaultValue: The default value to return if conversion fails.
+//
+// Returns:
+//   - The converted value or the default value if conversion fails.
+func InferOrDefault[T any](from any, defaultValue T) T {
+	var into T
+	if err := defaultConverter.Infer(&into, from); err != nil {
+		return defaultValue
+	}
+	return into
+}
+
 // BoolOrDefault returns the converted bool value or the provided default if conversion fails.
 //
 // Example:

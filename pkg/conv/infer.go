@@ -71,49 +71,6 @@ func (c *Converter) Infer(into, from any) error {
 // Section: Package-level Infer helpers
 // ///////////////////////////
 
-// InferOrDefault attempts to infer conversion, using default value on failure.
-//
-// Example:
-//
-//	val := conv.InferOrDefault[int]("not an int", 100)
-//	// val -> 100
-//	val2 := conv.InferOrDefault[int]("42", 100)
-//	// val2 -> 42
-//
-// Parameters:
-//   - from: The source value to convert.
-//   - defaultValue: The default value to return if conversion fails.
-//
-// Returns:
-//   - The converted value or the default value if conversion fails.
-func InferOrDefault[T any](from any, defaultValue T) T {
-	var into T
-	if err := defaultConverter.Infer(&into, from); err != nil {
-		return defaultValue
-	}
-	return into
-}
-
-// MustInfer performs type inference and conversion, panicking on failure.
-//
-// Example:
-//
-//	val := conv.MustInfer[int]("42")
-//	// val -> 42
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted value.
-func MustInfer[T any](from any) T {
-	var into T
-	if err := defaultConverter.Infer(&into, from); err != nil {
-		panic(err)
-	}
-	return into
-}
-
 // TryInfer attempts to infer conversion, returning success status.
 //
 // Example:

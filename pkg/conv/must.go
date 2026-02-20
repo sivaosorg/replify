@@ -22,6 +22,26 @@ func MustTo[T any](from any) T {
 	return v
 }
 
+// MustInfer performs type inference and conversion, panicking on failure.
+//
+// Example:
+//
+//	val := conv.MustInfer[int]("42")
+//	// val -> 42
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted value.
+func MustInfer[T any](from any) T {
+	var into T
+	if err := defaultConverter.Infer(&into, from); err != nil {
+		panic(err)
+	}
+	return into
+}
+
 // MustBool returns the converted bool value or panics if conversion fails.
 //
 // Example:
@@ -62,26 +82,6 @@ func MustDuration(from any) time.Duration {
 	return v
 }
 
-// MustString returns the converted string or panics if conversion fails.
-//
-// Example:
-//
-//	val := conv.MustString(1001)
-//	// val -> "1001"
-//
-// Parameters:
-//   - from: The source value to convert.
-//
-// Returns:
-//   - The converted string value.
-func MustString(from any) string {
-	v, err := defaultConverter.String(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // MustTime returns the converted time or panics if conversion fails.
 //
 // Example:
@@ -102,6 +102,26 @@ func MustTime(from any) time.Time {
 	return v
 }
 
+// MustString returns the converted string or panics if conversion fails.
+//
+// Example:
+//
+//	val := conv.MustString(1001)
+//	// val -> "1001"
+//
+// Parameters:
+//   - from: The source value to convert.
+//
+// Returns:
+//   - The converted string value.
+func MustString(from any) string {
+	v, err := defaultConverter.String(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 // MustInt returns the converted int or panics if conversion fails.
 //
 // Example:
@@ -116,6 +136,36 @@ func MustTime(from any) time.Time {
 //   - The converted int value.
 func MustInt(from any) int {
 	v, err := defaultConverter.Int(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// MustFloat32 returns the converted float32 or panics if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted float32 value.
+func MustFloat32(from any) float32 {
+	v, err := defaultConverter.Float32(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+// MustFloat64 returns the converted float64 or panics if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted float64 value.
+func MustFloat64(from any) float64 {
+	v, err := defaultConverter.Float64(from)
 	if err != nil {
 		panic(err)
 	}

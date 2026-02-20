@@ -157,7 +157,7 @@ func (m *meta) WithCustomFields(values map[string]any) *meta {
 // Returns:
 //   - A pointer to the modified `meta` instance, enabling method chaining.
 func (m *meta) WithCustomFieldKV(key string, value any) *meta {
-	if !m.IsCustomFieldPresent() {
+	if !m.IsCustomPresent() {
 		m.customFields = make(map[string]interface{})
 	}
 	m.customFields[key] = value
@@ -267,7 +267,7 @@ func (m *meta) Respond() map[string]any {
 	if m.IsRequestedTimePresent() {
 		mk["requested_time"] = m.requestedTime
 	}
-	if m.IsCustomFieldPresent() {
+	if m.IsCustomPresent() {
 		mk["custom_fields"] = m.customFields
 	}
 	if m.IsDeltaCntPresent() {

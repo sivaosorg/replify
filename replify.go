@@ -885,25 +885,46 @@ func (m *meta) OnCustom(key string) any {
 	return m.customFields[key]
 }
 
-// CustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+// CustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
-// it returns 0.
+// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
 //
 // Parameters:
 //   - `key`: A string representing the key to search for in the `customFields` map.
-//   - `defaultValue`: An integer representing the default value to return if the key is not present.
+//   - `defaultValue`: A boolean representing the default value to return if the key is not present.
 //
 // Returns:
-//   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
+//   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
-func (m *meta) CustomInt(key string, defaultValue int) int {
+func (m *meta) CustomBool(key string, defaultValue bool) bool {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
 	}
-	return conv.IntOrDefault(m.customFields[key], defaultValue)
+	return conv.BoolOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomDuration retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Duration.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a time.Duration using `conv.DurationOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A time.Duration representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a time.Duration if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomDuration(key string, defaultValue time.Duration) time.Duration {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.DurationOrDefault(m.customFields[key], defaultValue)
 }
 
 // CustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
@@ -927,25 +948,256 @@ func (m *meta) CustomString(key string, defaultValue string) string {
 	return conv.StringOrDefault(m.customFields[key], defaultValue)
 }
 
-// CustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
+// CustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
 //   - `key`: A string representing the key to search for in the `customFields` map.
-//   - `defaultValue`: A boolean representing the default value to return if the key is not present.
+//   - `defaultValue`: A time.Time representing the default value to return if the key is not present.
 //
 // Returns:
-//   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
+//   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
 //   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
-func (m *meta) CustomBool(key string, defaultValue bool) bool {
+func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
 	}
-	return conv.BoolOrDefault(m.customFields[key], defaultValue)
+	return conv.TimeOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns 0.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An integer representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt(key string, defaultValue int) int {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.IntOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomInt8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int8.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int8 using `conv.Int8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An int8 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int8 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt8(key string, defaultValue int8) int8 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int8OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomInt16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int16.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int16 using `conv.Int16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An int16 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int16 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt16(key string, defaultValue int16) int16 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int16OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomInt32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int32 using `conv.Int32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An int32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt32(key string, defaultValue int32) int32 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int32OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomInt64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int64 using `conv.Int64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An int64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt64(key string, defaultValue int64) int64 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int64OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomUint retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint using `conv.UintOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A uint representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomUint(key string, defaultValue uint) uint {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.UintOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomUint8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint8.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint8 using `conv.Uint8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A uint8 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint8 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomUint8(key string, defaultValue uint8) uint8 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint8OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomUint16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint16.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint16 using `conv.Uint16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A uint16 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint16 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomUint16(key string, defaultValue uint16) uint16 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint16OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomUint32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint32 using `conv.Uint32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A uint32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomUint32(key string, defaultValue uint32) uint32 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint32OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomUint64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint64 using `conv.Uint64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A uint64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomUint64(key string, defaultValue uint64) uint64 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint64OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomFloat32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a float32 using `conv.Float32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A float32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a float32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomFloat32(key string, defaultValue float32) float32 {
+	if !m.Available() || !m.IsCustomKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Float32OrDefault(m.customFields[key], defaultValue)
 }
 
 // CustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
@@ -967,27 +1219,6 @@ func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 		return defaultValue
 	}
 	return conv.Float64OrDefault(m.customFields[key], defaultValue)
-}
-
-// CustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
-//
-// This function checks whether the `meta` instance is available and whether the specified key exists
-// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
-// it returns the default value.
-//
-// Parameters:
-//   - `key`: A string representing the key to search for in the `customFields` map.
-//   - `defaultValue`: A time.Time representing the default value to return if the key is not present.
-//
-// Returns:
-//   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
-func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
-	if !m.Available() || !m.IsCustomKeyPresent(key) {
-		return defaultValue
-	}
-	return conv.TimeOrDefault(m.customFields[key], defaultValue)
 }
 
 // ApiVersion retrieves the API version from the `meta` instance.

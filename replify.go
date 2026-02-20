@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/coll"
+	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/hashy"
 	"github.com/sivaosorg/replify/pkg/randn"
 	"github.com/sivaosorg/replify/pkg/strutil"
@@ -882,6 +883,111 @@ func (m *meta) OnKeyCustomField(key string) any {
 		return nil
 	}
 	return m.customFields[key]
+}
+
+// CustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns 0.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: An integer representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomInt(key string, defaultValue int) int {
+	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.IntOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a string using `conv.StringOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A string representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a string if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomString(key string, defaultValue string) string {
+	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.StringOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A boolean representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomBool(key string, defaultValue bool) bool {
+	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.BoolOrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a float64 using `conv.Float64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A float64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a float64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
+	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Float64OrDefault(m.customFields[key], defaultValue)
+}
+
+// CustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `key`: A string representing the key to search for in the `customFields` map.
+//   - `defaultValue`: A time.Time representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
+	if !m.Available() || !m.IsCustomFieldKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.TimeOrDefault(m.customFields[key], defaultValue)
 }
 
 // ApiVersion retrieves the API version from the `meta` instance.

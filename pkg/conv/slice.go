@@ -341,23 +341,3 @@ func Slice[T any](from any) ([]T, error) {
 
 	return result, nil
 }
-
-// SliceOrDefault converts to slice of T, returning default on failure.
-//
-// Parameters:
-//   - from: The value to convert (slice, array, or single value).
-//   - defaultValue: The default slice to return if conversion fails.
-//
-// Returns:
-//   - A slice of type T or the default slice if conversion fails.
-//
-// Example:
-//
-//	val := conv.SliceOrDefault[int]("not a slice", []int{10, 20, 30})
-//	//	val -> []int{10, 20, 30}
-func SliceOrDefault[T any](from any, defaultValue []T) []T {
-	if v, err := Slice[T](from); err == nil {
-		return v
-	}
-	return defaultValue
-}

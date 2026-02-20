@@ -142,6 +142,21 @@ func MustInt(from any) int {
 	return v
 }
 
+// MustUint returns the converted uint or panics if conversion fails.
+//
+// Parameters:
+//   - from: The value to convert.
+//
+// Returns:
+//   - The converted uint value.
+func MustUint(from any) uint {
+	v, err := defaultConverter.Uint(from)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
 // MustFloat32 returns the converted float32 or panics if conversion fails.
 //
 // Parameters:
@@ -170,4 +185,58 @@ func MustFloat64(from any) float64 {
 		panic(err)
 	}
 	return v
+}
+
+// MustParseJSON is a package-level helper that parses a JSON string into a variable of type T.
+//
+// Parameters:
+//   - `jsonStr`: The JSON string to be parsed.
+//
+// Returns:
+//   - A variable of type T populated with the parsed data.
+//   - Panics if the parsing fails.
+func MustParseJSON[T any](jsonStr string) T {
+	result, err := ParseJSON[T](jsonStr)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// MustParseJSONBytes is a package-level helper that parses a JSON byte slice into a variable of type T.
+//
+// Parameters:
+//   - `data`: The JSON byte slice to be parsed.
+//
+// Returns:
+//   - A variable of type T populated with the parsed data.
+//   - Panics if the parsing fails.
+func MustParseJSONBytes[T any](data []byte) T {
+	result, err := ParseJSONBytes[T](data)
+	if err != nil {
+		panic(err)
+	}
+	return result
+}
+
+// MustClone creates a deep copy of the given value using JSON serialization and deserialization,
+// panicking on failure.
+//
+// Parameters:
+//   - `v`: The value to be cloned.
+//
+// Returns:
+//   - A deep copy of the input value.
+//
+// Example:
+//
+//	original := MyStruct{Field: "value"}
+//	clone := conv.MustClone(original)
+//	// use clone
+func MustClone[T any](v T) T {
+	result, err := Clone(v)
+	if err != nil {
+		panic(err)
+	}
+	return result
 }

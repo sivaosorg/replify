@@ -154,38 +154,6 @@ func ParseJSONBytes[T any](data []byte) (T, error) {
 	return result, nil
 }
 
-// MustParseJSON is a package-level helper that parses a JSON string into a variable of type T.
-//
-// Parameters:
-//   - `jsonStr`: The JSON string to be parsed.
-//
-// Returns:
-//   - A variable of type T populated with the parsed data.
-//   - Panics if the parsing fails.
-func MustParseJSON[T any](jsonStr string) T {
-	result, err := ParseJSON[T](jsonStr)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
-// MustParseJSONBytes is a package-level helper that parses a JSON byte slice into a variable of type T.
-//
-// Parameters:
-//   - `data`: The JSON byte slice to be parsed.
-//
-// Returns:
-//   - A variable of type T populated with the parsed data.
-//   - Panics if the parsing fails.
-func MustParseJSONBytes[T any](data []byte) T {
-	result, err := ParseJSONBytes[T](data)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-
 // Clone creates a deep copy of the given value using JSON serialization and deserialization.
 //
 // Parameters:
@@ -214,26 +182,4 @@ func Clone[T any](v T) (T, error) {
 	}
 
 	return result, nil
-}
-
-// MustClone creates a deep copy of the given value using JSON serialization and deserialization,
-// panicking on failure.
-//
-// Parameters:
-//   - `v`: The value to be cloned.
-//
-// Returns:
-//   - A deep copy of the input value.
-//
-// Example:
-//
-//	original := MyStruct{Field: "value"}
-//	clone := conv.MustClone(original)
-//	// use clone
-func MustClone[T any](v T) T {
-	result, err := Clone(v)
-	if err != nil {
-		panic(err)
-	}
-	return result
 }

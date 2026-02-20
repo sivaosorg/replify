@@ -216,25 +216,6 @@ func (c *Converter) Uint32(from any) (uint32, error) {
 	return uint32(to64), nil
 }
 
-// ///////////////////////////
-// Section: Package-level Uint functions
-// ///////////////////////////
-
-// MustUint returns the converted uint or panics if conversion fails.
-//
-// Parameters:
-//   - from: The value to convert.
-//
-// Returns:
-//   - The converted uint value.
-func MustUint(from any) uint {
-	v, err := defaultConverter.Uint(from)
-	if err != nil {
-		panic(err)
-	}
-	return v
-}
-
 // stringToUint64 attempts to convert a string to uint64.
 //
 // Parameters:

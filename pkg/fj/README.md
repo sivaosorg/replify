@@ -343,6 +343,25 @@ Available named style variables:
 | `IsValidJSONBytes` | `IsValidJSONBytes(json []byte) bool` | Report whether a byte slice is valid JSON. |
 | `AddTransformer` | `AddTransformer(name string, fn func(json, arg string) string)` | Register a named transformer. |
 
+### Search Engine Functions
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `Search` | `Search(json, keyword string) []Context` | Full-tree scan — return all scalar leaves whose string value contains `keyword`. |
+| `SearchByKey` | `SearchByKey(json string, keys ...string) []Context` | Return all values stored under the given key name(s) at any depth. |
+| `Contains` | `Contains(json, path, target string) bool` | Report whether the value at `path` contains the substring `target`. |
+| `FindPath` | `FindPath(json, value string) string` | Return the first dot-notation path at which a scalar equals `value`. |
+| `FindPaths` | `FindPaths(json, value string) []string` | Return all dot-notation paths at which a scalar equals `value`. |
+| `Count` | `Count(json, path string) int` | Count elements at `path` (array length or 1 for scalars; 0 when missing). |
+| `Sum` | `Sum(json, path string) float64` | Sum of all numeric values at `path`. |
+| `Min` | `Min(json, path string) (float64, bool)` | Minimum numeric value at `path`. |
+| `Max` | `Max(json, path string) (float64, bool)` | Maximum numeric value at `path`. |
+| `Avg` | `Avg(json, path string) (float64, bool)` | Arithmetic mean of numeric values at `path`. |
+| `Filter` | `Filter(json, path string, fn func(Context) bool) []Context` | Keep only elements at `path` for which `fn` returns true. |
+| `First` | `First(json, path string, fn func(Context) bool) Context` | First element at `path` for which `fn` returns true. |
+| `Distinct` | `Distinct(json, path string) []Context` | Unique values at `path` (first-occurrence order). |
+| `Pluck` | `Pluck(json, path string, fields ...string) []Context` | Extract named fields from each object in the array at `path`. |
+
 ### `Context` Methods
 
 | Method | Signature | Description |
@@ -442,6 +461,84 @@ name := m["name"].String()
 scores := m["scores"].Array()
 fmt.Println(name)                           // Alice
 fmt.Println(len(scores), scores[0].Int64()) // 3  95
+```
+
+### 6. Search Engine
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+func main() {
+    json := `{
+        "store": {
+            "books": [
+                {"id":1,"title":"The Go Programming Language","author":"Donovan","price":34.99,"genre":"tech"},
+                {"id":2,"title":"Clean Code","author":"Martin","price":29.99,"genre":"tech"},
+                {"id":3,"title":"Harry Potter","author":"Rowling","price":14.99,"genre":"fiction"},
+                {"id":4,"title":"Dune","author":"Herbert","price":12.99,"genre":"fiction"}
+            ],
+            "owner": "Alice"
+        },
+        "ratings": [5, 3, 4, 5, 1, 4],
+        "tags": ["go","json","fast","go","json"]
+    }`
+
+    // --- Full-tree keyword search ---
+    matches := fj.Search(json, "tech")
+    fmt.Println(len(matches)) // 2
+
+    // --- Search by key name at any depth ---
+    authors := fj.SearchByKey(json, "author")
+    for _, a := range authors {
+        fmt.Println(a.String()) // Donovan, Martin, Rowling, Herbert
+    }
+
+    // --- Contains check ---
+    fmt.Println(fj.Contains(json, "store.owner", "Ali")) // true
+
+    // --- Path discovery ---
+    fmt.Println(fj.FindPath(json, "Rowling")) // store.books.2.author
+
+    // --- Aggregate functions ---
+    fmt.Println(fj.Sum(json, "ratings"))        // 22
+    fmt.Println(fj.Count(json, "store.books"))  // 4
+    v, _ := fj.Min(json, "ratings")
+    fmt.Println(v) // 1
+    v, _ = fj.Max(json, "ratings")
+    fmt.Println(v) // 5
+    avg, _ := fj.Avg(json, "ratings")
+    fmt.Printf("%.4f\n", avg) // 3.6667
+
+    // --- Filter: keep only fiction books ---
+    fiction := fj.Filter(json, "store.books", func(ctx fj.Context) bool {
+        return ctx.Get("genre").String() == "fiction"
+    })
+    fmt.Println(len(fiction)) // 2
+
+    // --- First: first book costing less than $20 ---
+    cheap := fj.First(json, "store.books", func(ctx fj.Context) bool {
+        return ctx.Get("price").Float64() < 20
+    })
+    fmt.Println(cheap.Get("title").String()) // Harry Potter
+
+    // --- Distinct: deduplicate tags ---
+    unique := fj.Distinct(json, "tags")
+    fmt.Println(len(unique)) // 3: go, json, fast
+
+    // --- Pluck: extract id and title from each book ---
+    projected := fj.Pluck(json, "store.books", "id", "title")
+    for _, p := range projected {
+        fmt.Println(p.String())
+        // {"id":1,"title":"The Go Programming Language"}
+        // {"id":2,"title":"Clean Code"}
+        // …
+    }
+}
 ```
 
 ## Best Practices

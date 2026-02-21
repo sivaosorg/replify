@@ -841,11 +841,234 @@ To contribute to this project, follow these steps:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## Sub-packages
+
+### `fj` — Fast JSON Path Querying and Transformation
+
+**Import path:** `github.com/sivaosorg/replify/pkg/fj`
+
+`fj` (_Fast JSON_) provides a fast and simple way to retrieve, query, and transform values from a JSON document without unmarshalling the entire structure into Go types.
+
+#### Quick Start
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+func main() {
+    json := `{
+        "user": {
+            "name": "Alice",
+            "roles": [{"roleName":"Admin"},{"roleName":"Editor"}],
+            "age": 30,
+            "active": true
+        }
+    }`
+
+    fmt.Println(fj.Get(json, "user.name").String())           // Alice
+    fmt.Println(fj.Get(json, "user.age").Int64())             // 30
+    fmt.Println(fj.Get(json, "user.active").Bool())           // true
+    fmt.Println(fj.Get(json, "user.roles.#.roleName").String()) // ["Admin","Editor"]
+}
+```
+
+#### Path Syntax Reference
+
+| Syntax | Description | Example |
+|--------|-------------|---------|
+| `field` | Basic object field access | `user.name` → `"Alice"` |
+| `field.N` | Array index access | `roles.0.name` → first element name |
+| `field.#` | Array length | `roles.#` → `2` |
+| `field.#.key` | Iterate all array elements | `roles.#.roleName` → `["Admin","Editor"]` |
+| `field.*` / `field.?` | Wildcard match (`*` = any chars, `?` = one char) | `anim*ls.0.name` |
+| `field\.key` | Escape special chars with `\` | `properties.alias\.description` |
+| `field.#(key==val)` | Query: first match | `stock.#(symbol=="MMM").price` |
+| `field.#(key==val)#` | Query: all matches | `stock.#(active==true)#.name` |
+| `~true` / `~false` / `~null` / `~*` | Tilde: boolean coercion in queries | `bank.#(isActive==~true)#.name` |
+| `.` / `\|` | Dot and pipe separators (same except after `#`) | `a.b.c` or `a\|b\|c` |
+| `{f1,f2}` | Multi-selector → new object | `{id,name}` |
+| `[f1,f2]` | Multi-selector → new array | `[id,name]` |
+| `!"value"` | JSON literal | `{"x":!true,"y":!"static"}` |
+| `..field` | JSON Lines: query each line | `..user.name` |
+
+#### Built-in Transformers
+
+| Transformer | Description | Argument format (optional) |
+|-------------|-------------|---------------------------|
+| `@trim` | Remove leading/trailing whitespace | — |
+| `@this` | Return JSON as-is (identity) | — |
+| `@valid` | Return JSON only if valid, else empty | — |
+| `@pretty` | Format JSON with indentation | `@pretty:{"sort_keys":true,"indent":"\t","prefix":"","width":80}` |
+| `@minify` | Compact JSON, remove whitespace | — |
+| `@flip` | Reverse string characters | — |
+| `@reverse` | Reverse array elements or object key order | — |
+| `@flatten` | Flatten nested arrays | `@flatten:{"deep":true}` |
+| `@join` | Merge array of objects into one | `@join:{"preserve":true}` |
+| `@keys` | Extract object keys as array | — |
+| `@values` | Extract object values as array | — |
+| `@string` | Encode value as JSON string | — |
+| `@json` | Convert string to JSON representation | — |
+| `@group` | Group array-of-object values by key | — |
+| `@search` | Search all matching values at path | — |
+| `@uppercase` | Convert to uppercase | — |
+| `@lowercase` | Convert to lowercase | — |
+| `@snakeCase` | Convert to snake_case | — |
+| `@camelCase` | Convert to camelCase | — |
+| `@kebabCase` | Convert to kebab-case | — |
+| `@replace` | Replace first occurrence of substring | `@replace:{"target":"old","replacement":"new"}` |
+| `@replaceAll` | Replace all occurrences of substring | `@replaceAll:{"target":"old","replacement":"new"}` |
+| `@hex` | Encode string as hex | — |
+| `@bin` | Encode string as binary | — |
+| `@insertAt` | Insert string at index | `@insertAt:{"index":0,"insert":"prefix"}` |
+| `@wc` | Count words in string | — |
+| `@padLeft` | Pad string on the left | `@padLeft:{"padding":"*","length":20}` |
+| `@padRight` | Pad string on the right | `@padRight:{"padding":"*","length":20}` |
+
+#### Full API Reference
+
+**Top-level functions:**
+
+| Function | Signature | Description |
+|----------|-----------|-------------|
+| `Get` | `Get(json, path string) Context` | Search JSON for a dot-notation path; returns matching value. |
+| `GetBytes` | `GetBytes(json []byte, path string) Context` | Same as `Get` but accepts a byte slice. |
+| `Parse` | `Parse(json string) Context` | Parse a JSON string into a `Context` without path querying. |
+| `ParseBytes` | `ParseBytes(json []byte) Context` | Same as `Parse` but accepts a byte slice. |
+| `ParseBufio` | `ParseBufio(in io.Reader) (string, error)` | Read all data from an `io.Reader` and return as a string. |
+| `ParseFilepath` | `ParseFilepath(filepath string) (string, error)` | Read JSON from a file path and return its contents as a string. |
+| `IsValidJSON` | `IsValidJSON(json string) bool` | Report whether a JSON string is valid. |
+| `IsValidJSONBytes` | `IsValidJSONBytes(json []byte) bool` | Report whether a JSON byte slice is valid. |
+| `AddTransformer` | `AddTransformer(name string, fn func(json, arg string) string)` | Register a custom transformer by name. |
+
+**`Context` methods:**
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `Kind` | `Kind() Type` | Return the JSON type (`Null`, `False`, `Number`, `String`, `True`, `JSON`). |
+| `Unprocessed` | `Unprocessed() string` | Return the raw unprocessed JSON fragment. |
+| `Numeric` | `Numeric() float64` | Return the numeric value (for `Number` type). |
+| `Index` | `Index() int` | Return the byte position of this value in the original JSON. |
+| `Indexes` | `Indexes() []int` | Return positions of all `#`-matched elements. |
+| `String` | `String() string` | Return the string representation of the value. |
+| `StringColored` | `StringColored() string` | Return the string with default ANSI color styling. |
+| `WithStringColored` | `WithStringColored(style *unify4g.Style) string` | Return the string with a custom ANSI color style. |
+| `Bool` | `Bool() bool` | Return the boolean value. |
+| `Int64` | `Int64() int64` | Return the value as `int64`. |
+| `Uint64` | `Uint64() uint64` | Return the value as `uint64`. |
+| `Float64` | `Float64() float64` | Return the value as `float64`. |
+| `Float32` | `Float32() float32` | Return the value as `float32`. |
+| `Time` | `Time() time.Time` | Parse and return the value as `time.Time`. |
+| `WithTime` | `WithTime(layout string) time.Time` | Parse time using a custom layout string. |
+| `Array` | `Array() []Context` | Return the value as a slice of `Context` (for JSON arrays). |
+| `IsObject` | `IsObject() bool` | Report whether the value is a JSON object. |
+| `IsArray` | `IsArray() bool` | Report whether the value is a JSON array. |
+| `IsBool` | `IsBool() bool` | Report whether the value is a JSON boolean. |
+| `Exists` | `Exists() bool` | Report whether the path was found in the JSON. |
+| `Value` | `Value() interface{}` | Return the value as a native Go type. |
+| `Map` | `Map() map[string]Context` | Return the value as a `map[string]Context` (for JSON objects). |
+| `Foreach` | `Foreach(iterator func(key, value Context) bool)` | Iterate over array elements or object key-value pairs. |
+| `Get` | `Get(path string) Context` | Query a sub-path from this context (enables chaining). |
+| `GetMul` | `GetMul(paths ...string) []Context` | Query multiple paths, returning one result per path. |
+| `Path` | `Path(json string) string` | Return the dot-notation path that produced this context. |
+| `Paths` | `Paths(json string) []string` | Return paths for each element in an array result. |
+| `Less` | `Less(token Context, caseSensitive bool) bool` | Report whether this value is less than `token`. |
+
+#### Custom Transformer
+
+Register a custom transformer with `AddTransformer` to extend the built-in set:
+
+```go
+package main
+
+import (
+    "fmt"
+    "strings"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+func init() {
+    // Register a "shout" transformer: appends "!!!" to the value
+    fj.AddTransformer("shout", func(json, arg string) string {
+        return strings.Trim(json, `"`) + "!!!"
+    })
+}
+
+func main() {
+    json := `{"greeting": "hello"}`
+    fmt.Println(fj.Get(json, "greeting.@shout")) // hello!!!
+}
+```
+
+#### JSON Color Styles
+
+`fj` ships with named color style variables for use with `Context.WithStringColored`:
+
+| Variable | Description |
+|----------|-------------|
+| `DarkStyle` | Dark tones (blue, green, yellow, magenta, red, gray) |
+| `NeonStyle` | Vibrant neon-like colors |
+| `PastelStyle` | Soft pastel tones |
+| `HighContrastStyle` | High-contrast colors for accessibility |
+| `VintageStyle` | Classic, muted vintage palette |
+| `CyberpunkStyle` | Futuristic cyberpunk palette |
+| `OceanStyle` | Cool ocean-inspired blues and cyans |
+| `FieryStyle` | Warm fiery reds and oranges |
+| `GalaxyStyle` | Deep-space purples and blues |
+| `SunsetStyle` | Warm sunset oranges and pinks |
+| `JungleStyle` | Lush jungle greens |
+| `MonochromeStyle` | Grayscale only |
+| `ForestStyle` | Earthy forest greens and browns |
+| `IceStyle` | Cold icy blues and whites |
+| `RetroStyle` | Retro terminal amber/green |
+| `AutumnStyle` | Autumn browns, oranges, and reds |
+| `GothicStyle` | Dark gothic purples and blacks |
+| `VaporWaveStyle` | Aesthetic vaporwave pinks and purples |
+| `VampireStyle` | Deep blood reds and blacks |
+| `CarnivalStyle` | Bright carnival multicolor |
+| `SteampunkStyle` | Brass and copper tones |
+| `WoodlandStyle` | Natural woodland tans and greens |
+| `CandyStyle` | Bright candy pastels |
+| `TwilightStyle` | Dusk purples and navies |
+| `EarthStyle` | Warm earth tones |
+| `ElectricStyle` | Electric blues and greens |
+| `WitchingHourStyle` | Dark witching-hour palette |
+| `MidnightStyle` | Deep midnight navy and silver |
+
+#### Best Practices
+
+**✅ Do's**
+
+- Check `ctx.Exists()` before using a value to avoid processing zero-value defaults:
+  ```go
+  if ctx := fj.Get(json, "user.email"); ctx.Exists() {
+      sendEmail(ctx.String())
+  }
+  ```
+- Use `GetBytes` when your JSON is already a `[]byte` to avoid an extra allocation.
+- Register custom transformers once at startup (e.g., in an `init()` function).
+- Use `Foreach` instead of `Array()` when you only need to process elements one by one, to avoid building an intermediate slice.
+- Use `IsValidJSON` / `IsValidJSONBytes` to pre-validate untrusted input.
+
+**❌ Don'ts**
+
+- Don't assume a zero-value `Context` means `null` — it may mean the path was not found. Always call `Exists()`.
+- Don't modify the JSON byte slice passed to `GetBytes` while a query is in progress.
+- Don't register transformers with names that conflict with built-ins (e.g., `@pretty`, `@minify`).
+- Don't call `Map()` on a non-object value without first checking `IsObject()`.
+- Don't call `Array()` on a non-array value without first checking `IsArray()`.
+
+---
+
 ## Related Packages
 
 Part of the **replify** ecosystem:
 
 - [replify](https://github.com/sivaosorg/replify) - API response wrapping library (this package)
+- [fj](https://github.com/sivaosorg/replify/pkg/fj) - Fast JSON path querying and transformation
 - [conv](https://github.com/sivaosorg/replify/pkg/conv) - Type conversion utilities
 - [coll](https://github.com/sivaosorg/replify/pkg/coll) - Type-safe collection utilities
 - [common](https://github.com/sivaosorg/replify/pkg/common) - Reflection-based utilities

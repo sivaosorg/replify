@@ -480,9 +480,9 @@ func transformJoin(json, arg string) string {
 //     transformations or processing to proceed.
 func transformJSONValidity(json, arg string) string {
 	if !IsValidJSON(json) {
-		return strings.ToLower(False.String())
+		return ""
 	}
-	return strings.ToLower(True.String())
+	return json
 }
 
 // transformKeys extracts the keys from a JSON object and returns them as a JSON array of strings.
@@ -1063,7 +1063,7 @@ func transformReplace(json, arg string) string {
 		}
 		return true
 	})
-	return strings.Replace(json, target, replacement, -1)
+	return strings.Replace(json, target, replacement, 1)
 }
 
 // transformReplaceAll replaces all occurrences of a target substring with a replacement string.
@@ -1258,13 +1258,12 @@ func transformPadLeft(json, arg string) string {
 		}
 		return true
 	})
-	if length <= len(json) {
-		return json
-	}
 	value = trimWhitespace(trim(value))
 	t := unify4g.JsonN(value)
-	v := strings.Repeat(padding, length-len(t)) + t
-	return v
+	if length <= len(t) {
+		return t
+	}
+	return strings.Repeat(padding, length-len(t)) + t
 }
 
 // transformPadRight pads the input string with a specified character on the right to a given length.
@@ -1298,11 +1297,10 @@ func transformPadRight(json, arg string) string {
 		}
 		return true
 	})
-	if length <= len(json) {
-		return json
-	}
 	value = trimWhitespace(trim(value))
 	t := unify4g.JsonN(value)
-	v := t + strings.Repeat(padding, length-len(t))
-	return v
+	if length <= len(t) {
+		return t
+	}
+	return t + strings.Repeat(padding, length-len(t))
 }

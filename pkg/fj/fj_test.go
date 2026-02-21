@@ -5,6 +5,184 @@ import (
 	"unsafe"
 )
 
+// TestTransformJSONValidity verifies that @valid returns the original JSON when
+// the input is valid, and an empty string when it is not.
+func TestTransformJSONValidity(t *testing.T) {
+	tests := []struct {
+		name     string
+		json     string
+		expected string
+	}{
+		{"valid object", `{"a":1}`, `{"a":1}`},
+		{"valid array", `[1,2,3]`, `[1,2,3]`},
+		{"valid string", `"hello"`, `"hello"`},
+		{"valid number", `42`, `42`},
+		{"valid true", `true`, `true`},
+		{"valid null", `null`, `null`},
+		{"invalid: missing quote", `{"a":1`, ``},
+		{"invalid: bare word", `abc`, ``},
+		{"empty string", ``, ``},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformJSONValidity(tt.json, "")
+			if got != tt.expected {
+				t.Errorf("transformJSONValidity(%q) = %q; want %q", tt.json, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestTransformReplace verifies that @replace only replaces the first occurrence.
+func TestTransformReplace(t *testing.T) {
+	tests := []struct {
+		name     string
+		json     string
+		arg      string
+		expected string
+	}{
+		{
+			name:     "replaces first occurrence only",
+			json:     "foo foo foo",
+			arg:      `{"target":"foo","replacement":"bar"}`,
+			expected: "bar foo foo",
+		},
+		{
+			name:     "no match",
+			json:     "hello world",
+			arg:      `{"target":"xyz","replacement":"abc"}`,
+			expected: "hello world",
+		},
+		{
+			name:     "empty target",
+			json:     "hello",
+			arg:      `{"target":"","replacement":"X"}`,
+			expected: "Xhello",
+		},
+		{
+			name:     "single occurrence",
+			json:     "one two three",
+			arg:      `{"target":"two","replacement":"2"}`,
+			expected: "one 2 three",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformReplace(tt.json, tt.arg)
+			if got != tt.expected {
+				t.Errorf("transformReplace(%q, %q) = %q; want %q", tt.json, tt.arg, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestTransformReplaceVsReplaceAll confirms @replace and @replaceAll differ
+// when there are multiple occurrences.
+func TestTransformReplaceVsReplaceAll(t *testing.T) {
+	json := "aa bb aa cc aa"
+	arg := `{"target":"aa","replacement":"XX"}`
+	replace := transformReplace(json, arg)
+	replaceAll := transformReplaceAll(json, arg)
+	if replace == replaceAll {
+		t.Errorf("transformReplace and transformReplaceAll should differ for %q; both returned %q", json, replace)
+	}
+	if replace != "XX bb aa cc aa" {
+		t.Errorf("transformReplace(%q) = %q; want %q", json, replace, "XX bb aa cc aa")
+	}
+	if replaceAll != "XX bb XX cc XX" {
+		t.Errorf("transformReplaceAll(%q) = %q; want %q", json, replaceAll, "XX bb XX cc XX")
+	}
+}
+
+// TestTransformPadLeft verifies that @padLeft pads correctly based on the
+// normalized string length, not the raw JSON byte length.
+func TestTransformPadLeft(t *testing.T) {
+	tests := []struct {
+		name     string
+		json     string
+		arg      string
+		expected string
+	}{
+		{
+			name:     "pad quoted string",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":10}`,
+			expected: "*****Hello",
+		},
+		{
+			name:     "no padding needed (length <= value len)",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":3}`,
+			expected: "Hello",
+		},
+		{
+			name:     "exact length",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":5}`,
+			expected: "Hello",
+		},
+		{
+			name:     "unquoted number",
+			json:     `42`,
+			arg:      `{"padding":"0","length":5}`,
+			expected: "00042",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformPadLeft(tt.json, tt.arg)
+			if got != tt.expected {
+				t.Errorf("transformPadLeft(%q, %q) = %q; want %q", tt.json, tt.arg, got, tt.expected)
+			}
+		})
+	}
+}
+
+// TestTransformPadRight verifies that @padRight pads correctly based on the
+// normalized string length, not the raw JSON byte length.
+func TestTransformPadRight(t *testing.T) {
+	tests := []struct {
+		name     string
+		json     string
+		arg      string
+		expected string
+	}{
+		{
+			name:     "pad quoted string",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":10}`,
+			expected: "Hello*****",
+		},
+		{
+			name:     "no padding needed (length <= value len)",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":3}`,
+			expected: "Hello",
+		},
+		{
+			name:     "exact length",
+			json:     `"Hello"`,
+			arg:      `{"padding":"*","length":5}`,
+			expected: "Hello",
+		},
+		{
+			name:     "unquoted number",
+			json:     `42`,
+			arg:      `{"padding":"0","length":5}`,
+			expected: "42000",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := transformPadRight(tt.json, tt.arg)
+			if got != tt.expected {
+				t.Errorf("transformPadRight(%q, %q) = %q; want %q", tt.json, tt.arg, got, tt.expected)
+			}
+		})
+	}
+}
+
+
 func TestCalcSubstringIndex(t *testing.T) {
 	json := `{"key": "value"}`
 	value := Context{unprocessed: `"value"`}

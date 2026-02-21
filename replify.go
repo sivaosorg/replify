@@ -318,6 +318,26 @@ func (w *wrapper) DebuggingString(key string, defaultValue string) string {
 	return conv.StringOrDefault(w.debug[key], defaultValue)
 }
 
+// DebuggingTime retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A time.Time value to return if the key is not available.
+//
+// Returns:
+//   - The time.Time value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingTime(key string, defaultValue time.Time) time.Time {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.TimeOrDefault(w.debug[key], defaultValue)
+}
+
 // DebuggingInt retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
@@ -336,6 +356,66 @@ func (w *wrapper) DebuggingInt(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return conv.IntOrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingInt8 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: An int8 value to return if the key is not available.
+//
+// Returns:
+//   - The int8 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingInt8(key string, defaultValue int8) int8 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int8OrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingInt16 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: An int16 value to return if the key is not available.
+//
+// Returns:
+//   - The int16 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingInt16(key string, defaultValue int16) int16 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int16OrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingInt32 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: An int32 value to return if the key is not available.
+//
+// Returns:
+//   - The int32 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingInt32(key string, defaultValue int32) int32 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Int32OrDefault(w.debug[key], defaultValue)
 }
 
 // DebuggingInt64 retrieves the value of a specific debugging key from the `wrapper` instance.
@@ -376,6 +456,66 @@ func (w *wrapper) DebuggingUint(key string, defaultValue uint) uint {
 		return defaultValue
 	}
 	return conv.UintOrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingUint8 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint8 value to return if the key is not available.
+//
+// Returns:
+//   - The uint8 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingUint8(key string, defaultValue uint8) uint8 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint8OrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingUint16 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint16 value to return if the key is not available.
+//
+// Returns:
+//   - The uint16 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingUint16(key string, defaultValue uint16) uint16 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint16OrDefault(w.debug[key], defaultValue)
+}
+
+// DebuggingUint32 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `key`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint32 value to return if the key is not available.
+//
+// Returns:
+//   - The uint32 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) DebuggingUint32(key string, defaultValue uint32) uint32 {
+	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
+		return defaultValue
+	}
+	return conv.Uint32OrDefault(w.debug[key], defaultValue)
 }
 
 // DebuggingUint64 retrieves the value of a specific debugging key from the `wrapper` instance.

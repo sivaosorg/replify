@@ -32,15 +32,15 @@ import (
 //	results := fj.Search(json, "Ali")
 //	// results[0].String() == "Alice"
 func Search(json, keyword string) []Context {
-	return searchLeaves(nil, Parse(json), keyword)
+	return scanLeaves(nil, Parse(json), keyword)
 }
 
-// searchLeaves is the internal recursive worker for Search.
+// scanLeaves is the internal recursive worker for Search.
 // It appends to `all` every scalar leaf whose String() contains keyword.
-func searchLeaves(all []Context, node Context, keyword string) []Context {
+func scanLeaves(all []Context, node Context, keyword string) []Context {
 	if node.IsArray() || node.IsObject() {
 		node.Foreach(func(_, child Context) bool {
-			all = searchLeaves(all, child, keyword)
+			all = scanLeaves(all, child, keyword)
 			return true
 		})
 		return all
@@ -82,11 +82,11 @@ func SearchByKey(json string, keys ...string) []Context {
 	for _, k := range keys {
 		keySet[k] = struct{}{}
 	}
-	return searchByKeyRecursive(nil, Parse(json), keySet)
+	return scanByKey(nil, Parse(json), keySet)
 }
 
-// searchByKeyRecursive is the internal recursive worker for SearchByKey.
-func searchByKeyRecursive(all []Context, node Context, keySet map[string]struct{}) []Context {
+// scanByKey is the internal recursive worker for SearchByKey.
+func scanByKey(all []Context, node Context, keySet map[string]struct{}) []Context {
 	if node.IsObject() {
 		node.Foreach(func(key, val Context) bool {
 			if _, ok := keySet[key.String()]; ok {
@@ -94,7 +94,7 @@ func searchByKeyRecursive(all []Context, node Context, keySet map[string]struct{
 			}
 			// Recurse into value regardless of whether the key matched.
 			if val.IsObject() || val.IsArray() {
-				all = searchByKeyRecursive(all, val, keySet)
+				all = scanByKey(all, val, keySet)
 			}
 			return true
 		})
@@ -102,7 +102,7 @@ func searchByKeyRecursive(all []Context, node Context, keySet map[string]struct{
 	}
 	if node.IsArray() {
 		node.Foreach(func(_, child Context) bool {
-			all = searchByKeyRecursive(all, child, keySet)
+			all = scanByKey(all, child, keySet)
 			return true
 		})
 	}
@@ -154,7 +154,7 @@ func Contains(json, path, target string) bool {
 //	json := `{"user":{"name":"Alice","age":30}}`
 //	fj.FindPath(json, "Alice") // "user.name"
 func FindPath(json, value string) string {
-	path, _ := findPathRecursive(Parse(json), value, "")
+	path, _ := scanPath(Parse(json), value, "")
 	return path
 }
 
@@ -174,19 +174,19 @@ func FindPath(json, value string) string {
 //	json := `{"a":"x","b":{"c":"x","d":"y"}}`
 //	fj.FindPaths(json, "x") // ["a", "b.c"]
 func FindPaths(json, value string) []string {
-	return findAllPathsRecursive(nil, Parse(json), value, "")
+	return scanPaths(nil, Parse(json), value, "")
 }
 
-// findPathRecursive is the depth-first worker for FindPath.
+// scanPath is the depth-first worker for FindPath.
 // Returns the first matching path and a bool indicating whether it was found.
-func findPathRecursive(node Context, value, prefix string) (string, bool) {
+func scanPath(node Context, value, prefix string) (string, bool) {
 	if node.IsObject() {
 		var found string
 		var ok bool
 		node.Foreach(func(key, child Context) bool {
 			p := joinPath(prefix, key.String())
 			if child.IsObject() || child.IsArray() {
-				found, ok = findPathRecursive(child, value, p)
+				found, ok = scanPath(child, value, p)
 			} else if child.Exists() && child.String() == value {
 				found, ok = p, true
 			}
@@ -201,7 +201,7 @@ func findPathRecursive(node Context, value, prefix string) (string, bool) {
 		node.Foreach(func(_, child Context) bool {
 			p := joinPath(prefix, itoa(idx))
 			if child.IsObject() || child.IsArray() {
-				found, ok = findPathRecursive(child, value, p)
+				found, ok = scanPath(child, value, p)
 			} else if child.Exists() && child.String() == value {
 				found, ok = p, true
 			}
@@ -213,13 +213,13 @@ func findPathRecursive(node Context, value, prefix string) (string, bool) {
 	return "", false
 }
 
-// findAllPathsRecursive is the depth-first worker for FindPaths.
-func findAllPathsRecursive(all []string, node Context, value, prefix string) []string {
+// scanPaths is the depth-first worker for FindPaths.
+func scanPaths(all []string, node Context, value, prefix string) []string {
 	if node.IsObject() {
 		node.Foreach(func(key, child Context) bool {
 			p := joinPath(prefix, key.String())
 			if child.IsObject() || child.IsArray() {
-				all = findAllPathsRecursive(all, child, value, p)
+				all = scanPaths(all, child, value, p)
 			} else if child.Exists() && child.String() == value {
 				all = append(all, p)
 			}
@@ -232,7 +232,7 @@ func findAllPathsRecursive(all []string, node Context, value, prefix string) []s
 		node.Foreach(func(_, child Context) bool {
 			p := joinPath(prefix, itoa(idx))
 			if child.IsObject() || child.IsArray() {
-				all = findAllPathsRecursive(all, child, value, p)
+				all = scanPaths(all, child, value, p)
 			} else if child.Exists() && child.String() == value {
 				all = append(all, p)
 			}
@@ -315,7 +315,7 @@ func Count(json, path string) int {
 //	fj.Sum(json, "scores") // 60.0
 func Sum(json, path string) float64 {
 	var total float64
-	collectNumbers(json, path, func(n float64) { total += n })
+	scanNums(json, path, func(n float64) { total += n })
 	return total
 }
 
@@ -337,7 +337,7 @@ func Sum(json, path string) float64 {
 func Min(json, path string) (float64, bool) {
 	min := math.MaxFloat64
 	found := false
-	collectNumbers(json, path, func(n float64) {
+	scanNums(json, path, func(n float64) {
 		if n < min {
 			min = n
 		}
@@ -367,7 +367,7 @@ func Min(json, path string) (float64, bool) {
 func Max(json, path string) (float64, bool) {
 	max := -math.MaxFloat64
 	found := false
-	collectNumbers(json, path, func(n float64) {
+	scanNums(json, path, func(n float64) {
 		if n > max {
 			max = n
 		}
@@ -397,7 +397,7 @@ func Max(json, path string) (float64, bool) {
 func Avg(json, path string) (float64, bool) {
 	var total float64
 	var n int
-	collectNumbers(json, path, func(v float64) {
+	scanNums(json, path, func(v float64) {
 		total += v
 		n++
 	})
@@ -407,10 +407,10 @@ func Avg(json, path string) (float64, bool) {
 	return total / float64(n), true
 }
 
-// collectNumbers is an internal helper shared by Sum, Min, Max, and Avg.
+// scanNums is an internal helper shared by Sum, Min, Max, and Avg.
 // It visits every Context returned by path (treating a JSON array result as a
 // sequence of individual values) and calls fn for each numeric one.
-func collectNumbers(json, path string, fn func(float64)) {
+func scanNums(json, path string, fn func(float64)) {
 	ctx := Get(json, path)
 	if !ctx.Exists() {
 		return
@@ -623,14 +623,14 @@ func Pluck(json, path string, fields ...string) []Context {
 //	results := fj.SearchMatch(json, "Al*")
 //	// len(results) == 2: "Alice", "Albany"
 func SearchMatch(json, pattern string) []Context {
-	return searchLeavesMatch(nil, Parse(json), pattern)
+	return scanLeavesMatch(nil, Parse(json), pattern)
 }
 
-// searchLeavesMatch is the internal recursive worker for SearchMatch.
-func searchLeavesMatch(all []Context, node Context, pattern string) []Context {
+// scanLeavesMatch is the internal recursive worker for SearchMatch.
+func scanLeavesMatch(all []Context, node Context, pattern string) []Context {
 	if node.IsArray() || node.IsObject() {
 		node.Foreach(func(_, child Context) bool {
-			all = searchLeavesMatch(all, child, pattern)
+			all = scanLeavesMatch(all, child, pattern)
 			return true
 		})
 		return all
@@ -663,18 +663,18 @@ func searchLeavesMatch(all []Context, node Context, pattern string) []Context {
 //	results := fj.SearchByKeyPattern(json, "auth*")
 //	// len(results) == 2: "Donovan" (author) and "admin" (authority)
 func SearchByKeyPattern(json, keyPattern string) []Context {
-	return searchByKeyPatternRecursive(nil, Parse(json), keyPattern)
+	return scanByKeyPattern(nil, Parse(json), keyPattern)
 }
 
-// searchByKeyPatternRecursive is the internal recursive worker for SearchByKeyPattern.
-func searchByKeyPatternRecursive(all []Context, node Context, keyPattern string) []Context {
+// scanByKeyPattern is the internal recursive worker for SearchByKeyPattern.
+func scanByKeyPattern(all []Context, node Context, keyPattern string) []Context {
 	if node.IsObject() {
 		node.Foreach(func(key, val Context) bool {
 			if match.Match(key.String(), keyPattern) {
 				all = append(all, val)
 			}
 			if val.IsObject() || val.IsArray() {
-				all = searchByKeyPatternRecursive(all, val, keyPattern)
+				all = scanByKeyPattern(all, val, keyPattern)
 			}
 			return true
 		})
@@ -682,7 +682,7 @@ func searchByKeyPatternRecursive(all []Context, node Context, keyPattern string)
 	}
 	if node.IsArray() {
 		node.Foreach(func(_, child Context) bool {
-			all = searchByKeyPatternRecursive(all, child, keyPattern)
+			all = scanByKeyPattern(all, child, keyPattern)
 			return true
 		})
 	}
@@ -737,7 +737,7 @@ func ContainsMatch(json, path, pattern string) bool {
 //	json := `{"users":[{"name":"Alice"},{"name":"Bob"}]}`
 //	fj.FindPathMatch(json, "Ali*") // "users.0.name"
 func FindPathMatch(json, valuePattern string) string {
-	path, _ := findPathMatchRecursive(Parse(json), valuePattern, "")
+	path, _ := scanPathMatch(Parse(json), valuePattern, "")
 	return path
 }
 
@@ -758,18 +758,18 @@ func FindPathMatch(json, valuePattern string) string {
 //	json := `{"a":"Alice","b":{"c":"Albany","d":"Bob"}}`
 //	fj.FindPathsMatch(json, "Al*") // ["a", "b.c"]
 func FindPathsMatch(json, valuePattern string) []string {
-	return findAllPathsMatchRecursive(nil, Parse(json), valuePattern, "")
+	return scanPathsMatch(nil, Parse(json), valuePattern, "")
 }
 
-// findPathMatchRecursive is the depth-first worker for FindPathMatch.
-func findPathMatchRecursive(node Context, pattern, prefix string) (string, bool) {
+// scanPathMatch is the depth-first worker for FindPathMatch.
+func scanPathMatch(node Context, pattern, prefix string) (string, bool) {
 	if node.IsObject() {
 		var found string
 		var ok bool
 		node.Foreach(func(key, child Context) bool {
 			p := joinPath(prefix, key.String())
 			if child.IsObject() || child.IsArray() {
-				found, ok = findPathMatchRecursive(child, pattern, p)
+				found, ok = scanPathMatch(child, pattern, p)
 			} else if child.Exists() && match.Match(child.String(), pattern) {
 				found, ok = p, true
 			}
@@ -784,7 +784,7 @@ func findPathMatchRecursive(node Context, pattern, prefix string) (string, bool)
 		node.Foreach(func(_, child Context) bool {
 			p := joinPath(prefix, itoa(idx))
 			if child.IsObject() || child.IsArray() {
-				found, ok = findPathMatchRecursive(child, pattern, p)
+				found, ok = scanPathMatch(child, pattern, p)
 			} else if child.Exists() && match.Match(child.String(), pattern) {
 				found, ok = p, true
 			}
@@ -796,13 +796,13 @@ func findPathMatchRecursive(node Context, pattern, prefix string) (string, bool)
 	return "", false
 }
 
-// findAllPathsMatchRecursive is the depth-first worker for FindPathsMatch.
-func findAllPathsMatchRecursive(all []string, node Context, pattern, prefix string) []string {
+// scanPathsMatch is the depth-first worker for FindPathsMatch.
+func scanPathsMatch(all []string, node Context, pattern, prefix string) []string {
 	if node.IsObject() {
 		node.Foreach(func(key, child Context) bool {
 			p := joinPath(prefix, key.String())
 			if child.IsObject() || child.IsArray() {
-				all = findAllPathsMatchRecursive(all, child, pattern, p)
+				all = scanPathsMatch(all, child, pattern, p)
 			} else if child.Exists() && match.Match(child.String(), pattern) {
 				all = append(all, p)
 			}
@@ -815,7 +815,7 @@ func findAllPathsMatchRecursive(all []string, node Context, pattern, prefix stri
 		node.Foreach(func(_, child Context) bool {
 			p := joinPath(prefix, itoa(idx))
 			if child.IsObject() || child.IsArray() {
-				all = findAllPathsMatchRecursive(all, child, pattern, p)
+				all = scanPathsMatch(all, child, pattern, p)
 			} else if child.Exists() && match.Match(child.String(), pattern) {
 				all = append(all, p)
 			}
@@ -982,9 +982,9 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	}
 	items := append([]Context(nil), ctx.Array()...)
 	sort.SliceStable(items, func(i, j int) bool {
-		vi := sortKey(items[i], keyField)
-		vj := sortKey(items[j], keyField)
-		less := sortLess(vi, vj)
+		vi := sortField(items[i], keyField)
+		vj := sortField(items[j], keyField)
+		less := sortCmp(vi, vj)
 		if ascending {
 			return less
 		}
@@ -993,19 +993,19 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	return items
 }
 
-// sortKey extracts the value used as sort key for a Context element.
+// sortField extracts the value used as sort key for a Context element.
 // If keyField is non-empty, it gets that sub-field; otherwise it uses the element itself.
-func sortKey(item Context, keyField string) Context {
+func sortField(item Context, keyField string) Context {
 	if keyField == "" {
 		return item
 	}
 	return item.Get(keyField)
 }
 
-// sortLess returns true when a should come before b in ascending sort order.
+// sortCmp returns true when a should come before b in ascending sort order.
 // Numeric values are compared as float64 via conv.Float64.
 // All other values fall back to string comparison via conv.String.
-func sortLess(a, b Context) bool {
+func sortCmp(a, b Context) bool {
 	if a.kind == Number || b.kind == Number {
 		fa, errA := conv.Float64(a.Value())
 		fb, errB := conv.Float64(b.Value())

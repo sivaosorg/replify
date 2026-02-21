@@ -54,7 +54,9 @@ import (
 //	    log.Fatal(err)
 //	}
 //	fmt.Println("You entered:", content)
-func BufioRead(in io.Reader) (string, error) {
+// bufioRead reads all lines from an io.Reader and returns them as a single string.
+// It is used internally by ParseBufio.
+func bufioRead(in io.Reader) (string, error) {
 	var lines strings.Builder
 	scanner := bufio.NewReader(in)
 	for {

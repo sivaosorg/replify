@@ -348,19 +348,28 @@ Available named style variables:
 | Function | Signature | Description |
 |----------|-----------|-------------|
 | `Search` | `Search(json, keyword string) []Context` | Full-tree scan — return all scalar leaves whose string value contains `keyword`. |
-| `SearchByKey` | `SearchByKey(json string, keys ...string) []Context` | Return all values stored under the given key name(s) at any depth. |
+| `SearchMatch` | `SearchMatch(json, pattern string) []Context` | Full-tree wildcard scan — return all scalar leaves whose string value matches `pattern` (`*`, `?`). Uses `match.Match`. |
+| `SearchByKey` | `SearchByKey(json string, keys ...string) []Context` | Return all values stored under the given key name(s) at any depth (exact names). |
+| `SearchByKeyPattern` | `SearchByKeyPattern(json, keyPattern string) []Context` | Return all values stored under object keys that match the wildcard `keyPattern`. Uses `match.Match`. |
 | `Contains` | `Contains(json, path, target string) bool` | Report whether the value at `path` contains the substring `target`. |
+| `ContainsMatch` | `ContainsMatch(json, path, pattern string) bool` | Report whether the value at `path` matches the wildcard `pattern`. Uses `match.Match`. |
 | `FindPath` | `FindPath(json, value string) string` | Return the first dot-notation path at which a scalar equals `value`. |
 | `FindPaths` | `FindPaths(json, value string) []string` | Return all dot-notation paths at which a scalar equals `value`. |
+| `FindPathMatch` | `FindPathMatch(json, valuePattern string) string` | Return the first dot-notation path at which a scalar matches the wildcard `valuePattern`. |
+| `FindPathsMatch` | `FindPathsMatch(json, valuePattern string) []string` | Return all paths at which a scalar matches the wildcard `valuePattern`. |
 | `Count` | `Count(json, path string) int` | Count elements at `path` (array length or 1 for scalars; 0 when missing). |
 | `Sum` | `Sum(json, path string) float64` | Sum of all numeric values at `path`. |
 | `Min` | `Min(json, path string) (float64, bool)` | Minimum numeric value at `path`. |
 | `Max` | `Max(json, path string) (float64, bool)` | Maximum numeric value at `path`. |
 | `Avg` | `Avg(json, path string) (float64, bool)` | Arithmetic mean of numeric values at `path`. |
+| `CollectFloat64` | `CollectFloat64(json, path string) []float64` | Collect numeric values at `path` using `conv.Float64` (handles string-encoded numbers). |
 | `Filter` | `Filter(json, path string, fn func(Context) bool) []Context` | Keep only elements at `path` for which `fn` returns true. |
 | `First` | `First(json, path string, fn func(Context) bool) Context` | First element at `path` for which `fn` returns true. |
 | `Distinct` | `Distinct(json, path string) []Context` | Unique values at `path` (first-occurrence order). |
 | `Pluck` | `Pluck(json, path string, fields ...string) []Context` | Extract named fields from each object in the array at `path`. |
+| `GroupBy` | `GroupBy(json, path, keyField string) map[string][]Context` | Group array elements by the string value of `keyField`, using `conv.String` for key normalization. |
+| `SortBy` | `SortBy(json, path, keyField string, ascending bool) []Context` | Sort array elements by a sub-field using `conv`-powered numeric and string comparison. |
+| `CoerceTo` | `CoerceTo(ctx Context, into any) error` | Coerce a Context's value into any Go typed variable via `conv.Infer`. |
 
 ### `Context` Methods
 
@@ -488,25 +497,43 @@ func main() {
         "tags": ["go","json","fast","go","json"]
     }`
 
-    // --- Full-tree keyword search ---
+    // --- Full-tree substring search ---
     matches := fj.Search(json, "tech")
     fmt.Println(len(matches)) // 2
 
-    // --- Search by key name at any depth ---
+    // --- Full-tree wildcard search (match.Match) ---
+    wildMatches := fj.SearchMatch(json, "D*")
+    fmt.Println(len(wildMatches)) // 2: "Donovan", "Dune"
+
+    // --- Search by exact key name ---
     authors := fj.SearchByKey(json, "author")
     for _, a := range authors {
         fmt.Println(a.String()) // Donovan, Martin, Rowling, Herbert
     }
 
-    // --- Contains check ---
+    // --- Search by key wildcard pattern (match.Match) ---
+    keyMatches := fj.SearchByKeyPattern(json, "auth*")
+    fmt.Println(len(keyMatches)) // 4 (author fields)
+
+    // --- Substring contains ---
     fmt.Println(fj.Contains(json, "store.owner", "Ali")) // true
 
-    // --- Path discovery ---
+    // --- Wildcard contains (match.Match) ---
+    fmt.Println(fj.ContainsMatch(json, "store.owner", "Al*")) // true
+
+    // --- Path discovery (exact) ---
     fmt.Println(fj.FindPath(json, "Rowling")) // store.books.2.author
 
+    // --- Path discovery (wildcard, match.Match) ---
+    fmt.Println(fj.FindPathMatch(json, "Row*")) // store.books.2.author
+
+    // --- All paths matching a wildcard ---
+    paths := fj.FindPathsMatch(json, "D*")
+    fmt.Println(paths) // [store.books.0.author store.books.3.title]
+
     // --- Aggregate functions ---
-    fmt.Println(fj.Sum(json, "ratings"))        // 22
-    fmt.Println(fj.Count(json, "store.books"))  // 4
+    fmt.Println(fj.Sum(json, "ratings"))       // 22
+    fmt.Println(fj.Count(json, "store.books")) // 4
     v, _ := fj.Min(json, "ratings")
     fmt.Println(v) // 1
     v, _ = fj.Max(json, "ratings")
@@ -514,29 +541,46 @@ func main() {
     avg, _ := fj.Avg(json, "ratings")
     fmt.Printf("%.4f\n", avg) // 3.6667
 
-    // --- Filter: keep only fiction books ---
+    // --- Collect numbers with conv.Float64 (handles string-encoded numbers too) ---
+    nums := fj.CollectFloat64(json, "ratings")
+    fmt.Println(nums) // [5 3 4 5 1 4]
+
+    // --- Filter ---
     fiction := fj.Filter(json, "store.books", func(ctx fj.Context) bool {
         return ctx.Get("genre").String() == "fiction"
     })
     fmt.Println(len(fiction)) // 2
 
-    // --- First: first book costing less than $20 ---
+    // --- First ---
     cheap := fj.First(json, "store.books", func(ctx fj.Context) bool {
         return ctx.Get("price").Float64() < 20
     })
     fmt.Println(cheap.Get("title").String()) // Harry Potter
 
-    // --- Distinct: deduplicate tags ---
+    // --- Distinct ---
     unique := fj.Distinct(json, "tags")
     fmt.Println(len(unique)) // 3: go, json, fast
 
-    // --- Pluck: extract id and title from each book ---
+    // --- Pluck ---
     projected := fj.Pluck(json, "store.books", "id", "title")
     for _, p := range projected {
         fmt.Println(p.String())
-        // {"id":1,"title":"The Go Programming Language"}
-        // {"id":2,"title":"Clean Code"}
-        // …
+    }
+
+    // --- GroupBy (uses conv.String for key normalization) ---
+    groups := fj.GroupBy(json, "store.books", "genre")
+    fmt.Println(len(groups["tech"]))    // 2
+    fmt.Println(len(groups["fiction"])) // 2
+
+    // --- SortBy (uses conv.Float64/conv.String for comparison) ---
+    byPrice := fj.SortBy(json, "store.books", "price", true)
+    fmt.Println(byPrice[0].Get("title").String()) // Dune (cheapest)
+
+    // --- CoerceTo (uses conv.Infer) ---
+    ctx := fj.Get(json, "store.books.0.price")
+    var price float64
+    if err := fj.CoerceTo(ctx, &price); err == nil {
+        fmt.Printf("%.2f\n", price) // 34.99
     }
 }
 ```

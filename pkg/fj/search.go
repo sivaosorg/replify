@@ -2,7 +2,11 @@ package fj
 
 import (
 	"math"
+	"sort"
 	"strings"
+
+	"github.com/sivaosorg/replify/pkg/conv"
+	"github.com/sivaosorg/replify/pkg/match"
 )
 
 // Search performs a full-tree scan of the JSON document and returns all leaf values
@@ -592,4 +596,424 @@ func Pluck(json, path string, fields ...string) []Context {
 		out = append(out, projected)
 	}
 	return out
+}
+
+// SearchMatch performs a full-tree scan of the JSON document and returns all scalar
+// leaf values whose string representation matches the given wildcard pattern.
+//
+// The pattern follows the same syntax as match.Match:
+//   - '*' matches any sequence of characters (including empty).
+//   - '?' matches exactly one character.
+//   - Any other character is matched literally.
+//
+// Both string and non-string scalar values (numbers, booleans, null) are tested
+// against the pattern using their string representation.
+//
+// Parameters:
+//   - json:    A well-formed JSON string to scan.
+//   - pattern: A wildcard pattern. An empty pattern matches only an empty string.
+//
+// Returns:
+//   - A slice of Context values whose string representation matches pattern.
+//     Returns an empty (non-nil) slice when there are no matches.
+//
+// Example:
+//
+//	json := `{"users":[{"name":"Alice"},{"name":"Bob"},{"name":"Albany"}]}`
+//	results := fj.SearchMatch(json, "Al*")
+//	// len(results) == 2: "Alice", "Albany"
+func SearchMatch(json, pattern string) []Context {
+	return searchLeavesMatch(nil, Parse(json), pattern)
+}
+
+// searchLeavesMatch is the internal recursive worker for SearchMatch.
+func searchLeavesMatch(all []Context, node Context, pattern string) []Context {
+	if node.IsArray() || node.IsObject() {
+		node.Foreach(func(_, child Context) bool {
+			all = searchLeavesMatch(all, child, pattern)
+			return true
+		})
+		return all
+	}
+	if !node.Exists() {
+		return all
+	}
+	if match.Match(node.String(), pattern) {
+		all = append(all, node)
+	}
+	return all
+}
+
+// SearchByKeyPattern performs a full-tree scan of the JSON document and returns all
+// Context values whose immediate parent object key matches the given wildcard pattern.
+//
+// Key matching uses match.Match, supporting '*' (any sequence) and '?' (one character)
+// wildcards. The scan is recursive, descending into nested objects and arrays.
+//
+// Parameters:
+//   - json:       A well-formed JSON string to scan.
+//   - keyPattern: A wildcard pattern applied to object key names.
+//
+// Returns:
+//   - A slice of Context values stored under matching keys, in depth-first order.
+//
+// Example:
+//
+//	json := `{"author":"Donovan","authority":"admin","title":"Go"}`
+//	results := fj.SearchByKeyPattern(json, "auth*")
+//	// len(results) == 2: "Donovan" (author) and "admin" (authority)
+func SearchByKeyPattern(json, keyPattern string) []Context {
+	return searchByKeyPatternRecursive(nil, Parse(json), keyPattern)
+}
+
+// searchByKeyPatternRecursive is the internal recursive worker for SearchByKeyPattern.
+func searchByKeyPatternRecursive(all []Context, node Context, keyPattern string) []Context {
+	if node.IsObject() {
+		node.Foreach(func(key, val Context) bool {
+			if match.Match(key.String(), keyPattern) {
+				all = append(all, val)
+			}
+			if val.IsObject() || val.IsArray() {
+				all = searchByKeyPatternRecursive(all, val, keyPattern)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		node.Foreach(func(_, child Context) bool {
+			all = searchByKeyPatternRecursive(all, child, keyPattern)
+			return true
+		})
+	}
+	return all
+}
+
+// ContainsMatch reports whether the value at path in json matches the given wildcard
+// pattern. If the path does not exist, ContainsMatch returns false.
+//
+// The pattern follows the same syntax as match.Match:
+//   - '*' matches any sequence of characters.
+//   - '?' matches exactly one character.
+//
+// Parameters:
+//   - json:    A well-formed JSON string.
+//   - path:    A fj dot-notation path.
+//   - pattern: A wildcard pattern applied to the string representation of the value.
+//
+// Returns:
+//   - true if the value exists and its string representation matches pattern.
+//
+// Example:
+//
+//	json := `{"email":"alice@example.com"}`
+//	fj.ContainsMatch(json, "email", "*@example.com") // true
+//	fj.ContainsMatch(json, "email", "*@other.com")   // false
+func ContainsMatch(json, path, pattern string) bool {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return false
+	}
+	return match.Match(ctx.String(), pattern)
+}
+
+// FindPathMatch returns the first dot-notation path in the JSON document at which a
+// scalar value matches the given wildcard pattern. Object keys and array indices are
+// joined with ".".
+//
+// Only leaf (scalar) values are tested. If no leaf matches, an empty string is
+// returned.
+//
+// Parameters:
+//   - json:         A well-formed JSON string.
+//   - valuePattern: A wildcard pattern applied to the string representation of each
+//     scalar leaf.
+//
+// Returns:
+//   - The dot-notation path of the first matching leaf, or "" when not found.
+//
+// Example:
+//
+//	json := `{"users":[{"name":"Alice"},{"name":"Bob"}]}`
+//	fj.FindPathMatch(json, "Ali*") // "users.0.name"
+func FindPathMatch(json, valuePattern string) string {
+	path, _ := findPathMatchRecursive(Parse(json), valuePattern, "")
+	return path
+}
+
+// FindPathsMatch returns the dot-notation paths for every scalar leaf in the JSON
+// document whose string representation matches the given wildcard pattern.
+//
+// Parameters:
+//   - json:         A well-formed JSON string.
+//   - valuePattern: A wildcard pattern applied to the string representation of each
+//     scalar leaf.
+//
+// Returns:
+//   - All matching paths in depth-first order. Returns an empty slice when there
+//     are no matches.
+//
+// Example:
+//
+//	json := `{"a":"Alice","b":{"c":"Albany","d":"Bob"}}`
+//	fj.FindPathsMatch(json, "Al*") // ["a", "b.c"]
+func FindPathsMatch(json, valuePattern string) []string {
+	return findAllPathsMatchRecursive(nil, Parse(json), valuePattern, "")
+}
+
+// findPathMatchRecursive is the depth-first worker for FindPathMatch.
+func findPathMatchRecursive(node Context, pattern, prefix string) (string, bool) {
+	if node.IsObject() {
+		var found string
+		var ok bool
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				found, ok = findPathMatchRecursive(child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				found, ok = p, true
+			}
+			return !ok
+		})
+		return found, ok
+	}
+	if node.IsArray() {
+		var found string
+		var ok bool
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				found, ok = findPathMatchRecursive(child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				found, ok = p, true
+			}
+			idx++
+			return !ok
+		})
+		return found, ok
+	}
+	return "", false
+}
+
+// findAllPathsMatchRecursive is the depth-first worker for FindPathsMatch.
+func findAllPathsMatchRecursive(all []string, node Context, pattern, prefix string) []string {
+	if node.IsObject() {
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				all = findAllPathsMatchRecursive(all, child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				all = append(all, p)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				all = findAllPathsMatchRecursive(all, child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				all = append(all, p)
+			}
+			idx++
+			return true
+		})
+	}
+	return all
+}
+
+// CoerceTo converts the JSON value held in ctx into the Go variable pointed to by
+// into, using the conv.Infer conversion engine. into must be a non-nil pointer to
+// a supported type (bool, int*, uint*, float*, string, time.Time, slices, maps, or
+// any struct with JSON-compatible fields).
+//
+// This function provides a bridge between fj's Context values and Go's type system,
+// enabling ergonomic extraction of typed values without manual type-assertion chains.
+//
+// Parameters:
+//   - ctx:  The Context whose value should be coerced.
+//   - into: A non-nil pointer to the target variable.
+//
+// Returns:
+//   - An error if the context has no value, or if the conversion fails.
+//
+// Example:
+//
+//	ctx := fj.Get(json, "user.age")
+//	var age int
+//	if err := fj.CoerceTo(ctx, &age); err == nil {
+//	    fmt.Println(age) // 30
+//	}
+//
+//	ctx = fj.Get(json, "user.active")
+//	var active bool
+//	_ = fj.CoerceTo(ctx, &active) // active == true
+func CoerceTo(ctx Context, into any) error {
+	if !ctx.Exists() {
+		return conv.Infer(into, nil)
+	}
+	return conv.Infer(into, ctx.Value())
+}
+
+// CollectFloat64 evaluates path against json and returns a slice of float64 values
+// for every element that can be coerced to a number by conv.Float64. This includes
+// both JSON Number values and JSON strings that represent valid numbers (e.g.,
+// "42", "3.14").
+//
+// Non-numeric elements for which conv.Float64 returns an error are silently skipped.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path resolving to an array or a single scalar.
+//
+// Returns:
+//   - A slice of float64 values. Returns an empty (non-nil) slice when no elements
+//     can be coerced to float64.
+//
+// Example:
+//
+//	json := `{"data":["10","20.5",30,null,"skip"]}`
+//	vals := fj.CollectFloat64(json, "data")
+//	// vals == []float64{10, 20.5, 30}
+func CollectFloat64(json, path string) []float64 {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return []float64{}
+	}
+	var out []float64
+	items := ctx.Array()
+	if len(items) == 0 && ctx.Exists() {
+		// scalar case
+		if v, err := conv.Float64(ctx.Value()); err == nil {
+			return []float64{v}
+		}
+		return []float64{}
+	}
+	for _, item := range items {
+		if v, err := conv.Float64(item.Value()); err == nil {
+			out = append(out, v)
+		}
+	}
+	if out == nil {
+		return []float64{}
+	}
+	return out
+}
+
+// GroupBy evaluates path against json, treats the result as an array of objects, and
+// groups the elements by the string value of the specified keyField using conv.String
+// for key normalization.
+//
+// Elements that do not contain keyField, or for which the key cannot be converted to
+// a string, are placed under the empty-string group "".
+//
+// Parameters:
+//   - json:     A well-formed JSON string.
+//   - path:     A fj dot-notation path resolving to an array of objects.
+//   - keyField: The object field whose value is used as the group key.
+//
+// Returns:
+//   - A map from group-key string to a slice of Context values in that group.
+//     Returns an empty map when path does not exist or the result is not an array.
+//
+// Example:
+//
+//	json := `{"books":[
+//	    {"title":"Clean Code","genre":"tech"},
+//	    {"title":"Dune","genre":"fiction"},
+//	    {"title":"The Go Book","genre":"tech"}
+//	]}`
+//	groups := fj.GroupBy(json, "books", "genre")
+//	// groups["tech"]    → 2 elements
+//	// groups["fiction"] → 1 element
+func GroupBy(json, path, keyField string) map[string][]Context {
+	ctx := Get(json, path)
+	out := make(map[string][]Context)
+	if !ctx.Exists() || !ctx.IsArray() {
+		return out
+	}
+	ctx.Foreach(func(_, item Context) bool {
+		keyCtx := item.Get(keyField)
+		var groupKey string
+		if keyCtx.Exists() {
+			if s, err := conv.String(keyCtx.Value()); err == nil {
+				groupKey = s
+			}
+		}
+		out[groupKey] = append(out[groupKey], item)
+		return true
+	})
+	return out
+}
+
+// SortBy evaluates path against json, treats the result as an array, and returns a
+// new slice sorted by the value of keyField on each element. Sorting uses
+// conv.Float64 for numeric fields and falls back to the string representation for
+// non-numeric or missing fields.
+//
+// When keyField is empty, elements are sorted by their own top-level string
+// representation, which is useful for arrays of scalars.
+//
+// Parameters:
+//   - json:      A well-formed JSON string.
+//   - path:      A fj dot-notation path resolving to an array.
+//   - keyField:  The object field to sort by. Pass "" to sort scalar arrays directly.
+//   - ascending: If true, sort in ascending order; if false, descending.
+//
+// Returns:
+//   - A new sorted slice of Context values. Returns an empty slice when path does
+//     not exist.
+//
+// Example:
+//
+//	json := `{"items":[{"n":3},{"n":1},{"n":2}]}`
+//	sorted := fj.SortBy(json, "items", "n", true)
+//	// sorted[0].Get("n").Int64() == 1
+//	// sorted[1].Get("n").Int64() == 2
+//	// sorted[2].Get("n").Int64() == 3
+func SortBy(json, path, keyField string, ascending bool) []Context {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return []Context{}
+	}
+	items := append([]Context(nil), ctx.Array()...)
+	sort.SliceStable(items, func(i, j int) bool {
+		vi := sortKey(items[i], keyField)
+		vj := sortKey(items[j], keyField)
+		less := sortLess(vi, vj)
+		if ascending {
+			return less
+		}
+		return !less
+	})
+	return items
+}
+
+// sortKey extracts the value used as sort key for a Context element.
+// If keyField is non-empty, it gets that sub-field; otherwise it uses the element itself.
+func sortKey(item Context, keyField string) Context {
+	if keyField == "" {
+		return item
+	}
+	return item.Get(keyField)
+}
+
+// sortLess returns true when a should come before b in ascending sort order.
+// Numeric values are compared as float64 via conv.Float64.
+// All other values fall back to string comparison via conv.String.
+func sortLess(a, b Context) bool {
+	if a.kind == Number || b.kind == Number {
+		fa, errA := conv.Float64(a.Value())
+		fb, errB := conv.Float64(b.Value())
+		if errA == nil && errB == nil {
+			return fa < fb
+		}
+	}
+	sa, _ := conv.String(a.Value())
+	sb, _ := conv.String(b.Value())
+	return sa < sb
 }

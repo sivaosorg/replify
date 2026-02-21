@@ -541,3 +541,428 @@ func TestItoa(t *testing.T) {
 		}
 	}
 }
+
+// ///////////////////////////
+// Section: SearchMatch (match.Match integration)
+// ///////////////////////////
+
+func TestSearchMatch_WildcardStar(t *testing.T) {
+	json := `["Alice","Albany","Bob","Alan","Charlie"]`
+	results := SearchMatch(json, "Al*")
+	if len(results) != 3 {
+		t.Fatalf("SearchMatch(Al*) len = %d; want 3", len(results))
+	}
+}
+
+func TestSearchMatch_WildcardQuestion(t *testing.T) {
+	json := `{"a":"cat","b":"bat","c":"car","d":"dog"}`
+	results := SearchMatch(json, "?at")
+	// matches "cat" and "bat"
+	if len(results) != 2 {
+		t.Fatalf("SearchMatch(?at) len = %d; want 2", len(results))
+	}
+}
+
+func TestSearchMatch_Exact(t *testing.T) {
+	results := SearchMatch(searchTestJSON, "tech")
+	if len(results) != 2 {
+		t.Fatalf("SearchMatch(exact) len = %d; want 2", len(results))
+	}
+}
+
+func TestSearchMatch_StarMatchesAll(t *testing.T) {
+	json := `{"a":1,"b":"x","c":true}`
+	results := SearchMatch(json, "*")
+	if len(results) != 3 {
+		t.Errorf("SearchMatch(*) len = %d; want 3", len(results))
+	}
+}
+
+func TestSearchMatch_NoMatch(t *testing.T) {
+	results := SearchMatch(searchTestJSON, "zzz*")
+	if len(results) != 0 {
+		t.Errorf("SearchMatch(zzz*) len = %d; want 0", len(results))
+	}
+}
+
+func TestSearchMatch_EmptyJSON(t *testing.T) {
+	results := SearchMatch("", "Al*")
+	if len(results) != 0 {
+		t.Errorf("SearchMatch(empty json) len = %d; want 0", len(results))
+	}
+}
+
+// ///////////////////////////
+// Section: SearchByKeyPattern (match.Match integration)
+// ///////////////////////////
+
+func TestSearchByKeyPattern_PrefixWildcard(t *testing.T) {
+	json := `{"author":"Donovan","authority":"admin","title":"Go"}`
+	results := SearchByKeyPattern(json, "auth*")
+	// matches "author" and "authority"
+	if len(results) != 2 {
+		t.Fatalf("SearchByKeyPattern(auth*) len = %d; want 2", len(results))
+	}
+}
+
+func TestSearchByKeyPattern_SingleChar(t *testing.T) {
+	json := `{"ab":1,"ac":2,"bc":3}`
+	results := SearchByKeyPattern(json, "a?")
+	// matches "ab" and "ac"
+	if len(results) != 2 {
+		t.Fatalf("SearchByKeyPattern(a?) len = %d; want 2", len(results))
+	}
+}
+
+func TestSearchByKeyPattern_StarMatchesAll(t *testing.T) {
+	json := `{"x":1,"y":2,"z":3}`
+	results := SearchByKeyPattern(json, "*")
+	if len(results) != 3 {
+		t.Errorf("SearchByKeyPattern(*) len = %d; want 3", len(results))
+	}
+}
+
+func TestSearchByKeyPattern_Nested(t *testing.T) {
+	// All 4 books have "author"
+	results := SearchByKeyPattern(searchTestJSON, "author")
+	if len(results) != 4 {
+		t.Fatalf("SearchByKeyPattern(author) len = %d; want 4", len(results))
+	}
+}
+
+func TestSearchByKeyPattern_NoMatch(t *testing.T) {
+	results := SearchByKeyPattern(searchTestJSON, "zzz*")
+	if len(results) != 0 {
+		t.Errorf("SearchByKeyPattern(zzz*) len = %d; want 0", len(results))
+	}
+}
+
+// ///////////////////////////
+// Section: ContainsMatch (match.Match integration)
+// ///////////////////////////
+
+func TestContainsMatch_Match(t *testing.T) {
+	json := `{"email":"alice@example.com"}`
+	if !ContainsMatch(json, "email", "*@example.com") {
+		t.Error("ContainsMatch(*@example.com) = false; want true")
+	}
+}
+
+func TestContainsMatch_NoMatch(t *testing.T) {
+	json := `{"email":"alice@example.com"}`
+	if ContainsMatch(json, "email", "*@other.com") {
+		t.Error("ContainsMatch(*@other.com) = true; want false")
+	}
+}
+
+func TestContainsMatch_MissingPath(t *testing.T) {
+	if ContainsMatch(searchTestJSON, "missing", "*") {
+		t.Error("ContainsMatch(missing path) = true; want false")
+	}
+}
+
+func TestContainsMatch_QuestionMark(t *testing.T) {
+	json := `{"code":"A1"}`
+	if !ContainsMatch(json, "code", "?1") {
+		t.Error("ContainsMatch(?1) = false; want true")
+	}
+}
+
+// ///////////////////////////
+// Section: FindPathMatch (match.Match integration)
+// ///////////////////////////
+
+func TestFindPathMatch_ObjectField(t *testing.T) {
+	json := `{"user":{"name":"Alice","email":"alice@example.com"}}`
+	got := FindPathMatch(json, "Al*")
+	if got != "user.name" {
+		t.Errorf("FindPathMatch(Al*) = %q; want %q", got, "user.name")
+	}
+}
+
+func TestFindPathMatch_ArrayElement(t *testing.T) {
+	json := `{"items":["alpha","beta","almond"]}`
+	got := FindPathMatch(json, "al*")
+	if got != "items.0" {
+		t.Errorf("FindPathMatch(al*) = %q; want %q", got, "items.0")
+	}
+}
+
+func TestFindPathMatch_NotFound(t *testing.T) {
+	got := FindPathMatch(searchTestJSON, "zzz*")
+	if got != "" {
+		t.Errorf("FindPathMatch(not found) = %q; want \"\"", got)
+	}
+}
+
+func TestFindPathMatch_ReturnsFirst(t *testing.T) {
+	// "Alice" appears before other Al* values in the JSON
+	json := `{"a":"Alice","b":"Albany"}`
+	got := FindPathMatch(json, "Al*")
+	if got != "a" {
+		t.Errorf("FindPathMatch(first) = %q; want %q", got, "a")
+	}
+}
+
+// ///////////////////////////
+// Section: FindPathsMatch (match.Match integration)
+// ///////////////////////////
+
+func TestFindPathsMatch_Multiple(t *testing.T) {
+	json := `{"a":"Alice","b":{"c":"Albany","d":"Bob"}}`
+	paths := FindPathsMatch(json, "Al*")
+	if len(paths) != 2 {
+		t.Fatalf("FindPathsMatch len = %d; want 2", len(paths))
+	}
+	if paths[0] != "a" || paths[1] != "b.c" {
+		t.Errorf("FindPathsMatch = %v; want [a b.c]", paths)
+	}
+}
+
+func TestFindPathsMatch_NotFound(t *testing.T) {
+	paths := FindPathsMatch(searchTestJSON, "zzz*")
+	if len(paths) != 0 {
+		t.Errorf("FindPathsMatch(not found) len = %d; want 0", len(paths))
+	}
+}
+
+func TestFindPathsMatch_ArrayIndices(t *testing.T) {
+	json := `["apple","apricot","banana","avocado"]`
+	paths := FindPathsMatch(json, "a*")
+	if len(paths) != 3 {
+		t.Fatalf("FindPathsMatch array len = %d; want 3", len(paths))
+	}
+}
+
+// ///////////////////////////
+// Section: CoerceTo (conv.Infer integration)
+// ///////////////////////////
+
+func TestCoerceTo_Int(t *testing.T) {
+	json := `{"age":30}`
+	ctx := Get(json, "age")
+	var age int
+	if err := CoerceTo(ctx, &age); err != nil {
+		t.Fatalf("CoerceTo int: %v", err)
+	}
+	if age != 30 {
+		t.Errorf("CoerceTo int = %d; want 30", age)
+	}
+}
+
+func TestCoerceTo_Bool(t *testing.T) {
+	json := `{"active":true}`
+	ctx := Get(json, "active")
+	var active bool
+	if err := CoerceTo(ctx, &active); err != nil {
+		t.Fatalf("CoerceTo bool: %v", err)
+	}
+	if !active {
+		t.Error("CoerceTo bool = false; want true")
+	}
+}
+
+func TestCoerceTo_String(t *testing.T) {
+	json := `{"name":"Alice"}`
+	ctx := Get(json, "name")
+	var name string
+	if err := CoerceTo(ctx, &name); err != nil {
+		t.Fatalf("CoerceTo string: %v", err)
+	}
+	if name != "Alice" {
+		t.Errorf("CoerceTo string = %q; want \"Alice\"", name)
+	}
+}
+
+func TestCoerceTo_Float64(t *testing.T) {
+	json := `{"price":34.99}`
+	ctx := Get(json, "price")
+	var price float64
+	if err := CoerceTo(ctx, &price); err != nil {
+		t.Fatalf("CoerceTo float64: %v", err)
+	}
+	if price != 34.99 {
+		t.Errorf("CoerceTo float64 = %f; want 34.99", price)
+	}
+}
+
+func TestCoerceTo_MissingContext(t *testing.T) {
+	ctx := Get(`{"a":1}`, "missing")
+	var v int
+	// Should not panic; error is acceptable
+	_ = CoerceTo(ctx, &v)
+}
+
+// ///////////////////////////
+// Section: CollectFloat64 (conv.Float64 integration)
+// ///////////////////////////
+
+func TestCollectFloat64_NumericArray(t *testing.T) {
+	json := `{"vals":[1,2,3,4,5]}`
+	got := CollectFloat64(json, "vals")
+	if len(got) != 5 {
+		t.Fatalf("CollectFloat64 len = %d; want 5", len(got))
+	}
+}
+
+func TestCollectFloat64_StringEncodedNumbers(t *testing.T) {
+	// conv.Float64 handles string-encoded numbers
+	json := `{"vals":["10","20.5",30]}`
+	got := CollectFloat64(json, "vals")
+	if len(got) != 3 {
+		t.Fatalf("CollectFloat64(string numbers) len = %d; want 3", len(got))
+	}
+	if got[0] != 10 || got[1] != 20.5 || got[2] != 30 {
+		t.Errorf("CollectFloat64(string numbers) = %v", got)
+	}
+}
+
+func TestCollectFloat64_SkipsNonNumeric(t *testing.T) {
+	json := `{"vals":[1,"skip",null,2,true]}`
+	got := CollectFloat64(json, "vals")
+	// 1 and 2 are numeric; "skip" fails, null fails, true can be coerced to 1 by conv
+	// At minimum 1 and 2 must be present
+	found1, found2 := false, false
+	for _, v := range got {
+		if v == 1 {
+			found1 = true
+		}
+		if v == 2 {
+			found2 = true
+		}
+	}
+	if !found1 || !found2 {
+		t.Errorf("CollectFloat64(mixed) = %v; want at least 1 and 2", got)
+	}
+}
+
+func TestCollectFloat64_SingleScalar(t *testing.T) {
+	json := `{"score":42}`
+	got := CollectFloat64(json, "score")
+	if len(got) != 1 || got[0] != 42 {
+		t.Errorf("CollectFloat64(scalar) = %v; want [42]", got)
+	}
+}
+
+func TestCollectFloat64_MissingPath(t *testing.T) {
+	got := CollectFloat64(searchTestJSON, "missing")
+	if len(got) != 0 {
+		t.Errorf("CollectFloat64(missing) len = %d; want 0", len(got))
+	}
+}
+
+// ///////////////////////////
+// Section: GroupBy (conv.String integration)
+// ///////////////////////////
+
+func TestGroupBy_BasicGrouping(t *testing.T) {
+	groups := GroupBy(searchTestJSON, "store.books", "genre")
+	if len(groups["tech"]) != 2 {
+		t.Errorf("GroupBy tech len = %d; want 2", len(groups["tech"]))
+	}
+	if len(groups["fiction"]) != 2 {
+		t.Errorf("GroupBy fiction len = %d; want 2", len(groups["fiction"]))
+	}
+}
+
+func TestGroupBy_MissingKeyField(t *testing.T) {
+	// Elements without the key go to ""
+	json := `{"items":[{"a":1},{"a":2,"genre":"tech"},{"a":3}]}`
+	groups := GroupBy(json, "items", "genre")
+	if len(groups["tech"]) != 1 {
+		t.Errorf("GroupBy tech len = %d; want 1", len(groups["tech"]))
+	}
+	if len(groups[""]) != 2 {
+		t.Errorf("GroupBy empty-key len = %d; want 2", len(groups[""]))
+	}
+}
+
+func TestGroupBy_MissingPath(t *testing.T) {
+	groups := GroupBy(searchTestJSON, "missing", "genre")
+	if len(groups) != 0 {
+		t.Errorf("GroupBy(missing path) len = %d; want 0", len(groups))
+	}
+}
+
+func TestGroupBy_NotArray(t *testing.T) {
+	json := `{"val":"x"}`
+	groups := GroupBy(json, "val", "genre")
+	if len(groups) != 0 {
+		t.Errorf("GroupBy(not array) len = %d; want 0", len(groups))
+	}
+}
+
+func TestGroupBy_NumericKey(t *testing.T) {
+	json := `{"items":[{"score":1},{"score":2},{"score":1}]}`
+	groups := GroupBy(json, "items", "score")
+	// conv.String(1.0) should produce "1"
+	if len(groups["1"]) != 2 {
+		t.Errorf("GroupBy(score=1) len = %d; want 2 (got keys: %v)", len(groups["1"]), groups)
+	}
+}
+
+// ///////////////////////////
+// Section: SortBy (conv integration)
+// ///////////////////////////
+
+func TestSortBy_NumericAscending(t *testing.T) {
+	json := `{"items":[{"n":3},{"n":1},{"n":2}]}`
+	sorted := SortBy(json, "items", "n", true)
+	if len(sorted) != 3 {
+		t.Fatalf("SortBy len = %d; want 3", len(sorted))
+	}
+	if sorted[0].Get("n").Int64() != 1 || sorted[1].Get("n").Int64() != 2 || sorted[2].Get("n").Int64() != 3 {
+		t.Errorf("SortBy ascending = %v", sorted)
+	}
+}
+
+func TestSortBy_NumericDescending(t *testing.T) {
+	json := `{"items":[{"n":3},{"n":1},{"n":2}]}`
+	sorted := SortBy(json, "items", "n", false)
+	if len(sorted) != 3 {
+		t.Fatalf("SortBy desc len = %d; want 3", len(sorted))
+	}
+	if sorted[0].Get("n").Int64() != 3 || sorted[1].Get("n").Int64() != 2 || sorted[2].Get("n").Int64() != 1 {
+		t.Errorf("SortBy descending = %v", sorted)
+	}
+}
+
+func TestSortBy_StringField(t *testing.T) {
+	sorted := SortBy(searchTestJSON, "store.books", "title", true)
+	if len(sorted) != 4 {
+		t.Fatalf("SortBy(title) len = %d; want 4", len(sorted))
+	}
+	// Alphabetically first should be "Clean Code"
+	if sorted[0].Get("title").String() != "Clean Code" {
+		t.Errorf("SortBy(title) first = %q; want %q", sorted[0].Get("title").String(), "Clean Code")
+	}
+}
+
+func TestSortBy_PriceDescending(t *testing.T) {
+	sorted := SortBy(searchTestJSON, "store.books", "price", false)
+	if len(sorted) != 4 {
+		t.Fatalf("SortBy(price desc) len = %d; want 4", len(sorted))
+	}
+	// Most expensive first: 34.99
+	if sorted[0].Get("price").Float64() != 34.99 {
+		t.Errorf("SortBy(price desc) first = %f; want 34.99", sorted[0].Get("price").Float64())
+	}
+}
+
+func TestSortBy_ScalarArray(t *testing.T) {
+	json := `{"nums":[5,2,8,1,9,3]}`
+	sorted := SortBy(json, "nums", "", true)
+	if len(sorted) != 6 {
+		t.Fatalf("SortBy(scalar) len = %d; want 6", len(sorted))
+	}
+	if sorted[0].Float64() != 1 {
+		t.Errorf("SortBy(scalar asc) first = %f; want 1", sorted[0].Float64())
+	}
+}
+
+func TestSortBy_MissingPath(t *testing.T) {
+	sorted := SortBy(searchTestJSON, "missing", "n", true)
+	if len(sorted) != 0 {
+		t.Errorf("SortBy(missing) len = %d; want 0", len(sorted))
+	}
+}

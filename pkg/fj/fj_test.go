@@ -5,23 +5,23 @@ import (
 	"unsafe"
 )
 
-// TestTransformJSONValidity verifies that @valid returns the original JSON when
-// the input is valid, and an empty string when it is not.
+// TestTransformJSONValidity verifies that @valid returns "true" when the input is valid
+// JSON and "false" when it is not.
 func TestTransformJSONValidity(t *testing.T) {
 	tests := []struct {
 		name     string
 		json     string
 		expected string
 	}{
-		{"valid object", `{"a":1}`, `{"a":1}`},
-		{"valid array", `[1,2,3]`, `[1,2,3]`},
-		{"valid string", `"hello"`, `"hello"`},
-		{"valid number", `42`, `42`},
+		{"valid object", `{"a":1}`, `true`},
+		{"valid array", `[1,2,3]`, `true`},
+		{"valid string", `"hello"`, `true`},
+		{"valid number", `42`, `true`},
 		{"valid true", `true`, `true`},
-		{"valid null", `null`, `null`},
-		{"invalid: missing quote", `{"a":1`, ``},
-		{"invalid: bare word", `abc`, ``},
-		{"empty string", ``, ``},
+		{"valid null", `null`, `true`},
+		{"invalid: missing quote", `{"a":1`, `false`},
+		{"invalid: bare word", `abc`, `false`},
+		{"empty string", ``, `false`},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -988,4 +988,127 @@ func TestIsValidName(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ///////////////////////////
+// Section: registry tests
+// ///////////////////////////
+
+// TestTransformerRegistryAliases verifies that all built-in aliases resolve to the
+// same function as their canonical name (i.e. they are correctly registered).
+func TestTransformerRegistryAliases(t *testing.T) {
+aliases := []struct {
+alias    string
+canon    string
+input    string
+expected string
+}{
+{"ugly", "minify", `{ "a" : 1 }`, `{"a":1}`},
+{"upper", "uppercase", `"hello"`, `"HELLO"`},
+{"lower", "lowercase", `"HELLO"`, `"hello"`},
+{"snake", "snakecase", `"Hello World"`, `"hello_world"`},
+{"camel", "camelcase", `"hello world"`, `"helloWorld"`},
+{"kebab", "kebabcase", `"Hello World"`, `"hello-world"`},
+}
+for _, tt := range aliases {
+t.Run(tt.alias, func(t *testing.T) {
+aliasResult := getTransformer(tt.alias)
+canonResult := getTransformer(tt.canon)
+if aliasResult == nil {
+t.Errorf("alias %q not registered", tt.alias)
+return
+}
+if canonResult == nil {
+t.Errorf("canonical %q not registered", tt.canon)
+return
+}
+// Both must produce identical output.
+if aliasResult(tt.input, "") != canonResult(tt.input, "") {
+t.Errorf("alias %q output %q != canonical %q output %q",
+tt.alias, aliasResult(tt.input, ""),
+tt.canon, canonResult(tt.input, ""))
+}
+})
+}
+}
+
+// TestTransformerRegistryConcurrency verifies that AddTransformer and
+// IsTransformerRegistered are safe to call concurrently.
+func TestTransformerRegistryConcurrency(t *testing.T) {
+const name = "concurrency_test_transformer"
+const goroutines = 50
+done := make(chan struct{})
+// Concurrent writers.
+for i := 0; i < goroutines; i++ {
+go func() {
+AddTransformer(name, func(json, arg string) string { return json })
+done <- struct{}{}
+}()
+}
+// Concurrent readers.
+for i := 0; i < goroutines; i++ {
+go func() {
+IsTransformerRegistered(name)
+done <- struct{}{}
+}()
+}
+for i := 0; i < goroutines*2; i++ {
+<-done
+}
+if !IsTransformerRegistered(name) {
+t.Error("transformer should be registered after concurrent writes")
+}
+}
+
+// TestGetTransformerNil verifies that getTransformer returns nil for unknown names.
+func TestGetTransformerNil(t *testing.T) {
+if fn := getTransformer("__does_not_exist__"); fn != nil {
+t.Error("expected nil for unknown transformer")
+}
+}
+
+// TestIsTransformerRegistered_BuiltIns spot-checks that canonical built-in names
+// are all registered.
+func TestIsTransformerRegistered_BuiltIns(t *testing.T) {
+builtIns := []string{
+"pretty", "minify", "ugly", "reverse", "flatten", "join", "valid",
+"keys", "values", "json", "string", "group", "search", "this",
+"uppercase", "upper", "lowercase", "lower", "flip", "trim",
+"snakecase", "snakeCase", "snake",
+"camelcase", "camelCase", "camel",
+"kebabcase", "kebabCase", "kebab",
+"replace", "replaceAll", "hex", "bin", "insertAt", "wc", "padLeft", "padRight",
+}
+for _, name := range builtIns {
+if !IsTransformerRegistered(name) {
+t.Errorf("built-in transformer %q not registered", name)
+}
+}
+}
+
+// TestTransformerFuncTypeAlias verifies that a TransformerFunc can be assigned
+// from a plain function literal (type compatibility check).
+func TestTransformerFuncTypeAlias(t *testing.T) {
+var fn TransformerFunc = func(json, arg string) string { return json }
+if fn("x", "") != "x" {
+t.Error("TransformerFunc type alias not working correctly")
+}
+}
+
+// TestAddTransformerOverwrite ensures that registering a transformer with the same
+// name overwrites the previous one.
+func TestAddTransformerOverwrite(t *testing.T) {
+name := "__overwrite_test__"
+AddTransformer(name, func(json, arg string) string { return "v1" })
+if !IsTransformerRegistered(name) {
+t.Fatal("transformer not registered after AddTransformer")
+}
+AddTransformer(name, func(json, arg string) string { return "v2" })
+fn := getTransformer(name)
+if fn == nil {
+t.Fatal("transformer not found after overwrite")
+}
+if got := fn("x", ""); got != "v2" {
+t.Errorf("overwritten transformer returned %q; want %q", got, "v2")
+}
 }

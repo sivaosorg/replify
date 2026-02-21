@@ -586,122 +586,24 @@ func IsValidJSONBytes(json []byte) bool {
 	return ok
 }
 
-// AddTransformer binds a custom transformer function to the fj syntax.
+// AddTransformer registers a custom TransformerFunc under the given name.
 //
-// This function allows users to register custom transformer functions that can be applied
-// to JSON data in the fj query language. A transformer is a transformation function that
-// takes two string arguments — the JSON data and an argument (such as a key or value) —
-// and returns a modified version of the JSON data. The registered transformer can then
-// be used in queries to modify the JSON data dynamically.
+// The name must be unique within the registry; registering with an existing name
+// overwrites the previous transformer. This function is safe for concurrent use.
 //
-// Parameters:
-//   - `name`: A string representing the name of the transformer. This name will be used
-//     in the fj query language to reference the transformer.
-//   - `fn`: A function that takes two string arguments: `json` (the JSON data to be modified),
-//     and `arg` (the argument that the transformer will use to transform the JSON). The function
-//     should return a modified string (the transformed JSON data).
+// Example:
 //
-// Example Usage:
-//
-//	// Define a custom transformer to uppercase all values in a JSON array.
-//	uppercaseTransformer := func(json, arg string) string {
-//	  return strings.ToUpper(json)  // Modify the JSON data (this is just a simple example).
-//	}
-//
-//	// Add the custom transformer to the fj system with the name "uppercase".
-//	fj.AddTransformer("uppercase", uppercaseTransformer)
-//
-//	// Now you can use the "uppercase" transformer in a query:
-//	json := `{
-//	  "store": {
-//	    "book": [
-//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
-//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
-//	    ],
-//	    "music": [
-//	      { "artist": "The Beatles", "album": "Abbey Road" },
-//	      { "artist": "Pink Floyd", "album": "The Wall" }
-//	    ]
-//	  }
-//	}`
-//	result := fj.Get(json, "store.music.1.album|@uppercase").String()  // Applies the uppercase transformer to each value in the array.
-//	// result will contain: THE WALL
-//
-// Notes:
-//   - This function is not thread-safe, so it should be called once, typically during
-//     the initialization phase, before performing any queries that rely on custom transformers.
-//   - Once registered, the transformer can be used in fj queries to transform the JSON data
-//     according to the logic defined in the `fn` function.
-func AddTransformer(name string, fn func(json, arg string) string) {
-	jsonTransformers[name] = fn
+//	fj.AddTransformer("upper", func(json, arg string) string {
+//	    return strings.ToUpper(json)
+//	})
+func AddTransformer(name string, fn TransformerFunc) {
+	globalRegistry.Register(name, fn)
 }
 
-// IsTransformerRegistered checks whether a specified transformer has been registered in the fj system.
+// IsTransformerRegistered reports whether a transformer with the given name has been
+// registered in the global registry.
 //
-// This function allows users to verify if a transformer with a given name has already
-// been added to the `fj` query system. transformers are custom functions that transform
-// JSON data in queries. This utility is useful to prevent duplicate registrations
-// or to confirm the availability of a specific transformer before using it.
-//
-// Parameters:
-//   - `name`: A string representing the name of the transformer to check for existence.
-//
-// Returns:
-//   - `bool`: Returns `true` if a transformer with the given name exists, otherwise returns `false`.
-//
-// Example Usage:
-//
-//	// Check if a custom transformer named "uppercase" has already been registered.
-//	if fj.IsTransformerRegistered("uppercase") {
-//	  fmt.Println("The 'uppercase' transformer is available.")
-//	} else {
-//	  fmt.Println("The 'uppercase' transformer has not been registered.")
-//	}
-//
-// Notes:
-//   - This function does not modify the `transformers` map; it only queries it to check
-//     for the existence of the specified transformer.
-//   - It is thread-safe when used only to query the existence of a transformer.
+// This function is safe for concurrent use by multiple goroutines.
 func IsTransformerRegistered(name string) bool {
-	if isEmpty(name) {
-		return false
-	}
-	if len(jsonTransformers) == 0 {
-		return false
-	}
-	_, ok := jsonTransformers[name]
-	return ok
-}
-
-func init() {
-	jsonTransformers = map[string]func(json, arg string) string{
-		"trim":       transformTrim,
-		"this":       transformDefault,
-		"valid":      transformJSONValidity,
-		"pretty":     transformPretty,
-		"minify":     transformMinify,
-		"reverse":    transformReverse,
-		"flatten":    transformFlatten,
-		"join":       transformJoin,
-		"keys":       transformKeys,
-		"values":     transformValues,
-		"string":     transformToString,
-		"json":       transformToJSON,
-		"group":      transformGroup,
-		"search":     transformSearch,
-		"uppercase":  transformUppercase,
-		"lowercase":  transformLowercase,
-		"flip":       transformFlip,
-		"snakeCase":  transformSnakeCase,
-		"camelCase":  transformCamelCase,
-		"kebabCase":  transformKebabCase,
-		"replace":    transformReplace,
-		"replaceAll": transformReplaceAll,
-		"hex":        transformToHex,
-		"bin":        transformToBinary,
-		"insertAt":   transformInsertAt,
-		"wc":         transformCountWords,
-		"padLeft":    transformPadLeft,
-		"padRight":   transformPadRight,
-	}
+	return globalRegistry.IsRegistered(name)
 }

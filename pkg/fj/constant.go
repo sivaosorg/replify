@@ -33,11 +33,6 @@ var (
 	// If set to false, transformers will be applied as expected.
 	DisableTransformers = false
 
-	// jsonTransformers is a map that associates a string key (the transformer type) with a function that
-	// takes two string arguments (`json` and `arg`), and returns a modified string. The map is used
-	// to apply various transformations to JSON data based on the specified jsonTransformers.
-	jsonTransformers map[string]func(json, arg string) string
-
 	// hexDigits is an array of bytes representing the hexadecimal digits used in JSON encoding.
 	// It contains the characters '0' to '9' and 'a' to 'f', which are used for encoding hexadecimal numbers.
 	// This is commonly used for encoding special characters or byte sequences in JSON strings (e.g., for Unicode escape sequences).

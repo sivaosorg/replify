@@ -3,9 +3,68 @@ package fj
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/sivaosorg/unify4g"
 )
+
+// TransformerFunc is the function signature for all transformer functions.
+// A transformer receives the current JSON string and an optional argument string,
+// and returns a transformed JSON string. Transformers are applied via the @ syntax
+// in fj path expressions (e.g. "name.@uppercase").
+type TransformerFunc func(json, arg string) string
+
+// transformerRegistry holds the mapping from transformer name to TransformerFunc.
+// It guards concurrent access with a sync.RWMutex so that AddTransformer and path
+// evaluation can be called safely from multiple goroutines.
+type transformerRegistry struct {
+	mu           sync.RWMutex
+	transformers map[string]TransformerFunc
+}
+
+// globalRegistry is the package-level singleton transformer registry.
+// All built-in transformers are registered via init(). Custom transformers can be
+// added at any time with AddTransformer.
+var globalRegistry = &transformerRegistry{
+	transformers: make(map[string]TransformerFunc),
+}
+
+// Register adds or replaces a transformer in the registry.
+// It is safe for concurrent use by multiple goroutines.
+func (r *transformerRegistry) Register(name string, fn TransformerFunc) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.transformers[name] = fn
+}
+
+// Get retrieves a transformer function by name.
+// It returns (fn, true) if found or (nil, false) if not registered.
+// It is safe for concurrent use by multiple goroutines.
+func (r *transformerRegistry) Get(name string) (TransformerFunc, bool) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	fn, ok := r.transformers[name]
+	return fn, ok
+}
+
+// IsRegistered reports whether a transformer with the given name has been registered.
+// It is safe for concurrent use by multiple goroutines.
+func (r *transformerRegistry) IsRegistered(name string) bool {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	_, ok := r.transformers[name]
+	return ok
+}
+
+// getTransformer retrieves a transformer function by name from the global registry.
+// Returns nil when no transformer with that name exists.
+func getTransformer(name string) TransformerFunc {
+	fn, ok := globalRegistry.Get(name)
+	if !ok {
+		return nil
+	}
+	return fn
+}
 
 // transformDefault is a fallback transformation that simply returns the input JSON string
 // without applying any modifications. This function is typically used as a default case
@@ -444,45 +503,19 @@ func transformJoin(json, arg string) string {
 	return unsafeBytesToString(target)
 }
 
-// transformJSONValidity ensures that the input JSON is valid before processing it further.
-// If the provided JSON string is not valid, the function returns an empty string. If the
-// JSON is valid, the original JSON string is returned unchanged.
+// transformJSONValidity reports whether the input is valid JSON.
+// It returns the string "true" if valid, or "false" otherwise. Use this transformer
+// in a path expression such as `input.@valid` to gate subsequent processing.
 //
-// Parameters:
-//   - `json`: A string representing the JSON data that needs to be validated.
-//   - `arg`: This parameter is not used in this function but is included for consistency
-//     with the signature of other transformation functions.
+// Example:
 //
-// Returns:
-//   - A string: The original JSON string if it is valid, or an empty string if the JSON
-//     is not valid.
-//
-// Example Usage:
-//
-//	// Input JSON (valid)
-//	json := `{"name":"Alice","age":25}`
-//	validJSON := transformJSONValidity(json, "")
-//	fmt.Println(validJSON)
-//	// Output: {"name":"Alice","age":25}
-//
-//	// Input JSON (invalid)
-//	json := `{"name":"Alice","age":25`
-//	validJSON := transformJSONValidity(json, "")
-//	fmt.Println(validJSON)
-//	// Output: (empty string)
-//
-// Notes:
-//   - The function uses `IsValidJSON` (presumably another function in the codebase) to
-//     check whether the input string is valid JSON.
-//   - If the JSON is invalid, the function returns an empty string, which can be used
-//     to stop further processing.
-//   - If the JSON is valid, it returns the JSON string unmodified, allowing subsequent
-//     transformations or processing to proceed.
+//	fj.Get(`{"a":1}`, `@valid`) → "true"
+//	fj.Get(`{bad}`,   `@valid`) → "false"
 func transformJSONValidity(json, arg string) string {
 	if !IsValidJSON(json) {
-		return ""
+		return "false"
 	}
-	return json
+	return "true"
 }
 
 // transformKeys extracts the keys from a JSON object and returns them as a JSON array of strings.
@@ -1303,4 +1336,51 @@ func transformPadRight(json, arg string) string {
 		return t
 	}
 	return t + strings.Repeat(padding, length-len(t))
+}
+
+// init registers all built-in transformers into globalRegistry at package startup.
+// Aliases allow shorter names for commonly used transformers.
+func init() {
+// Core transformers
+globalRegistry.Register("pretty", transformPretty)
+globalRegistry.Register("minify", transformMinify)
+globalRegistry.Register("ugly", transformMinify)    // alias for minify
+globalRegistry.Register("reverse", transformReverse)
+globalRegistry.Register("flatten", transformFlatten)
+globalRegistry.Register("join", transformJoin)
+globalRegistry.Register("valid", transformJSONValidity)
+globalRegistry.Register("keys", transformKeys)
+globalRegistry.Register("values", transformValues)
+globalRegistry.Register("json", transformToJSON)
+globalRegistry.Register("string", transformToString)
+globalRegistry.Register("group", transformGroup)
+globalRegistry.Register("search", transformSearch)
+globalRegistry.Register("this", transformDefault)
+
+// String case transformers
+globalRegistry.Register("uppercase", transformUppercase)
+globalRegistry.Register("upper", transformUppercase) // alias
+globalRegistry.Register("lowercase", transformLowercase)
+globalRegistry.Register("lower", transformLowercase) // alias
+globalRegistry.Register("flip", transformFlip)
+globalRegistry.Register("trim", transformTrim)
+globalRegistry.Register("snakecase", transformSnakeCase)
+globalRegistry.Register("snakeCase", transformSnakeCase) // legacy alias
+globalRegistry.Register("snake", transformSnakeCase)     // short alias
+globalRegistry.Register("camelcase", transformCamelCase)
+globalRegistry.Register("camelCase", transformCamelCase) // legacy alias
+globalRegistry.Register("camel", transformCamelCase)     // short alias
+globalRegistry.Register("kebabcase", transformKebabCase)
+globalRegistry.Register("kebabCase", transformKebabCase) // legacy alias
+globalRegistry.Register("kebab", transformKebabCase)     // short alias
+
+// Extra string transformers
+globalRegistry.Register("replace", transformReplace)
+globalRegistry.Register("replaceAll", transformReplaceAll)
+globalRegistry.Register("hex", transformToHex)
+globalRegistry.Register("bin", transformToBinary)
+globalRegistry.Register("insertAt", transformInsertAt)
+globalRegistry.Register("wc", transformCountWords)
+globalRegistry.Register("padLeft", transformPadLeft)
+globalRegistry.Register("padRight", transformPadRight)
 }

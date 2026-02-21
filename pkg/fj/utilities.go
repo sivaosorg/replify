@@ -1801,7 +1801,7 @@ func isTransformerOrJSONStart(s string) bool {
 				break
 			}
 		}
-		_, ok := jsonTransformers[s[1:i]]
+		ok := globalRegistry.IsRegistered(s[1:i])
 		return ok
 	}
 	return c == '[' || c == '{'
@@ -3389,8 +3389,8 @@ func adjustTransformer(json, path string) (pathYield, result string, ok bool) {
 			break
 		}
 	}
-	// check if the transformer exists in the transformers map and apply it if found.
-	if fn, ok := jsonTransformers[name]; ok {
+	// check if the transformer exists in the global registry and apply it if found.
+	if fn := getTransformer(name); fn != nil {
 		var args string
 		if hasArgs { // if arguments are found, parse and handle them.
 			var parsedArgs bool

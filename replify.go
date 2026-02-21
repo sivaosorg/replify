@@ -155,7 +155,7 @@ func (w *wrapper) Body() any {
 	return w.data
 }
 
-// OptimizeSafe compresses the body data if it exceeds a specified threshold.
+// CompressSafe compresses the body data if it exceeds a specified threshold.
 //
 // This function checks if the `wrapper` instance is available and if the body data
 // exceeds the specified threshold for compression. If the body data is larger than
@@ -172,38 +172,71 @@ func (w *wrapper) Body() any {
 //   - A pointer to the `wrapper` instance, allowing for method chaining.
 //
 // If the `wrapper` is not available, it returns the original instance without modifications.
-func (w *wrapper) OptimizeSafe(threshold int) *wrapper {
+func (w *wrapper) CompressSafe(threshold int) *wrapper {
 	if !w.Available() {
 		return w
 	}
 	if threshold <= 0 {
 		threshold = 1024 // 1KB threshold for compression
 	}
-	// Check if the body data is present and exceeds the threshold
-	// If the body is a string, we will check its length.
+
+	var originalSize int
 	if s, ok := w.data.(string); ok {
-		if len(s) > threshold {
-			compressed := compress(s)
-			w.
-				WithBody(compressed).
-				WithDebuggingKV("compression", "gzip").
-				WithDebuggingKV("original_size", len(s)).
-				WithDebuggingKV("compressed_size", len(compressed))
-			return w
-		}
+		originalSize = len(s)
+	} else if w.data != nil {
+		originalSize = calculateSize(w.data)
 	}
-	// If the body is not a string, we will check its size using CalculateSize.
-	// Calculate the size of the body data.
-	if data := w.Body(); data != nil {
-		if size := calculateSize(data); size > threshold {
-			compressed := compress(data)
-			w.
-				WithBody(compressed).
-				WithDebuggingKV("compression", "gzip").
-				WithDebuggingKV("original_size", size).
-				WithDebuggingKV("compressed_size", calculateSize(compressed))
-		}
+
+	// If the body data size is less than or equal to the threshold, return the original instance.
+	// Otherwise, compress the body data and update the instance with the compressed data.
+	if originalSize <= threshold {
+		return w
 	}
+
+	// Compress the body data and update the instance with the compressed data.
+	// If the compression fails, return the original instance without modifications.
+	compressed := compress(w.data)
+	if strutil.IsEmpty(compressed) {
+		return w // compression failed, leave body unchanged
+	}
+
+	// Update the instance with the compressed data and debugging information.
+	w.
+		WithBody(compressed).
+		WithDebuggingKV("compression", "gzip").
+		WithDebuggingKV("original_size", originalSize).
+		WithDebuggingKV("compressed_size", len(compressed))
+	return w
+}
+
+// DecompressSafe decompresses the body data if it is compressed.
+//
+// This function checks if the `wrapper` instance is available and if the body data
+// is compressed. If the body data is compressed, it decompresses the data using gzip
+// and updates the instance with the decompressed data. It also adds debugging information
+// about the decompression process, including the original and decompressed sizes.
+// If the body data is not compressed, it returns the original instance without modifications.
+//
+// Returns:
+//   - A pointer to the `wrapper` instance, allowing for method chaining.
+//
+// If the `wrapper` is not available, it returns the original instance without modifications.
+func (w *wrapper) DecompressSafe() *wrapper {
+	if !w.Available() {
+		return w
+	}
+	if s, ok := w.data.(string); ok {
+		originalSize := len(s)
+		w.data = decompress(s)
+		decompressed, _ := w.data.(string)
+		// Update the instance with the decompressed data and debugging information.
+		w.
+			WithBody(w.data).
+			WithDebuggingKV("decompression", "gzip").
+			WithDebuggingKV("original_size", originalSize).
+			WithDebuggingKV("decompressed_size", len(decompressed))
+	}
+
 	return w
 }
 

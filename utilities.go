@@ -42,6 +42,33 @@ func compress(data any) string {
 	return base64.StdEncoding.EncodeToString(buf.Bytes())
 }
 
+// decompress decompresses the given data using gzip and decodes it from base64.
+// It first decodes the base64 encoded data using base64.StdEncoding.DecodeString,
+// then decompresses the resulting byte slice using gzip. The decompressed data is
+// then unmarshaled using encoding.Unmarshal and returned as an interface{}.
+// If any error occurs during decoding or decompression, it returns nil.
+func decompress(data string) any {
+	_bytes, err := base64.StdEncoding.DecodeString(data)
+	if err != nil {
+		return nil
+	}
+	gz, err := gzip.NewReader(bytes.NewReader(_bytes))
+	if err != nil {
+		return nil
+	}
+	defer gz.Close()
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(gz)
+	if err != nil {
+		return nil
+	}
+	var result any
+	if err := encoding.Unmarshal(buf.Bytes(), &result); err != nil {
+		return nil
+	}
+	return result
+}
+
 // chunk takes a response represented as a map and returns a slice of byte slices,
 // where each byte slice is a chunk of the JSON representation of the response.
 // This is useful for streaming large responses in smaller segments.

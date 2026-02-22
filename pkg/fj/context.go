@@ -1,6 +1,7 @@
 package fj
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -274,6 +275,20 @@ func (ctx Context) WithTime(format string) (time.Time, error) {
 	return time.Parse(format, ctx.String())
 }
 
+// Duration converts the Context value into a time.Duration representation.
+// The conversion depends on the JSON type of the Context:
+//   - For `Number` type: Returns the numeric value as a time.Duration.
+//   - For `String` type: Attempts to parse the string as a duration using `time.ParseDuration`.
+//     If parsing fails, defaults to `time.Duration(0)`.
+//   - For all other types: Returns `time.Duration(0)`.
+//
+// Returns:
+//   - time.Duration: A time.Duration representation of the Context value.
+//     Defaults to `time.Duration(0)` if parsing fails.
+func (ctx Context) Duration() time.Duration {
+	return conv.DurationOrDefault(ctx.String(), time.Duration(0))
+}
+
 // Bool converts the Context value into a boolean representation.
 // The conversion depends on the JSON type of the Context:
 //   - For `True` type: Returns `true`.
@@ -297,6 +312,130 @@ func (ctx Context) Bool() bool {
 	}
 }
 
+// Int converts the Context value into an integer representation (int).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into an integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to an integer if it's within the safe range.
+//   - Parses the unprocessed string for integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to an int.
+//
+// Returns:
+//   - int: An integer representation of the Context value.
+func (ctx Context) Int() int {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.IntOrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < math.MinInt32 || ctx.num > math.MaxInt32 {
+			return 0
+		}
+		val, err := conv.Int(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.IntOrDefault(ctx.num, 0)
+	}
+}
+
+// Int8 converts the Context value into an 8-bit integer representation (int8).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into an 8-bit integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to an 8-bit integer if it's within the safe range.
+//   - Parses the unprocessed string for 8-bit integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to an int8.
+//
+// Returns:
+//   - int8: An 8-bit integer representation of the Context value.
+func (ctx Context) Int8() int8 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Int8OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < math.MinInt8 || ctx.num > math.MaxInt8 {
+			return 0
+		}
+		val, err := conv.Int8(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Int8OrDefault(ctx.num, 0)
+	}
+}
+
+// Int16 converts the Context value into a 16-bit integer representation (int16).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into a 16-bit integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a 16-bit integer if it's within the safe range.
+//   - Parses the unprocessed string for 16-bit integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to an int16.
+//
+// Returns:
+//   - int16: A 16-bit integer representation of the Context value.
+func (ctx Context) Int16() int16 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Int16OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < math.MinInt16 || ctx.num > math.MaxInt16 {
+			return 0
+		}
+		val, err := conv.Int16(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Int16OrDefault(ctx.num, 0)
+	}
+}
+
+// Int32 converts the Context value into a 32-bit integer representation (int32).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into a 32-bit integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a 32-bit integer if it's within the safe range.
+//   - Parses the unprocessed string for 32-bit integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to an int32.
+//
+// Returns:
+//   - int32: A 32-bit integer representation of the Context value.
+func (ctx Context) Int32() int32 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Int32OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < math.MinInt32 || ctx.num > math.MaxInt32 {
+			return 0
+		}
+		val, err := conv.Int32(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Int32OrDefault(ctx.num, 0)
+	}
+}
+
 // Int64 converts the Context value into an integer representation (int64).
 // The conversion depends on the JSON type of the Context:
 //   - For `True` type: Returns 1.
@@ -317,15 +456,138 @@ func (ctx Context) Int64() int64 {
 	case String:
 		return conv.Int64OrDefault(ctx.str, 0)
 	case Number:
-		enVal, ok := ensureSafeInt64(ctx.num)
-		if ok {
-			return enVal
+		if ctx.num < math.MinInt64 || ctx.num > math.MaxInt64 {
+			return 0
 		}
 		val, err := conv.Int64(ctx.raw)
 		if err == nil {
 			return val
 		}
 		return conv.Int64OrDefault(ctx.num, 0)
+	}
+}
+
+// Uint converts the Context value into an unsigned integer representation (uint).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into an unsigned integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a uint if it's safe and non-negative.
+//   - Parses the unprocessed string for unsigned integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to a uint.
+//
+// Returns:
+//   - uint: An unsigned integer representation of the Context value.
+func (ctx Context) Uint() uint {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.UintOrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < 0 || ctx.num > math.MaxUint {
+			return 0
+		}
+		val, err := conv.Uint(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.UintOrDefault(ctx.num, 0)
+	}
+}
+
+// Uint8 converts the Context value into an 8-bit unsigned integer representation (uint8).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into an 8-bit unsigned integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a uint8 if it's safe and non-negative.
+//   - Parses the unprocessed string for 8-bit unsigned integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to a uint8.
+//
+// Returns:
+//   - uint8: An 8-bit unsigned integer representation of the Context value.
+func (ctx Context) Uint8() uint8 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Uint8OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < 0 || ctx.num > math.MaxUint8 {
+			return 0
+		}
+		val, err := conv.Uint8(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Uint8OrDefault(ctx.num, 0)
+	}
+}
+
+// Uint16 converts the Context value into a 16-bit unsigned integer representation (uint16).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into a 16-bit unsigned integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a uint16 if it's safe and non-negative.
+//   - Parses the unprocessed string for 16-bit unsigned integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to a uint16.
+//
+// Returns:
+//   - uint16: A 16-bit unsigned integer representation of the Context value.
+func (ctx Context) Uint16() uint16 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Uint16OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < 0 || ctx.num > math.MaxUint16 {
+			return 0
+		}
+		val, err := conv.Uint16(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Uint16OrDefault(ctx.num, 0)
+	}
+}
+
+// Uint32 converts the Context value into a 32-bit unsigned integer representation (uint32).
+// The conversion depends on the JSON type of the Context:
+//   - For `True` type: Returns 1.
+//   - For `String` type: Attempts to parse the string into a 32-bit unsigned integer. Defaults to 0 on failure.
+//   - For `Number` type:
+//   - Directly converts the numeric value to a uint32 if it's safe and non-negative.
+//   - Parses the unprocessed string for 32-bit unsigned integer values as a fallback.
+//   - Defaults to converting the float64 numeric value to a uint32.
+//
+// Returns:
+//   - uint32: A 32-bit unsigned integer representation of the Context value.
+func (ctx Context) Uint32() uint32 {
+	switch ctx.kind {
+	default:
+		return 0
+	case True:
+		return 1
+	case String:
+		return conv.Uint32OrDefault(ctx.str, 0)
+	case Number:
+		if ctx.num < 0 || ctx.num > math.MaxUint32 {
+			return 0
+		}
+		val, err := conv.Uint32(ctx.raw)
+		if err == nil {
+			return val
+		}
+		return conv.Uint32OrDefault(ctx.num, 0)
 	}
 }
 
@@ -349,9 +611,8 @@ func (ctx Context) Uint64() uint64 {
 	case String:
 		return conv.Uint64OrDefault(ctx.str, 0)
 	case Number:
-		enVal, ok := ensureSafeInt64(ctx.num)
-		if ok && enVal >= 0 {
-			return uint64(enVal)
+		if ctx.num < 0 || ctx.num > math.MaxUint64 {
+			return 0
 		}
 		val, err := conv.Uint64(ctx.raw)
 		if err == nil {

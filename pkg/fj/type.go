@@ -80,7 +80,7 @@ type wildcard struct {
 	more bool
 }
 
-// meta represents a more complex metadata structure for handling JSON path queries
+// meta represents a metadata structure for handling JSON path queries
 // that may involve operations, conditions, and logging.
 type meta struct {
 	// part represents a segment of the deeper query structure.

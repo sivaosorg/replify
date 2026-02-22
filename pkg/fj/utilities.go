@@ -98,7 +98,7 @@ func getNumeric(json string) (raw string, num float64) {
 //   - The function uses unsafe pointer operations to avoid unnecessary allocations and copies.
 //   - It extracts string and byte slice headers and ensures memory safety by copying headers
 //     to strings when needed.
-//   - The function checks whether the substring (`strings`) is part of the raw string (`unprocessed`)
+//   - The function checks whether the substring (`str`) is part of the raw string (`raw`)
 //     and handles memory overlap efficiently.
 //
 // Example:
@@ -116,33 +116,33 @@ func getBytes(json []byte, path string) Context {
 		// extract the string headers for unprocessed and strings.
 		rawSafe := *(*stringHeader)(unsafe.Pointer(&result.raw))
 		stringSafe := *(*stringHeader)(unsafe.Pointer(&result.str))
-		// create byte slice headers for the unprocessed and strings.
-		rawHeader := sliceHeader{data: rawSafe.data, n: rawSafe.n, cap: rawSafe.n}
-		sliceHeader := sliceHeader{data: stringSafe.data, n: stringSafe.n, cap: rawSafe.n}
+		// create byte slice headers for the raw and str fields.
+		rawSliceHeader := sliceHeader{data: rawSafe.data, n: rawSafe.n, cap: rawSafe.n}
+		strSliceHeader := sliceHeader{data: stringSafe.data, n: stringSafe.n, cap: rawSafe.n}
 		// check for nil data and safely copy headers to strings if necessary.
-		if sliceHeader.data == nil {
-			if rawHeader.data == nil {
+		if strSliceHeader.data == nil {
+			if rawSliceHeader.data == nil {
 				result.raw = ""
 			} else {
-				// unprocessed has data, safely copy the slice header to a string
-				result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
+				// raw has data, safely copy the slice header to a string
+				result.raw = string(*(*[]byte)(unsafe.Pointer(&rawSliceHeader)))
 			}
 			result.str = ""
-		} else if rawHeader.data == nil {
+		} else if rawSliceHeader.data == nil {
 			result.raw = ""
-			result.str = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
-		} else if uintptr(sliceHeader.data) >= uintptr(rawHeader.data) &&
-			uintptr(sliceHeader.data)+uintptr(sliceHeader.n) <=
-				uintptr(rawHeader.data)+uintptr(rawHeader.n) {
-			// strings is a substring of unprocessed.
-			start := uintptr(sliceHeader.data) - uintptr(rawHeader.data)
+			result.str = string(*(*[]byte)(unsafe.Pointer(&strSliceHeader)))
+		} else if uintptr(strSliceHeader.data) >= uintptr(rawSliceHeader.data) &&
+			uintptr(strSliceHeader.data)+uintptr(strSliceHeader.n) <=
+				uintptr(rawSliceHeader.data)+uintptr(rawSliceHeader.n) {
+			// str is a substring of raw.
+			start := uintptr(strSliceHeader.data) - uintptr(rawSliceHeader.data)
 			// safely copy the raw slice header
-			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
-			result.str = result.raw[start : start+uintptr(sliceHeader.n)]
+			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawSliceHeader)))
+			result.str = result.raw[start : start+uintptr(strSliceHeader.n)]
 		} else {
 			// safely copy both headers to strings.
-			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
-			result.str = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
+			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawSliceHeader)))
+			result.str = string(*(*[]byte)(unsafe.Pointer(&strSliceHeader)))
 		}
 	}
 	return result
@@ -286,23 +286,23 @@ func reverseSquash(json string) string {
 	return json
 }
 
-// computeIndex calculates and assigns the starting index of the `unprocessed` field in the `value`
+// computeIndex calculates and assigns the starting index of the `raw` field in the `value`
 // field of the `parser` struct relative to the `json` string.
 //
 // Parameters:
 //   - `json`: The complete JSON string from which the index is derived.
-//   - `c`: A pointer to a `parser` instance containing the `value` with the `unprocessed` field.
+//   - `c`: A pointer to a `parser` instance containing the `value` with the `raw` field.
 //
 // Behavior:
-//   - If the `unprocessed` field in `value` is non-empty and the `calc` flag in the parser is false:
-//     1. It computes the relative index of `unprocessed` within the `json` string by comparing
+//   - If the `raw` field in `value` is non-empty and the `calc` flag in the parser is false:
+//     1. It computes the relative index of `raw` within the `json` string by comparing
 //     the memory addresses of the respective string headers.
 //     2. If the computed index is invalid (e.g., out of bounds of `json`), it sets the index to 0.
 //
 // Notes:
 //   - The function uses unsafe operations to access the memory layout of strings and compute their
 //     relative positions. This minimizes overhead but requires care to ensure memory safety.
-//   - The `index` field is useful for tracking the position of a substring within the original JSON data.
+//   - The `idx` field is useful for tracking the position of a substring within the original JSON data.
 //
 // Example:
 //
@@ -2311,8 +2311,8 @@ func parseJSONSquash(json string, i int) (int, string) {
 //
 // Returns:
 //   - `i`: The updated index after parsing the JSON value. This is the index immediately after the parsed value.
-//   - `ctx`: A `Context` object containing information about the parsed value, including the type (`kind`), the raw unprocessed string (`unprocessed`),
-//     and for strings or numbers, the parsed value (e.g., `strings` for strings, `numeric` for numbers).
+//   - `ctx`: A `Context` object containing information about the parsed value, including the type (`kind`), the raw unprocessed string (`raw`),
+//     and for strings or numbers, the parsed value (e.g., `str` for strings, `num` for numbers).
 //   - `ok`: A boolean indicating whether the parsing was successful. If the function successfully identifies a JSON value, it returns true; otherwise, false.
 //
 // Example Usage:
@@ -2793,7 +2793,7 @@ func analyzeQuery(query string) (
 //	   Path: "#(value=='42').details"
 //	   Arch: true
 //	   query.On: true
-//	   query.QueryPath: "value"
+//	   query.path: "value"
 //	   query.Option: "=="
 //	   query.Value: "42"
 //	   query.All: false

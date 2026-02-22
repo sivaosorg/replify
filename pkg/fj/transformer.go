@@ -550,7 +550,7 @@ func transformJSONValidity(json, arg string) string {
 //   - If the input JSON is not an object (e.g., an array, string, or invalid), the function will return an empty array (`[]`).
 //   - The function relies on the `Parse` function to parse the input JSON and the `Foreach` method to iterate over
 //     the object keys.
-//   - The `unprocessed` method is used to extract the raw key value as a string without further processing.
+//   - The `raw` method is used to extract the raw key value as a string without further processing.
 //
 // Implementation Details:
 //   - The function first checks if the parsed JSON object exists. If it does, it iterates through the object and extracts

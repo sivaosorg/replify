@@ -291,7 +291,7 @@ func (ctx Context) Float64() float64 {
 //   - For `String` type: Attempts to parse the string as a floating-point number (Float32 precision).
 //     If the parsing fails, it defaults to 0.
 //   - For `Number` type: Returns the numeric value as a Float32, assuming the Context contains
-//     a numeric value in its `numeric` field.
+//     a numeric value in its `num` field.
 //
 // Returns:
 //   - Float32: A floating-point representation of the Context value.
@@ -318,7 +318,7 @@ func (ctx Context) Float64() float64 {
 //     into a Float32. If parsing fails (e.g., if the string is not a valid numeric representation),
 //     the function returns 0 as a fallback.
 //
-//   - For the `Number` type, the `numeric` field, assumed to hold a float64 value, is converted
+//   - For the `Number` type, the `num` field, assumed to hold a float64 value, is converted
 //     to a Float32 for the return value.
 //
 // Notes:
@@ -326,7 +326,7 @@ func (ctx Context) Float64() float64 {
 //   - The function gracefully handles invalid string inputs for the `String` type by returning 0,
 //     ensuring no runtime panic occurs due to a parsing error.
 //
-//   - Precision may be lost when converting from float64 (`numeric` field) to Float32.
+//   - Precision may be lost when converting from float64 (`num` field) to Float32.
 func (ctx Context) Float32() float32 {
 	switch ctx.kind {
 	default:
@@ -440,7 +440,7 @@ func (ctx Context) Array() []Context {
 //
 // A value is considered a JSON object if:
 //   - The `kind` is `JSON`.
-//   - The `unprocessed` string starts with the `{` character.
+//   - The `raw` string starts with the `{` character.
 //
 // Returns:
 //   - bool: Returns `true` if the `Context` is a JSON object; otherwise, `false`.
@@ -462,7 +462,7 @@ func (ctx Context) IsObject() bool {
 //
 // A value is considered a JSON array if:
 //   - The `kind` is `JSON`.
-//   - The `unprocessed` string starts with the `[` character.
+//   - The `raw` string starts with the `[` character.
 //
 // Returns:
 //   - bool: Returns `true` if the `Context` is a JSON array; otherwise, `false`.
@@ -733,7 +733,7 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 //	// result.str will contain "John", representing the value found at the "user.name" path.
 //
 // Notes:
-//   - The function uses the `Get` function (presumably another function) to process the `unprocessed` JSON string
+//   - The function uses the `Get` function (presumably another function) to process the `raw` JSON string
 //     and search for the specified path.
 //   - The function adjusts the indices of the results (if any) to account for the original position of the `Context`
 //     in the JSON string.
@@ -776,7 +776,7 @@ func (ctx Context) Get(path string) Context {
 //	// results[1].num will contain 2 for the "items[1]" path.
 //
 // Notes:
-//   - This function uses the `GetMul` function (presumably another function) to process the `unprocessed` JSON string
+//   - This function uses the `GetMul` function (presumably another function) to process the `raw` JSON string
 //     and search for each of the specified paths.
 //   - Each result is returned as a separate `Context` for each path, allowing for multiple values to be retrieved
 //     at once from the JSON structure.
@@ -954,8 +954,8 @@ fail:
 //     be returned.
 //
 // Notes:
-//   - The `Paths` function relies on the `indexes` field in the `Context`
-//     object. If the `indexes` field is `nil`, the function will return `nil`.
+//   - The `Paths` function relies on the `idxs` field in the `Context`
+//     object. If the `idxs` field is `nil`, the function will return `nil`.
 //   - The function iterates over each element in the result (which is expected
 //     to be an array) and appends the corresponding path to the `paths` slice.
 //   - If the paths cannot be determined (e.g., due to the result coming from
@@ -1121,7 +1121,7 @@ func (ctx Context) ErrMessage() string {
 //
 //  5. **Assigning Indices**:
 //     After parsing the elements, the function assigns the correct index to each element in the `ArrayResult` based on
-//     the `indexes` from the parent `Context`. If the number of elements in the array does not match the expected
+//     the `idxs` from the parent `Context`. If the number of elements in the array does not match the expected
 //     number of indexes, the indices are reset to 0 for each element.
 //
 // Example Usage:

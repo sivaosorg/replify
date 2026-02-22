@@ -25,7 +25,7 @@ import (
 //   - The function attempts to determine the type of the JSON element by inspecting the first character in the
 //     string. It supports the following types: Object (`{`), Array (`[`), Number, String (`"`), Boolean (`true` / `false`),
 //     and Null (`null`).
-//   - The function sets the `unprocessed` field of the `Context` to the raw JSON string for further processing, and
+//   - The function sets the `raw` field of the `Context` to the raw JSON string for further processing, and
 //     sets the `kind` field to represent the type of the value (e.g., `String`, `Number`, `True`, `False`, `JSON`, `Null`).
 //
 // Example Usage:
@@ -258,7 +258,7 @@ func ParseBytes(json []byte) Context {
 //
 // Returns:
 //   - `Context`: A Context object containing the value found at the specified path, including information such as the
-//     type (`kind`), the raw JSON string (`unprocessed`), and the parsed value if available (e.g., `strings` for strings).
+//     type (`kind`), the raw JSON string (`raw`), and the parsed value if available (e.g., `str` for strings).
 //
 // Notes:
 //   - If the path is not found, the returned Context will reflect this with an empty or null value.
@@ -426,8 +426,8 @@ func GetMul(json string, path ...string) []Context {
 //   - This function internally calls the `getBytes` function, which uses unsafe pointer operations
 //     to minimize allocations and efficiently handle string slice headers.
 //   - The function avoids unnecessary memory allocations by directly processing the byte slice and
-//     utilizing memory safety features to manage substring extraction when the `strings` part is
-//     a substring of the `unprocessed` part of the JSON data.
+//     utilizing memory safety features to manage substring extraction when the `str` part is
+//     a substring of the `raw` part of the JSON data.
 //
 // Example:
 //

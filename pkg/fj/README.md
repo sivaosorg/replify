@@ -29,13 +29,19 @@ The `fj` package uses a dot-notation path syntax that supports wildcards, array 
 - ❌ When you need to _write_ or _modify_ JSON (use `encoding/json`)
 - ❌ When JSON schema validation is required (use a dedicated schema library)
 
-## Installation
+## Getting Started
+
+### Requirements
+
+Go version **1.19** or higher.
+
+### Installation
 
 ```bash
 go get github.com/sivaosorg/replify
 ```
 
-Import the package in your Go code:
+Import the sub-package in your Go code:
 
 ```go
 import "github.com/sivaosorg/replify/pkg/fj"
@@ -173,19 +179,172 @@ ctx := fj.Get(json, "a").Get("b").Get("c")
 fmt.Println(ctx.String()) // deep
 ```
 
-### JSON Lines
+### Working with Bytes (no-allocation)
+
+When JSON is already in a `[]byte` slice, use `GetBytes` to avoid converting to string. To further avoid converting `ctx.Unprocessed()` back to `[]byte`, use `ctx.Index()` as a zero-allocation sub-slice:
 
 ```go
-lines := `
-{"name":"Alice","age":30}
-{"name":"Bob","age":25}
-{"name":"Carol","age":35}
-`
-fmt.Println(fj.Get(lines, "..name").String())
-// ["Alice","Bob","Carol"]
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var data = []byte(`{"user":{"id":"12345","roles":[{"roleId":"1","roleName":"Admin"},{"roleId":"2","roleName":"Editor"}]}}`)
+
+func main() {
+    ctx := fj.GetBytes(data, "user.roles.#.roleName")
+
+    // Zero-allocation sub-slice of the original []byte
+    var raw []byte
+    if ctx.Index() > 0 {
+        raw = data[ctx.Index() : ctx.Index()+len(ctx.Unprocessed())]
+    } else {
+        raw = []byte(ctx.Unprocessed())
+    }
+    fmt.Println(string(raw)) // ["Admin","Editor"]
+}
+```
+
+### Existence
+
+Use `Exists()` to distinguish a missing path from an explicit JSON `null`:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var data = []byte(`{"user":{"id":"12345","name":{"firstName":"John","lastName":"Doe"}}}`)
+
+func main() {
+    ctx := fj.GetBytes(data, "user.name.firstName")
+    if ctx.Exists() {
+        fmt.Println(ctx.String()) // John
+    } else {
+        fmt.Println("not found")
+    }
+}
+```
+
+### Loop
+
+`Foreach` iterates over array elements or object key-value pairs. Return `false` from the callback to stop early:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var data = []byte(`{"user":{"roles":[{"roleId":"1","roleName":"Admin"},{"roleId":"2","roleName":"Editor"}]}}`)
+
+func main() {
+    fj.GetBytes(data, "user.roles").Foreach(func(_, value fj.Context) bool {
+        fmt.Println(value.Get("roleName").String())
+        return true
+    })
+    // Admin
+    // Editor
+}
+```
+
+### Unmarshal
+
+Use `Value()` to obtain a native Go type via a type assertion:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var data = []byte(`{"user":{"id":12345,"name":{"firstName":"John","lastName":"Doe"}}}`)
+
+func main() {
+    // As map[string]interface{}
+    name, ok := fj.GetBytes(data, "user.name").Value().(map[string]interface{})
+    if ok {
+        fmt.Println(name) // map[firstName:John lastName:Doe]
+    }
+
+    // As float64
+    id, ok := fj.GetBytes(data, "user.id").Value().(float64)
+    if ok {
+        fmt.Println(id) // 12345
+    }
+
+    // Direct typed accessors are often more ergonomic
+    fmt.Println(fj.GetBytes(data, "user.id").Int64()) // 12345
+}
+```
+
+### Parse & Get
+
+`ParseBytes` parses JSON once; subsequent `Get` calls navigate inside the parsed result without re-scanning the entire document:
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var data = []byte(`{"user":{"id":12345,"name":{"firstName":"John","lastName":"Doe"}}}`)
+
+func main() {
+    // All three are equivalent
+    fmt.Println(fj.ParseBytes(data).Get("user").Get("id").Int64()) // 12345
+    fmt.Println(fj.GetBytes(data, "user.id").Int64())              // 12345
+    fmt.Println(fj.GetBytes(data, "user").Get("id").Int64())       // 12345
+}
+```
+
+### JSON Lines (extended)
+
+JSON Lines support uses the `..` prefix to treat a multi-line document as an array. Requires [JSON Lines](https://jsonlines.org/) format (one JSON object per line).
+
+```go
+package main
+
+import (
+    "fmt"
+    "github.com/sivaosorg/replify/pkg/fj"
+)
+
+var lines = []byte(`
+    {"roleId":"1","roleName":"Admin","permissions":[{"permissionId":"101","permissionName":"View Reports"},{"permissionId":"102","permissionName":"Manage Users"}]}
+    {"roleId":"2","roleName":"Editor","permissions":[{"permissionId":"201","permissionName":"Edit Content"},{"permissionId":"202","permissionName":"View Analytics"}]}
+`)
+
+func main() {
+    // Count lines
+    fmt.Println(fj.ParseBytes(lines).Get("..#").String()) // 2
+
+    // Get a specific line by index
+    fmt.Println(fj.GetBytes(lines, "..0").Get("roleName").String()) // Admin
+
+    // Pluck a field from every line
+    fmt.Println(fj.GetBytes(lines, "..#.roleName").String()) // ["Admin","Editor"]
+
+    // Nested query across all lines
+    fmt.Println(fj.GetBytes(lines, `..#.permissions.#(permissionId=="101").permissionName`).String())
+    // ["View Reports"]
+}
 ```
 
 ## Path Syntax Reference
+
+A `fj` path is a sequence of elements separated by `.`. In addition to `.`, several characters carry special meaning: `|`, `#`, `@`, `\`, `*`, `!`, and `?`.
 
 | Syntax | Description | Example |
 |--------|-------------|---------|
@@ -206,6 +365,96 @@ fmt.Println(fj.Get(lines, "..name").String())
 | `[f1,f2]` | Multi-selector → new array | `[id,name]` |
 | `!"value"` | JSON literal in multi-selector | `{"active":!true}` |
 | `..field` | JSON Lines — query each line | `..user.name` |
+
+### Object & Array Examples
+
+```
+# Basic field access
+id                              → "http://subs/base-sample-schema.json"
+properties.alias.description    → "An unique identifier in a submission."
+properties.alias.minLength      → 1
+required                        → ["alias","taxonId","releaseDate"]
+required.0                      → "alias"
+required.1                      → "taxonId"
+oneOf.0.required.1              → "team"
+
+# Wildcards (* matches any sequence, ? matches one character)
+anim*ls.1.name                  → "Barky"
+*nimals.1.name                  → "Barky"
+
+# Escape special characters
+properties.alias\.description   → "An unique identifier in a submission."
+
+# Array length and pluck
+animals.#                       → 3
+animals.#.name                  → ["Meowsy","Barky","Purrpaws"]
+```
+
+### Query Examples
+
+Queries support `==`, `!=`, `<`, `<=`, `>`, `>=`, `%` (like), and `!%` (not like):
+
+```
+stock.#(price_2002==56.27).symbol                → "MMM"
+stock.#(company=="Amazon.com").symbol             → "AMZN"
+stock.#(initial_price>=10)#.symbol               → ["MMM","AMZN","CPB","DIS","DOW","XOM","F","GPS","GIS"]
+stock.#(company%"D*")#.symbol                    → ["DIS","DOW"]
+stock.#(company!%"D*")#.symbol                   → ["MMM","AMZN","CPB","XOM","F","GPS","GIS"]
+required.#(%"*as*")#                             → ["alias","releaseDate"]
+required.#(%"*as*")                              → "alias"
+animals.#(foods.likes.#(%"*a*"))#.name           → ["Meowsy","Barky"]
+```
+
+### Tilde Operator
+
+The `~` operator evaluates a value as a boolean before comparison. The most recent value that does not exist is treated as `false`:
+
+```
+~true    → interprets truthy values as true
+~false   → interprets falsy and undefined values as true
+~null    → interprets null and undefined values as true
+~*       → interprets any defined value as true
+```
+
+```
+bank.#(isActive==~true)#.name   → ["Davis Wade","Oneill Everett"]
+bank.#(isActive==~false)#.name  → ["Stark Jenkins","Odonnell Rollins","Rachelle Chang","Dalton Waters"]
+bank.#(eyeColor==~null)#.name   → ["Dalton Waters"]
+bank.#(company==~*)#.name       → ["Stark Jenkins","Odonnell Rollins","Rachelle Chang","Davis Wade","Oneill Everett","Dalton Waters"]
+```
+
+### Dot & Pipe
+
+The `.` is the default separator; `|` can also be used. They behave identically except after `#` inside array/query contexts:
+
+```
+bank.0.balance                         → "$1,404.23"
+bank|0.balance                         → "$1,404.23"
+bank.0|balance                         → "$1,404.23"
+bank.#                                 → 6
+bank.#(gender=="female")#|#            → 2
+bank.#(gender=="female")#.name         → ["Rachelle Chang","Davis Wade"]
+bank.#(gender=="female")#|name         → not-present
+bank.#(gender=="female")#|0            → first female object
+```
+
+### Multi-Selectors
+
+Comma-separated selectors inside `{...}` create a new object; inside `[...]` create a new array:
+
+```
+{version,author,type,"top":stock.#(price_2007>=10)#.symbol}
+→ {"version":"1.0.0","author":"subs","type":"object","top":["MMM","AMZN","CPB","DIS","DOW","XOM","GPS","GIS"]}
+```
+
+### Literals
+
+JSON literals are prefixed with `!` and are useful when building new objects with [Multi-Selectors](#multi-selectors):
+
+```
+{version,author,"marked":!true,"scope":!"static"}
+→ {"version":"1.0.0","author":"subs","marked":true,"scope":"static"}
+```
 
 ## Built-in Transformers
 
@@ -241,6 +490,34 @@ Transformers are path components prefixed with `@`. They can be chained with the
 | `@wc` | Count words in the string | — |
 | `@padLeft` | Pad on the left to a target length | `@padLeft:{"padding":"*","length":10}` |
 | `@padRight` | Pad on the right to a target length | `@padRight:{"padding":"*","length":10}` |
+
+### Transformer Examples
+
+```
+required.1.@flip                                    → "dInoxat"
+required.@reverse                                   → ["releaseDate","taxonId","alias"]
+required.@reverse.0                                 → "releaseDate"
+animals.@join.@minify                               → {"name":"Purrpaws","species":"cat","foods":{...}}
+animals.1.@keys                                     → ["name","species","foods"]
+animals.1.@values.@minify                           → ["Barky","dog",{...}]
+{"id":bank.#.company,"details":bank.#(age>=10)#.eyeColor}|@group
+    → [{"id":"HINWAY","details":"blue"},{"id":"NEXGENE","details":"green"},...]
+{"id":bank.#.company,"details":bank.#(age>=10)#.eyeColor}|@group|#  → 6
+stock.@search:#(price_2007>=50)|0.company            → "3M"
+stock.@search:#(price_2007>=50)|0.company.@lowercase → "3m"
+stock.0.company.@hex                                 → "334d"
+stock.0.company.@bin                                 → "0011001101001101"
+stock.0.description.@wc                              → 42
+author|@padLeft:{"padding":"*","length":15}|@string  → "***********subs"
+author|@padRight:{"padding":"*","length":15}|@string → "subs***********"
+bank.0.@pretty:{"sort_keys":true}
+→ {
+      "address": "766 Cooke Court, Dunbar, Connecticut, 9512",
+      "age": 26,
+      "balance": "$1,404.23",
+      ...
+  }
+```
 
 ## Custom Transformers
 

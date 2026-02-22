@@ -3043,6 +3043,100 @@ func EqualsIgnoreCase(a string, b string) bool {
 	return strings.EqualFold(a, b)
 }
 
+// TailLines returns the last `num` lines from a slice of strings.
+//
+// If `num` is less than or equal to 0 or the slice is empty, it returns an empty slice.
+// If `num` is greater than the number of lines in the slice, it returns all lines.
+//
+// Parameters:
+//   - lines: A slice of strings representing the lines.
+//   - num: The number of lines to return from the end of the slice.
+//
+// Returns:
+//   - A slice containing the last `num` lines from the input slice.
+//
+// Example:
+//
+//	lines := []string{"line1", "line2", "line3", "line4", "line5"}
+//	result := TailLines(lines, 3) // result will be []string{"line3", "line4", "line5"}
+func TailLines(lines []string, num int) []string {
+	if num <= 0 || len(lines) == 0 {
+		return []string{}
+	}
+	start := len(lines) - num
+	if start < 0 {
+		start = 0
+	}
+	return lines[start:]
+}
+
+// RemoveDoubleQuotes removes all double quotes from a string.
+//
+// Parameters:
+//   - str: The input string.
+//
+// Returns:
+//   - The string with all double quotes removed.
+//
+// Example:
+//
+//	result := RemoveDoubleQuotes("\"hello\"") // result will be "hello"
+func RemoveDoubleQuotes(str string) string {
+	if IsEmpty(str) {
+		return str
+	}
+	return strings.ReplaceAll(str, `"`, "")
+}
+
+// StripNonWhitespace removes all non-whitespace characters from the input string, leaving only whitespace characters.
+// The function iterates over each character in the input string and appends only whitespace characters (' ', '\t', '\n', '\r')
+// to a new string. All non-whitespace characters are ignored and not included in the result.
+//
+// Parameters:
+//   - s: A string that may contain a mixture of whitespace and non-whitespace characters.
+//
+// Returns:
+//   - A new string consisting only of whitespace characters from the original string. If there are no whitespace characters
+//     in the input string, it returns an empty string.
+//
+// Example Usage:
+//
+//	str := "  \t\n   abc  "
+//	result := StripNonWhitespace(str)
+//	// result: "     " (all non-whitespace characters are removed)
+//
+//	str = "hello"
+//	result = StripNonWhitespace(str)
+//	// result: "" (no whitespace characters, returns an empty string)
+//
+// Details:
+//
+//   - The function iterates through each character in the input string `s` and skips any non-whitespace character.
+//
+//   - It appends each whitespace character to a new byte slice `s2`, which is later converted to a string and returned.
+//
+//   - If the input string contains no whitespace characters, the function returns an empty string.
+//
+//   - This function may not be very efficient for long strings, as it performs an inner loop on each non-whitespace character.
+func StripNonWhitespace(s string) string {
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case ' ', '\t', '\n', '\r':
+			continue
+		default:
+			var s2 []byte
+			for i := 0; i < len(s); i++ {
+				switch s[i] {
+				case ' ', '\t', '\n', '\r':
+					s2 = append(s2, s[i])
+				}
+			}
+			return string(s2)
+		}
+	}
+	return s
+}
+
 // isDelimiter checks if a character is a delimiter.
 //
 // This helper function determines whether a given character `c` is a

@@ -11,6 +11,54 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
+//////////////////////////////////
+/// Type enum / representation //
+////////////////////////////////
+
+// String provides a string representation of the `Type` enumeration.
+//
+// This method converts the `Type` value into a human-readable string.
+// It is particularly useful for debugging or logging purposes.
+//
+// Mapping of `Type` values to strings:
+//   - Null: "Null"
+//   - False: "False"
+//   - Number: "Number"
+//   - String: "String"
+//   - True: "True"
+//   - JSON: "JSON"
+//   - Default (unknown type): An empty string is returned.
+//
+// Returns:
+//   - string: A string representation of the `Type` value.
+//
+// Example Usage:
+//
+//	var t Type = True
+//	fmt.Println(t.String())  // Output: "True"
+func (t Type) String() string {
+	switch t {
+	default:
+		return ""
+	case Null:
+		return "Null"
+	case False:
+		return "False"
+	case Number:
+		return "Number"
+	case String:
+		return "String"
+	case True:
+		return "True"
+	case JSON:
+		return "JSON"
+	}
+}
+
+//////////////////////////////////
+/// Core identity & raw access //
+//////////////////////////////////
+
 // Kind returns the JSON type of the Context.
 // It provides the specific type of the JSON value, such as String, Number, Object, etc.
 //
@@ -58,236 +106,133 @@ func (ctx Context) Indexes() []int {
 	return ctx.idxs
 }
 
-// String provides a string representation of the `Type` enumeration.
-//
-// This method converts the `Type` value into a human-readable string.
-// It is particularly useful for debugging or logging purposes.
-//
-// Mapping of `Type` values to strings:
-//   - Null: "Null"
-//   - False: "False"
-//   - Number: "Number"
-//   - String: "String"
-//   - True: "True"
-//   - JSON: "JSON"
-//   - Default (unknown type): An empty string is returned.
-//
-// Returns:
-//   - string: A string representation of the `Type` value.
+// Exists returns true if the value exists (i.e., it is not Null and contains data).
 //
 // Example Usage:
 //
-//	var t Type = True
-//	fmt.Println(t.String())  // Output: "True"
-func (t Type) String() string {
-	switch t {
-	default:
-		return ""
-	case Null:
-		return "Null"
-	case False:
-		return "False"
-	case Number:
-		return "Number"
-	case String:
-		return "String"
-	case True:
-		return "True"
-	case JSON:
-		return "JSON"
-	}
-}
-
-// String returns a string representation of the Context value.
-// The output depends on the JSON type of the Context:
-//   - For `False` type: Returns "false".
-//   - For `True` type: Returns "true".
-//   - For `Number` type: Returns the numeric value as a string.
-//     If the numeric value was calculated, it formats the float value.
-//     Otherwise, it preserves the original unprocessed string if valid.
-//   - For `String` type: Returns the string value.
-//   - For `JSON` type: Returns the raw unprocessed JSON string.
-//   - For other types: Returns an empty string.
+//	if fj.Get(json, "user.name").Exists() {
+//	  println("value exists")
+//	}
 //
 // Returns:
-//   - string: A string representation of the Context value.
-func (ctx Context) String() string {
-	switch ctx.kind {
-	default:
-		return ""
-	case True:
-		return "true"
-	case False:
-		return "false"
-	case String:
-		return ctx.str
-	case JSON:
-		return ctx.raw
-	case Number:
-		if len(ctx.raw) == 0 {
-			return strconv.FormatFloat(ctx.num, 'f', -1, 64)
-		}
-		var i int
-		if ctx.raw[0] == '-' {
-			i++
-		}
-		for ; i < len(ctx.raw); i++ {
-			if ctx.raw[i] < '0' || ctx.raw[i] > '9' {
-				return strconv.FormatFloat(ctx.num, 'f', -1, 64)
-			}
-		}
-		return ctx.raw
-	}
+//   - bool: Returns true if the value is not null and contains non-empty data, otherwise returns false.
+func (ctx Context) Exists() bool {
+	return ctx.kind != Null || len(ctx.raw) != 0
 }
 
-// StringColored returns a colored string representation of the Context value.
-// It applies the default style defined in `defaultStyle` to the string
-// representation of the Context value.
+// IsError checks if there is an error associated with the Context.
 //
-// Details:
-//   - The function first retrieves the plain string representation using `ctx.String()`.
-//   - If the string is empty (determined by `isEmpty`), it returns an empty string.
-//   - Otherwise, it applies the coloring rules from `defaultStyle` using the
-//     `encoding.Color` function.
+// This function checks whether the `err` field of the Context is set. If there is
+// an error (i.e., `err` is not `nil`), the function returns `true`; otherwise, it returns `false`.
+//
+// Example Usage:
+//
+//	ctx := Context{err: fmt.Errorf("invalid JSON")}
+//	fmt.Println(ctx.IsError()) // Output: true
+//
+//	ctx = Context{}
+//	fmt.Println(ctx.IsError()) // Output: false
 //
 // Returns:
-//   - string: A colored string representation of the Context value if not empty.
-//     Returns an empty string for empty or invalid Context values.
+//   - bool: `true` if the Context has an error, `false` otherwise.
+func (ctx Context) IsError() bool {
+	return ctx.err != nil
+}
+
+// Cause returns the error message if there is an error in the Context.
+//
+// If the Context has an error (i.e., `err` is not `nil`), this function returns
+// the error message as a string. If there is no error, it returns an empty string.
+//
+// Example Usage:
+//
+//	ctx := Context{err: fmt.Errorf("parsing error")}
+//	fmt.Println(ctx.Cause()) // Output: "parsing error"
+//
+//	ctx = Context{}
+//	fmt.Println(ctx.Cause()) // Output: ""
+//
+// Returns:
+//   - string: The error message if there is an error, or an empty string if there is no error.
+func (ctx Context) Cause() string {
+	if ctx.IsError() {
+		return ctx.err.Error()
+	}
+	return ""
+}
+
+//////////////////////////////////
+/// Type predicates            ///
+//////////////////////////////////
+
+// IsArray checks if the current `Context` represents a JSON array.
+//
+// A value is considered a JSON array if:
+//   - The `kind` is `JSON`.
+//   - The `raw` string starts with the `[` character.
+//
+// Returns:
+//   - bool: Returns `true` if the `Context` is a JSON array; otherwise, `false`.
+//
+// Example Usage:
+//
+//	ctx := Context{kind: JSON, raw: "[1, 2, 3]"}
+//	isArr := ctx.IsArray()
+//	// isArr: true
+//
+//	ctx = Context{kind: JSON, raw: "{"key": "value"}"}
+//	isArr = ctx.IsArray()
+//	// isArr: false
+func (ctx Context) IsArray() bool {
+	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '['
+}
+
+// IsObject checks if the current `Context` represents a JSON object.
+//
+// A value is considered a JSON object if:
+//   - The `kind` is `JSON`.
+//   - The `raw` string starts with the `{` character.
+//
+// Returns:
+//   - bool: Returns `true` if the `Context` is a JSON object; otherwise, `false`.
+//
+// Example Usage:
+//
+//	ctx := Context{kind: JSON, raw: "{"key": "value"}"}
+//	isObj := ctx.IsObject()
+//	// isObj: true
+//
+//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
+//	isObj = ctx.IsObject()
+//	// isObj: false
+func (ctx Context) IsObject() bool {
+	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '{'
+}
+
+// IsBool checks if the current `Context` represents a JSON boolean value.
+//
+// A value is considered a JSON boolean if:
+//   - The `kind` is `True` or `False`.
+//
+// Returns:
+//   - bool: Returns `true` if the `Context` is a JSON boolean; otherwise, `false`.
 //
 // Example Usage:
 //
 //	ctx := Context{kind: True}
-//	fmt.Println(ctx.StringColored()) // Output: "\033[1;35mtrue\033[0m" (colored)
+//	isBool := ctx.IsBool()
+//	// isBool: true
 //
-// Notes:
-//   - Requires the `encoding` library for styling and the `isEmpty` utility function
-//     to check for empty strings.
-func (ctx Context) StringColored() string {
-	s := []byte(ctx.String())
-	if strutil.IsEmpty(string(s)) {
-		return ""
-	}
-	return string(encoding.Color(s, defaultStyle))
+//	ctx = Context{kind: String, strings: "true"}
+//	isBool = ctx.IsBool()
+//	// isBool: false
+func (ctx Context) IsBool() bool {
+	return ctx.kind == True || ctx.kind == False
 }
 
-// WithStringColored applies a customizable colored styling to the string representation of the Context value.
-//
-// This function enhances the default coloring functionality by allowing the caller to specify a custom
-// style for highlighting the Context value. If no custom style is provided, the default styling rules
-// (`defaultStyle`) are used.
-//
-// Parameters:
-//   - style (*encoding.Style): A pointer to a Style structure that defines custom styling rules
-//     for JSON elements. If `style` is nil, the `defaultStyle` is applied.
-//
-// Details:
-//   - Retrieves the plain string representation of the Context value using `ctx.String()`.
-//   - Checks if the string is empty using the `isEmpty` utility function. If empty, it returns
-//     an empty string immediately.
-//   - If a custom style is provided, it applies the given style to the string representation
-//     using the `encoding.Color` function. Otherwise, it applies the default style.
-//
-// Returns:
-//   - string: A styled string representation of the Context value based on the provided or default style.
-//
-// Example Usage:
-//
-//	customStyle := &encoding.Style{
-//	    Key:      [2]string{"\033[1;36m", "\033[0m"},
-//	    String:   [2]string{"\033[1;33m", "\033[0m"},
-//	    // Additional styling rules...
-//	}
-//
-//	ctx := Context{kind: True}
-//	fmt.Println(ctx.WithStringColored(customStyle)) // Output: "\033[1;35mtrue\033[0m" (custom colored)
-//
-// Notes:
-//   - The function uses the `encoding.Color` utility to apply the color rules defined in the style.
-//   - Requires the `isEmpty` utility function to check for empty strings.
-func (ctx Context) WithStringColored(style *encoding.Style) string {
-	s := []byte(ctx.String())
-	if strutil.IsEmpty(string(s)) {
-		return ""
-	}
-	if style == nil {
-		style = defaultStyle
-	}
-	return string(encoding.Color(s, style))
-}
-
-// Time converts the Context value into a time.Time representation.
-// The conversion interprets the Context value as a string in RFC3339 format.
-// If parsing fails, the zero time (0001-01-01 00:00:00 UTC) is returned.
-//
-// Returns:
-//   - time.Time: A time.Time representation of the Context value.
-//     Defaults to the zero time if parsing fails.
-func (ctx Context) Time() time.Time {
-	return conv.TimeOrDefault(ctx.String(), time.Time{})
-}
-
-// WithTime parses the Context value into a time.Time representation using a custom format.
-// This function allows for greater flexibility by enabling parsing with user-defined
-// date and time formats, rather than relying on the fixed RFC3339 format used in `Time()`.
-//
-// Parameters:
-//   - format: A string representing the desired format to parse the Context value.
-//     This format must conform to the layouts supported by the `time.Parse` function.
-//
-// Returns:
-//   - time.Time: The parsed time.Time representation of the Context value if parsing succeeds.
-//   - error: An error value if the parsing fails (e.g., due to an invalid format or mismatched value).
-//
-// Example Usage:
-//
-//	ctx := Context{kind: String, strings: "12-25-2023"}
-//	t, err := ctx.WithTime("01-02-2006")
-//	if err != nil {
-//	    fmt.Println("Error parsing time:", err)
-//	} else {
-//	    fmt.Println("Parsed time:", t)
-//	}
-//	// Output: Parsed time: 2023-12-25 00:00:00 +0000 UTC
-//
-// Details:
-//
-//   - The function relies on the `time.Parse` function to convert the string value from the Context
-//     into a time.Time representation.
-//
-//   - The format parameter determines how the Context value should be interpreted. It must match
-//     the layout of the Context's string value. If the value cannot be parsed according to the given
-//     format, the function returns an error.
-//
-//   - Unlike `Time()`, which defaults to the zero time on failure, this function explicitly returns
-//     an error to indicate parsing issues.
-//
-// Notes:
-//
-//   - The function assumes that `ctx.String()` returns a string representation of the Context value.
-//     If the Context does not contain a valid string, the parsing will fail.
-//
-//   - This function is ideal for cases where date and time formats vary or when the RFC3339 standard
-//     is not suitable.
-//
-//   - To handle parsing failures gracefully, always check the returned error before using the
-//     resulting `time.Time` value.
-func (ctx Context) WithTime(format string) (time.Time, error) {
-	return time.Parse(format, ctx.String())
-}
-
-// Duration converts the Context value into a time.Duration representation.
-// The conversion depends on the JSON type of the Context:
-//   - For `Number` type: Returns the numeric value as a time.Duration.
-//   - For `String` type: Attempts to parse the string as a duration using `time.ParseDuration`.
-//     If parsing fails, defaults to `time.Duration(0)`.
-//   - For all other types: Returns `time.Duration(0)`.
-//
-// Returns:
-//   - time.Duration: A time.Duration representation of the Context value.
-//     Defaults to `time.Duration(0)` if parsing fails.
-func (ctx Context) Duration() time.Duration {
-	return conv.DurationOrDefault(ctx.String(), time.Duration(0))
-}
+//////////////////////////////////
+/// Conversions to Go types    ///
+//////////////////////////////////
 
 // Bool converts the Context value into a boolean representation.
 // The conversion depends on the JSON type of the Context:
@@ -311,6 +256,10 @@ func (ctx Context) Bool() bool {
 		return ctx.num != 0
 	}
 }
+
+//////////////////////////////////
+/// Signed integers            ///
+//////////////////////////////////
 
 // Int converts the Context value into an integer representation (int).
 // The conversion depends on the JSON type of the Context:
@@ -467,6 +416,10 @@ func (ctx Context) Int64() int64 {
 	}
 }
 
+//////////////////////////////////
+/// Unsigned integers          ///
+//////////////////////////////////
+
 // Uint converts the Context value into an unsigned integer representation (uint).
 // The conversion depends on the JSON type of the Context:
 //   - For `True` type: Returns 1.
@@ -622,6 +575,10 @@ func (ctx Context) Uint64() uint64 {
 	}
 }
 
+//////////////////////////////////
+///           Floats           ///
+//////////////////////////////////
+
 // Float32 converts the Context value into a floating-point representation (Float32).
 // This function provides a similar conversion mechanism as Float64 but with Float32 precision.
 // The conversion depends on the JSON type of the Context:
@@ -699,118 +656,87 @@ func (ctx Context) Float64() float64 {
 	}
 }
 
-// Array returns an array of `Context` values derived from the current `Context`.
-//
-// Behavior:
-//   - If the current `Context` represents a `Null` value, it returns an empty array.
-//   - If the current `Context` is not a JSON array, it returns an array containing itself as a single element.
-//   - If the current `Context` is a JSON array, it parses and returns the array's elements.
+//////////////////////////////////
+///        Time / duration     ///
+//////////////////////////////////
+
+// Time converts the Context value into a time.Time representation.
+// The conversion interprets the Context value as a string in RFC3339 format.
+// If parsing fails, the zero time (0001-01-01 00:00:00 UTC) is returned.
 //
 // Returns:
-//   - []Context: A slice of `Context` values representing the array elements.
+//   - time.Time: A time.Time representation of the Context value.
+//     Defaults to the zero time if parsing fails.
+func (ctx Context) Time() time.Time {
+	return conv.TimeOrDefault(ctx.String(), time.Time{})
+}
+
+// WithTime parses the Context value into a time.Time representation using a custom format.
+// This function allows for greater flexibility by enabling parsing with user-defined
+// date and time formats, rather than relying on the fixed RFC3339 format used in `Time()`.
+//
+// Parameters:
+//   - format: A string representing the desired format to parse the Context value.
+//     This format must conform to the layouts supported by the `time.Parse` function.
+//
+// Returns:
+//   - time.Time: The parsed time.Time representation of the Context value if parsing succeeds.
+//   - error: An error value if the parsing fails (e.g., due to an invalid format or mismatched value).
 //
 // Example Usage:
 //
-//	ctx := Context{kind: Null}
-//	arr := ctx.Array()
-//	// arr: []
+//	ctx := Context{kind: String, strings: "12-25-2023"}
+//	t, err := ctx.WithTime("01-02-2006")
+//	if err != nil {
+//	    fmt.Println("Error parsing time:", err)
+//	} else {
+//	    fmt.Println("Parsed time:", t)
+//	}
+//	// Output: Parsed time: 2023-12-25 00:00:00 +0000 UTC
 //
-//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
-//	arr = ctx.Array()
-//	// arr: [Context, Context, Context]
+// Details:
+//
+//   - The function relies on the `time.Parse` function to convert the string value from the Context
+//     into a time.Time representation.
+//
+//   - The format parameter determines how the Context value should be interpreted. It must match
+//     the layout of the Context's string value. If the value cannot be parsed according to the given
+//     format, the function returns an error.
+//
+//   - Unlike `Time()`, which defaults to the zero time on failure, this function explicitly returns
+//     an error to indicate parsing issues.
 //
 // Notes:
-//   - This function uses `parseJSONElements` internally to extract array elements.
-//   - If the JSON is malformed or does not represent an array, the behavior may vary.
-func (ctx Context) Array() []Context {
-	if ctx.kind == Null {
-		return []Context{}
-	}
-	if !ctx.IsArray() {
-		return []Context{ctx}
-	}
-	r := ctx.parseJSONElements('[', false)
-	return r.arr
+//
+//   - The function assumes that `ctx.String()` returns a string representation of the Context value.
+//     If the Context does not contain a valid string, the parsing will fail.
+//
+//   - This function is ideal for cases where date and time formats vary or when the RFC3339 standard
+//     is not suitable.
+//
+//   - To handle parsing failures gracefully, always check the returned error before using the
+//     resulting `time.Time` value.
+func (ctx Context) WithTime(format string) (time.Time, error) {
+	return time.Parse(format, ctx.String())
 }
 
-// IsArray checks if the current `Context` represents a JSON array.
-//
-// A value is considered a JSON array if:
-//   - The `kind` is `JSON`.
-//   - The `raw` string starts with the `[` character.
+// Duration converts the Context value into a time.Duration representation.
+// The conversion depends on the JSON type of the Context:
+//   - For `Number` type: Returns the numeric value as a time.Duration.
+//   - For `String` type: Attempts to parse the string as a duration using `time.ParseDuration`.
+//     If parsing fails, defaults to `time.Duration(0)`.
+//   - For all other types: Returns `time.Duration(0)`.
 //
 // Returns:
-//   - bool: Returns `true` if the `Context` is a JSON array; otherwise, `false`.
-//
-// Example Usage:
-//
-//	ctx := Context{kind: JSON, raw: "[1, 2, 3]"}
-//	isArr := ctx.IsArray()
-//	// isArr: true
-//
-//	ctx = Context{kind: JSON, raw: "{"key": "value"}"}
-//	isArr = ctx.IsArray()
-//	// isArr: false
-func (ctx Context) IsArray() bool {
-	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '['
+//   - time.Duration: A time.Duration representation of the Context value.
+//     Defaults to `time.Duration(0)` if parsing fails.
+func (ctx Context) Duration() time.Duration {
+	return conv.DurationOrDefault(ctx.String(), time.Duration(0))
 }
 
-// IsObject checks if the current `Context` represents a JSON object.
-//
-// A value is considered a JSON object if:
-//   - The `kind` is `JSON`.
-//   - The `raw` string starts with the `{` character.
-//
-// Returns:
-//   - bool: Returns `true` if the `Context` is a JSON object; otherwise, `false`.
-//
-// Example Usage:
-//
-//	ctx := Context{kind: JSON, raw: "{"key": "value"}"}
-//	isObj := ctx.IsObject()
-//	// isObj: true
-//
-//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
-//	isObj = ctx.IsObject()
-//	// isObj: false
-func (ctx Context) IsObject() bool {
-	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '{'
-}
-
-// IsBool checks if the current `Context` represents a JSON boolean value.
-//
-// A value is considered a JSON boolean if:
-//   - The `kind` is `True` or `False`.
-//
-// Returns:
-//   - bool: Returns `true` if the `Context` is a JSON boolean; otherwise, `false`.
-//
-// Example Usage:
-//
-//	ctx := Context{kind: True}
-//	isBool := ctx.IsBool()
-//	// isBool: true
-//
-//	ctx = Context{kind: String, strings: "true"}
-//	isBool = ctx.IsBool()
-//	// isBool: false
-func (ctx Context) IsBool() bool {
-	return ctx.kind == True || ctx.kind == False
-}
-
-// Exists returns true if the value exists (i.e., it is not Null and contains data).
-//
-// Example Usage:
-//
-//	if fj.Get(json, "user.name").Exists() {
-//	  println("value exists")
-//	}
-//
-// Returns:
-//   - bool: Returns true if the value is not null and contains non-empty data, otherwise returns false.
-func (ctx Context) Exists() bool {
-	return ctx.kind != Null || len(ctx.raw) != 0
-}
+//////////////////////////////////
+///          Generic           ///
+//////////////////////////////////
 
 // Value returns the corresponding Go type for the JSON value represented by the Context.
 //
@@ -867,6 +793,165 @@ func (ctx Context) Value() any {
 	case True:
 		return true
 	}
+}
+
+/////////////////////////////////////////////////
+///    Stringification / display   //////////////
+/////////////////////////////////////////////////
+
+// String returns a string representation of the Context value.
+// The output depends on the JSON type of the Context:
+//   - For `False` type: Returns "false".
+//   - For `True` type: Returns "true".
+//   - For `Number` type: Returns the numeric value as a string.
+//     If the numeric value was calculated, it formats the float value.
+//     Otherwise, it preserves the original unprocessed string if valid.
+//   - For `String` type: Returns the string value.
+//   - For `JSON` type: Returns the raw unprocessed JSON string.
+//   - For other types: Returns an empty string.
+//
+// Returns:
+//   - string: A string representation of the Context value.
+func (ctx Context) String() string {
+	switch ctx.kind {
+	default:
+		return ""
+	case True:
+		return "true"
+	case False:
+		return "false"
+	case String:
+		return ctx.str
+	case JSON:
+		return ctx.raw
+	case Number:
+		if len(ctx.raw) == 0 {
+			return strconv.FormatFloat(ctx.num, 'f', -1, 64)
+		}
+		var i int
+		if ctx.raw[0] == '-' {
+			i++
+		}
+		for ; i < len(ctx.raw); i++ {
+			if ctx.raw[i] < '0' || ctx.raw[i] > '9' {
+				return strconv.FormatFloat(ctx.num, 'f', -1, 64)
+			}
+		}
+		return ctx.raw
+	}
+}
+
+// StringColored returns a colored string representation of the Context value.
+// It applies the default style defined in `defaultStyle` to the string
+// representation of the Context value.
+//
+// Details:
+//   - The function first retrieves the plain string representation using `ctx.String()`.
+//   - If the string is empty (determined by `isEmpty`), it returns an empty string.
+//   - Otherwise, it applies the coloring rules from `defaultStyle` using the
+//     `encoding.Color` function.
+//
+// Returns:
+//   - string: A colored string representation of the Context value if not empty.
+//     Returns an empty string for empty or invalid Context values.
+//
+// Example Usage:
+//
+//	ctx := Context{kind: True}
+//	fmt.Println(ctx.StringColored()) // Output: "\033[1;35mtrue\033[0m" (colored)
+//
+// Notes:
+//   - Requires the `encoding` library for styling and the `isEmpty` utility function
+//     to check for empty strings.
+func (ctx Context) StringColored() string {
+	s := []byte(ctx.String())
+	if strutil.IsEmpty(string(s)) {
+		return ""
+	}
+	return string(encoding.Color(s, defaultStyle))
+}
+
+// WithStringColored applies a customizable colored styling to the string representation of the Context value.
+//
+// This function enhances the default coloring functionality by allowing the caller to specify a custom
+// style for highlighting the Context value. If no custom style is provided, the default styling rules
+// (`defaultStyle`) are used.
+//
+// Parameters:
+//   - style (*encoding.Style): A pointer to a Style structure that defines custom styling rules
+//     for JSON elements. If `style` is nil, the `defaultStyle` is applied.
+//
+// Details:
+//   - Retrieves the plain string representation of the Context value using `ctx.String()`.
+//   - Checks if the string is empty using the `isEmpty` utility function. If empty, it returns
+//     an empty string immediately.
+//   - If a custom style is provided, it applies the given style to the string representation
+//     using the `encoding.Color` function. Otherwise, it applies the default style.
+//
+// Returns:
+//   - string: A styled string representation of the Context value based on the provided or default style.
+//
+// Example Usage:
+//
+//	customStyle := &encoding.Style{
+//	    Key:      [2]string{"\033[1;36m", "\033[0m"},
+//	    String:   [2]string{"\033[1;33m", "\033[0m"},
+//	    // Additional styling rules...
+//	}
+//
+//	ctx := Context{kind: True}
+//	fmt.Println(ctx.WithStringColored(customStyle)) // Output: "\033[1;35mtrue\033[0m" (custom colored)
+//
+// Notes:
+//   - The function uses the `encoding.Color` utility to apply the color rules defined in the style.
+//   - Requires the `isEmpty` utility function to check for empty strings.
+func (ctx Context) WithStringColored(style *encoding.Style) string {
+	s := []byte(ctx.String())
+	if strutil.IsEmpty(string(s)) {
+		return ""
+	}
+	if style == nil {
+		style = defaultStyle
+	}
+	return string(encoding.Color(s, style))
+}
+
+/////////////////////////////////////////////////
+///  Structural extraction & traversal   ////////
+/////////////////////////////////////////////////
+
+// Array returns an array of `Context` values derived from the current `Context`.
+//
+// Behavior:
+//   - If the current `Context` represents a `Null` value, it returns an empty array.
+//   - If the current `Context` is not a JSON array, it returns an array containing itself as a single element.
+//   - If the current `Context` is a JSON array, it parses and returns the array's elements.
+//
+// Returns:
+//   - []Context: A slice of `Context` values representing the array elements.
+//
+// Example Usage:
+//
+//	ctx := Context{kind: Null}
+//	arr := ctx.Array()
+//	// arr: []
+//
+//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
+//	arr = ctx.Array()
+//	// arr: [Context, Context, Context]
+//
+// Notes:
+//   - This function uses `parseJSONElements` internally to extract array elements.
+//   - If the JSON is malformed or does not represent an array, the behavior may vary.
+func (ctx Context) Array() []Context {
+	if ctx.kind == Null {
+		return []Context{}
+	}
+	if !ctx.IsArray() {
+		return []Context{ctx}
+	}
+	r := ctx.parseJSONElements('[', false)
+	return r.arr
 }
 
 // Map returns a map of values extracted from a JSON object.
@@ -1008,6 +1093,10 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 	}
 }
 
+//////////////////////////////////
+///          Querying          ///
+//////////////////////////////////
+
 // Get searches for a specified path within a JSON structure and returns the corresponding result.
 //
 // This function allows you to search for a specific path in the JSON structure and retrieve the corresponding
@@ -1082,6 +1171,10 @@ func (ctx Context) Get(path string) Context {
 func (ctx Context) GetMul(path ...string) []Context {
 	return GetMul(ctx.raw, path...)
 }
+
+/////////////////////////////////////////////////
+///  Path reconstruction / origin  //////////////
+/////////////////////////////////////////////////
 
 // Path returns the original fj path for a Result where the Result came
 // from a simple query path that returns a single value. For example, if the
@@ -1292,6 +1385,10 @@ func (ctx Context) Paths(json string) []string {
 	return paths
 }
 
+//////////////////////////////////
+///        Comparison          ///
+//////////////////////////////////
+
 // Less compares two Context values (tokens) and returns true if the first token is considered less than the second one.
 // It performs comparisons based on the type of the tokens and their respective values.
 // The comparison order follows: Null < False < Number < String < True < JSON.
@@ -1337,46 +1434,9 @@ func (ctx Context) Less(token Context, caseSensitive bool) bool {
 	return ctx.raw < token.raw
 }
 
-// IsError checks if there is an error associated with the Context.
-//
-// This function checks whether the `err` field of the Context is set. If there is
-// an error (i.e., `err` is not `nil`), the function returns `true`; otherwise, it returns `false`.
-//
-// Example Usage:
-//
-//	ctx := Context{err: fmt.Errorf("invalid JSON")}
-//	fmt.Println(ctx.IsError()) // Output: true
-//
-//	ctx = Context{}
-//	fmt.Println(ctx.IsError()) // Output: false
-//
-// Returns:
-//   - bool: `true` if the Context has an error, `false` otherwise.
-func (ctx Context) IsError() bool {
-	return ctx.err != nil
-}
-
-// Cause returns the error message if there is an error in the Context.
-//
-// If the Context has an error (i.e., `err` is not `nil`), this function returns
-// the error message as a string. If there is no error, it returns an empty string.
-//
-// Example Usage:
-//
-//	ctx := Context{err: fmt.Errorf("parsing error")}
-//	fmt.Println(ctx.Cause()) // Output: "parsing error"
-//
-//	ctx = Context{}
-//	fmt.Println(ctx.Cause()) // Output: ""
-//
-// Returns:
-//   - string: The error message if there is an error, or an empty string if there is no error.
-func (ctx Context) Cause() string {
-	if ctx.IsError() {
-		return ctx.err.Error()
-	}
-	return ""
-}
+//////////////////////////////////
+///      Internal helpers      ///
+//////////////////////////////////
 
 // parseJSONElements processes a JSON string (from the `Context`) and attempts to parse it as either a JSON array or a JSON object.
 //

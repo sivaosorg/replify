@@ -1,8 +1,10 @@
 package fj
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/sivaosorg/replify/pkg/common"
 )
@@ -148,7 +150,7 @@ func ParseReader(in io.Reader) Context {
 	return Parse(json)
 }
 
-// ParseFilepath reads a JSON string from a file specified by the filepath and parses it into a Context.
+// ParseJSONFile reads a JSON string from a file specified by the filepath and parses it into a Context.
 //
 // This function opens the specified file, reads its contents using the `ParseReader` function,
 // and returns a Context representing the parsed JSON element. If any error occurs during
@@ -164,7 +166,7 @@ func ParseReader(in io.Reader) Context {
 //
 // Example Usage:
 //
-//	ctx := ParseFilepath("example.json")
+//	ctx := ParseJSONFile("example.json")
 //	if ctx.err != nil {
 //	    log.Fatalf("Failed to parse JSON: %v", ctx.err)
 //	}
@@ -174,7 +176,12 @@ func ParseReader(in io.Reader) Context {
 //   - This function is useful for reading and parsing JSON directly from files.
 //   - The file is opened and closed automatically within this function, and any errors encountered
 //     are captured in the returned `Context`.
-func ParseFilepath(filepath string) Context {
+func ParseJSONFile(filepath string) Context {
+	if !strings.HasSuffix(filepath, ".json") {
+		return Context{
+			err: fmt.Errorf("filepath is not a JSON file: %s", filepath),
+		}
+	}
 	file, err := os.Open(filepath)
 	if err != nil {
 		return Context{
@@ -442,7 +449,7 @@ func GetBytes(json []byte, path string) Context {
 	return getBytes(json, path)
 }
 
-// GetMulBytes searches json for multiple paths in the provided JSON byte slice.
+// GetBytesMulti searches json for multiple paths in the provided JSON byte slice.
 // The return value is a slice of `Context` objects, where the number of items
 // will be equal to the number of input paths. Each `Context` represents the value
 // extracted for the corresponding path. This method operates directly on the byte slice,
@@ -463,9 +470,9 @@ func GetBytes(json []byte, path string) Context {
 //
 //	jsonBytes := []byte(`{"user": {"firstName": "Alice", "lastName": "Johnson"}, "age": 29}`)
 //	paths := []string{"user.lastName", "age"}
-//	results := GetMulBytes(jsonBytes, paths...)
+//	results := GetBytesMulti(jsonBytes, paths...)
 //	// The result will contain Contexts for each path: ["Johnson", 29]
-func GetMulBytes(json []byte, path ...string) []Context {
+func GetBytesMulti(json []byte, path ...string) []Context {
 	ctx := make([]Context, len(path))
 	for i, path := range path {
 		ctx[i] = GetBytes(json, path)

@@ -10,27 +10,27 @@ type Type int
 
 // Context represents a JSON value returned from the Get() function.
 // It stores information about a specific JSON element, including its type,
-// unprocessed string data, string representation, numeric value, index in the original JSON,
+// raw string data, string representation, numeric value, index in the original JSON,
 // and the indexes of elements that match a path containing a '#'.
 type Context struct {
 	// kind is the JSON type (such as String, Number, Object, etc.).
 	kind Type
 
-	// unprocessed contains the raw JSON string that has not been processed or parsed.
-	unprocessed string
+	// raw contains the raw JSON string that has not been processed or parsed.
+	raw string
 
-	// strings contains the string value of the JSON element, if it is a string type.
-	strings string
+	// str contains the string value of the JSON element, if it is a string type.
+	str string
 
-	// numeric contains the numeric value of the JSON element, if it is a number type.
-	numeric float64
+	// num contains the numeric value of the JSON element, if it is a number type.
+	num float64
 
-	// index holds the position of the unprocessed JSON value in the original JSON string.
+	// idx holds the position of the raw JSON value in the original JSON string.
 	// A value of 0 means the index is unknown.
-	index int
+	idx int
 
-	// indexes holds the indices of all elements that match a path containing the '#' query character.
-	indexes []int
+	// idxs holds the indices of all elements that match a path containing the '#' query character.
+	idxs []int
 
 	// err stores any error encountered during processing or parsing of the JSON element.
 	// This field is used to capture issues such as invalid JSON syntax, type mismatches,
@@ -39,90 +39,90 @@ type Context struct {
 	err error
 }
 
-// queryContext is a simplified version of the Context struct,
+// qCtx is a simplified version of the Context struct,
 // primarily used to store intermediate results for JSON path processing.
-type queryContext struct {
-	// arrays stores a slice of Context elements representing an array result.
-	arrays []Context
+type qCtx struct {
+	// arr stores a slice of Context elements representing an array result.
+	arr []Context
 
-	// elements stores a slice of interface{} elements, used for intermediary results.
-	elements []interface{}
+	// elems stores a slice of interface{} elements, used for intermediary results.
+	elems []interface{}
 
-	// operations maps string keys to Context values, used for handling operations on specific paths.
-	operations map[string]Context
+	// ops maps string keys to Context values, used for handling operations on specific paths.
+	ops map[string]Context
 
-	// operationResults maps string keys to interface{} values, used for operation results on specific paths.
-	operationResults map[string]interface{}
+	// opResults maps string keys to interface{} values, used for operation results on specific paths.
+	opResults map[string]interface{}
 
-	// valueN stores a byte value for a specific operation, likely used for flagging or identifying states.
-	valueN byte
+	// vn stores a byte value for a specific operation, likely used for flagging or identifying states.
+	vn byte
 }
 
 // wildcard represents a wildcard element in a JSON path query.
 // It is used to represent patterns that match various JSON values in path expressions.
 type wildcard struct {
-	// Part represents a specific segment of the wildcard pattern.
-	Part string
+	// part represents a specific segment of the wildcard pattern.
+	part string
 
-	// Path represents the path expression that includes the wildcard.
-	Path string
+	// path represents the path expression that includes the wildcard.
+	path string
 
-	// Pipe represents an operation or transformation to be applied to the wildcard.
-	Pipe string
+	// pipe represents an operation or transformation to be applied to the wildcard.
+	pipe string
 
-	// Piped indicates whether the wildcard has been piped for further processing.
-	Piped bool
+	// piped indicates whether the wildcard has been piped for further processing.
+	piped bool
 
-	// Wild indicates whether this wildcard is a true wildcard (e.g., "*").
-	Wild bool
+	// wild indicates whether this wildcard is a true wildcard (e.g., "*").
+	wild bool
 
-	// More indicates whether there are more operations or elements to process after this wildcard.
-	More bool
+	// more indicates whether there are more operations or elements to process after this wildcard.
+	more bool
 }
 
-// metadata represents a metadata, more complex structure for handling JSON path queries
+// meta represents a more complex metadata structure for handling JSON path queries
 // that may involve operations, conditions, and logging.
-type metadata struct {
-	// Part represents a segment of the deeper query structure.
-	Part string
+type meta struct {
+	// part represents a segment of the deeper query structure.
+	part string
 
-	// Path represents the full path for the deeper query structure.
-	Path string
+	// path represents the full path for the deeper query structure.
+	path string
 
-	// Pipe represents any operations or transformations applied to the deeper query structure.
-	Pipe string
+	// pipe represents any operations or transformations applied to the deeper query structure.
+	pipe string
 
-	// Piped indicates if the deeper query structure has been piped for further processing.
-	Piped bool
+	// piped indicates if the deeper query structure has been piped for further processing.
+	piped bool
 
-	// More indicates whether there are additional elements or operations in the deeper query.
-	More bool
+	// more indicates whether there are additional elements or operations in the deeper query.
+	more bool
 
-	// Arch is a flag indicating some form of structure or architecture flag.
-	Arch bool
+	// arch is a flag indicating some form of structure or architecture flag.
+	arch bool
 
-	// ALogOk indicates whether logging is allowed for this deeper structure.
-	ALogOk bool
+	// logOk indicates whether logging is allowed for this deeper structure.
+	logOk bool
 
-	// ALogKey stores the key used for logging in the deeper structure.
-	ALogKey string
+	// logKey stores the key used for logging in the deeper structure.
+	logKey string
 
 	// query holds the query-related data for the deeper structure.
 	query struct {
-		// On is a flag that indicates whether the query is active.
-		On bool
+		// on is a flag that indicates whether the query is active.
+		on bool
 
-		// All indicates if the query applies to all elements, not just a single one.
-		All bool
+		// all indicates if the query applies to all elements, not just a single one.
+		all bool
 
-		// QueryPath is the path to query.
-		QueryPath string
+		// path is the path to query.
+		path string
 
-		// Option specifies an option related to the query.
-		Option string
+		// opt specifies an option related to the query.
+		opt string
 
-		// Value represents the value to search for or match in the query.
-		Value string
+		// val represents the value to search for or match in the query.
+		val string
 	}
 }
 
@@ -131,8 +131,8 @@ type parser struct {
 	// json is the raw JSON string that needs to be parsed.
 	json string
 
-	// value stores the parsed context value that represents a JSON element.
-	value Context
+	// val stores the parsed context value that represents a JSON element.
+	val Context
 
 	// pipe holds the pipe operation string to be applied during parsing.
 	pipe string
@@ -151,21 +151,21 @@ type parser struct {
 // and is used for low-level manipulation of string data in Go.
 // It provides access to the internal representation of a string.
 type stringHeader struct {
-	data   unsafe.Pointer // data is a pointer to the underlying data of the string.
-	length int            // length is the length of the string.
+	data unsafe.Pointer // data is a pointer to the underlying data of the string.
+	n    int            // n is the length of the string.
 }
 
 // sliceHeader is a custom struct that mimics the reflect.sliceHeader type
 // and is used for low-level manipulation of slices in Go.
 // It provides access to the internal representation of a slice.
 type sliceHeader struct {
-	data     unsafe.Pointer // data is a pointer to the underlying array of the slice.
-	length   int            // length is the number of elements in the slice.
-	capacity int            // capacity is the maximum number of elements the slice can hold before resizing.
+	data unsafe.Pointer // data is a pointer to the underlying array of the slice.
+	n    int            // n is the number of elements in the slice.
+	cap  int            // cap is the maximum number of elements the slice can hold before resizing.
 }
 
-// subSelector represents a selection in a JSON path query that specifies a name and path.
-type subSelector struct {
+// sel represents a selection in a JSON path query that specifies a name and path.
+type sel struct {
 	name string // name represents the name of the selector or key in the JSON path.
 	path string //  path represents the full path expression for the selector.
 }

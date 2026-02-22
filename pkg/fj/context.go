@@ -23,7 +23,7 @@ func (ctx Context) Kind() Type {
 // Returns:
 //   - string: The unprocessed JSON string.
 func (ctx Context) Unprocessed() string {
-	return ctx.unprocessed
+	return ctx.raw
 }
 
 // Numeric returns the numeric value of the Context, if applicable.
@@ -33,7 +33,7 @@ func (ctx Context) Unprocessed() string {
 //   - float64: The numeric value of the Context.
 //     If the Context does not represent a number, the value may be undefined.
 func (ctx Context) Numeric() float64 {
-	return ctx.numeric
+	return ctx.num
 }
 
 // Index returns the index of the unprocessed JSON value in the original JSON string.
@@ -43,7 +43,7 @@ func (ctx Context) Numeric() float64 {
 // Returns:
 //   - int: The position of the value in the original JSON string.
 func (ctx Context) Index() int {
-	return ctx.index
+	return ctx.idx
 }
 
 // Indexes returns a slice of indices for elements matching a path containing the '#' character.
@@ -52,7 +52,7 @@ func (ctx Context) Index() int {
 // Returns:
 //   - []int: A slice of indices for matching elements.
 func (ctx Context) Indexes() []int {
-	return ctx.indexes
+	return ctx.idxs
 }
 
 // String returns a string representation of the Context value.
@@ -77,23 +77,23 @@ func (ctx Context) String() string {
 	case False:
 		return "false"
 	case String:
-		return ctx.strings
+		return ctx.str
 	case JSON:
-		return ctx.unprocessed
+		return ctx.raw
 	case Number:
-		if len(ctx.unprocessed) == 0 {
-			return strconv.FormatFloat(ctx.numeric, 'f', -1, 64)
+		if len(ctx.raw) == 0 {
+			return strconv.FormatFloat(ctx.num, 'f', -1, 64)
 		}
 		var i int
-		if ctx.unprocessed[0] == '-' {
+		if ctx.raw[0] == '-' {
 			i++
 		}
-		for ; i < len(ctx.unprocessed); i++ {
-			if ctx.unprocessed[i] < '0' || ctx.unprocessed[i] > '9' {
-				return strconv.FormatFloat(ctx.numeric, 'f', -1, 64)
+		for ; i < len(ctx.raw); i++ {
+			if ctx.raw[i] < '0' || ctx.raw[i] > '9' {
+				return strconv.FormatFloat(ctx.num, 'f', -1, 64)
 			}
 		}
-		return ctx.unprocessed
+		return ctx.raw
 	}
 }
 
@@ -189,10 +189,10 @@ func (ctx Context) Bool() bool {
 	case True:
 		return true
 	case String:
-		b, _ := strconv.ParseBool(strings.ToLower(ctx.strings))
+		b, _ := strconv.ParseBool(strings.ToLower(ctx.str))
 		return b
 	case Number:
-		return ctx.numeric != 0
+		return ctx.num != 0
 	}
 }
 
@@ -214,18 +214,18 @@ func (ctx Context) Int64() int64 {
 	case True:
 		return 1
 	case String:
-		n, _ := parseInt64(ctx.strings)
+		n, _ := parseInt64(ctx.str)
 		return n
 	case Number:
-		i, ok := ensureSafeInt64(ctx.numeric)
+		i, ok := ensureSafeInt64(ctx.num)
 		if ok {
 			return i
 		}
-		i, ok = parseInt64(ctx.unprocessed)
+		i, ok = parseInt64(ctx.raw)
 		if ok {
 			return i
 		}
-		return int64(ctx.numeric)
+		return int64(ctx.num)
 	}
 }
 
@@ -247,18 +247,18 @@ func (ctx Context) Uint64() uint64 {
 	case True:
 		return 1
 	case String:
-		n, _ := parseUint64(ctx.strings)
+		n, _ := parseUint64(ctx.str)
 		return n
 	case Number:
-		i, ok := ensureSafeInt64(ctx.numeric)
+		i, ok := ensureSafeInt64(ctx.num)
 		if ok && i >= 0 {
 			return uint64(i)
 		}
-		u, ok := parseUint64(ctx.unprocessed)
+		u, ok := parseUint64(ctx.raw)
 		if ok {
 			return u
 		}
-		return uint64(ctx.numeric)
+		return uint64(ctx.num)
 	}
 }
 
@@ -277,10 +277,10 @@ func (ctx Context) Float64() float64 {
 	case True:
 		return 1
 	case String:
-		n, _ := strconv.ParseFloat(ctx.strings, 64)
+		n, _ := strconv.ParseFloat(ctx.str, 64)
 		return n
 	case Number:
-		return ctx.numeric
+		return ctx.num
 	}
 }
 
@@ -334,10 +334,10 @@ func (ctx Context) Float32() float32 {
 	case True:
 		return 1
 	case String:
-		n, _ := strconv.ParseFloat(ctx.strings, 32)
+		n, _ := strconv.ParseFloat(ctx.str, 32)
 		return float32(n)
 	case Number:
-		return float32(ctx.numeric)
+		return float32(ctx.num)
 	}
 }
 
@@ -418,7 +418,7 @@ func (ctx Context) WithTime(format string) (time.Time, error) {
 //	arr := ctx.Array()
 //	// arr: []
 //
-//	ctx = Context{kind: JSON, unprocessed: "[1, 2, 3]"}
+//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
 //	arr = ctx.Array()
 //	// arr: [Context, Context, Context]
 //
@@ -433,7 +433,7 @@ func (ctx Context) Array() []Context {
 		return []Context{ctx}
 	}
 	r := ctx.parseJSONElements('[', false)
-	return r.arrays
+	return r.arr
 }
 
 // IsObject checks if the current `Context` represents a JSON object.
@@ -447,15 +447,15 @@ func (ctx Context) Array() []Context {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "{"key": "value"}"}
+//	ctx := Context{kind: JSON, raw: "{"key": "value"}"}
 //	isObj := ctx.IsObject()
 //	// isObj: true
 //
-//	ctx = Context{kind: JSON, unprocessed: "[1, 2, 3]"}
+//	ctx = Context{kind: JSON, raw: "[1, 2, 3]"}
 //	isObj = ctx.IsObject()
 //	// isObj: false
 func (ctx Context) IsObject() bool {
-	return ctx.kind == JSON && len(ctx.unprocessed) > 0 && ctx.unprocessed[0] == '{'
+	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '{'
 }
 
 // IsArray checks if the current `Context` represents a JSON array.
@@ -469,15 +469,15 @@ func (ctx Context) IsObject() bool {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "[1, 2, 3]"}
+//	ctx := Context{kind: JSON, raw: "[1, 2, 3]"}
 //	isArr := ctx.IsArray()
 //	// isArr: true
 //
-//	ctx = Context{kind: JSON, unprocessed: "{"key": "value"}"}
+//	ctx = Context{kind: JSON, raw: "{"key": "value"}"}
 //	isArr = ctx.IsArray()
 //	// isArr: false
 func (ctx Context) IsArray() bool {
-	return ctx.kind == JSON && len(ctx.unprocessed) > 0 && ctx.unprocessed[0] == '['
+	return ctx.kind == JSON && len(ctx.raw) > 0 && ctx.raw[0] == '['
 }
 
 // IsBool checks if the current `Context` represents a JSON boolean value.
@@ -512,7 +512,7 @@ func (ctx Context) IsBool() bool {
 // Returns:
 //   - bool: Returns true if the value is not null and contains non-empty data, otherwise returns false.
 func (ctx Context) Exists() bool {
-	return ctx.kind != Null || len(ctx.unprocessed) != 0
+	return ctx.kind != Null || len(ctx.raw) != 0
 }
 
 // Value returns the corresponding Go type for the JSON value represented by the Context.
@@ -548,7 +548,7 @@ func (ctx Context) Exists() bool {
 //   - interface{}: Returns the corresponding Go type for the JSON value, or nil if the type is not recognized.
 func (ctx Context) Value() interface{} {
 	if ctx.kind == String {
-		return ctx.strings
+		return ctx.str
 	}
 	switch ctx.kind {
 	default:
@@ -556,13 +556,13 @@ func (ctx Context) Value() interface{} {
 	case False:
 		return false
 	case Number:
-		return ctx.numeric
+		return ctx.num
 	case JSON:
 		r := ctx.parseJSONElements(0, true)
-		if r.valueN == '{' {
-			return r.operationResults
-		} else if r.valueN == '[' {
-			return r.elements
+		if r.vn == '{' {
+			return r.opResults
+		} else if r.vn == '[' {
+			return r.elems
 		}
 		return nil
 	case True:
@@ -588,7 +588,7 @@ func (ctx Context) Value() interface{} {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "{\"key1\": \"value1\", \"key2\": 42}"}
+//	ctx := Context{kind: JSON, raw: "{\"key1\": \"value1\", \"key2\": 42}"}
 //	result := ctx.Map()
 //	// result.OpMap contains the parsed key-value pairs: {"key1": "value1", "key2": 42}
 //
@@ -600,7 +600,7 @@ func (ctx Context) Map() map[string]Context {
 		return nil
 	}
 	e := ctx.parseJSONElements('{', false)
-	return e.operations
+	return e.ops
 }
 
 // Foreach iterates through the values of a JSON object or array, applying the provided iterator function.
@@ -613,8 +613,8 @@ func (ctx Context) Map() map[string]Context {
 // Example Usage:
 //
 //	ctx.Foreach(func(key, value Context) bool {
-//	  if key.strings != "" {
-//	    fmt.Printf("Key: %s, Value: %v\n", key.strings, value)
+//	  if key.str != "" {
+//	    fmt.Printf("Key: %s, Value: %v\n", key.str, value)
 //	  } else {
 //	    fmt.Printf("Value: %v\n", value)
 //	  }
@@ -640,7 +640,7 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 		iterator(Context{}, ctx)
 		return
 	}
-	json := ctx.unprocessed
+	json := ctx.raw
 	var obj bool
 	var i int
 	var key, value Context
@@ -653,7 +653,7 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 		} else if json[i] == '[' {
 			i++
 			key.kind = Number
-			key.numeric = -1
+			key.num = -1
 			break
 		}
 		if json[i] > ' ' {
@@ -675,14 +675,14 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 				return
 			}
 			if _esc {
-				key.strings = unescape(str[1 : len(str)-1])
+				key.str = unescape(str[1 : len(str)-1])
 			} else {
-				key.strings = str[1 : len(str)-1]
+				key.str = str[1 : len(str)-1]
 			}
-			key.unprocessed = str
-			key.index = s + ctx.index
+			key.raw = str
+			key.idx = s + ctx.idx
 		} else {
-			key.numeric += 1
+			key.num += 1
 		}
 		for ; i < len(json); i++ {
 			if json[i] <= ' ' || json[i] == ',' || json[i] == ':' {
@@ -695,12 +695,12 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 		if !ok {
 			return
 		}
-		if ctx.indexes != nil {
-			if idx < len(ctx.indexes) {
-				value.index = ctx.indexes[idx]
+		if ctx.idxs != nil {
+			if idx < len(ctx.idxs) {
+				value.idx = ctx.idxs[idx]
 			}
 		} else {
-			value.index = s + ctx.index
+			value.idx = s + ctx.idx
 		}
 		if !iterator(key, value) {
 			return
@@ -728,9 +728,9 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "{\"user\": {\"name\": \"John\"}, \"items\": [1, 2, 3]}"}
+//	ctx := Context{kind: JSON, raw: "{\"user\": {\"name\": \"John\"}, \"items\": [1, 2, 3]}"}
 //	result := ctx.Get("user.name")
-//	// result.strings will contain "John", representing the value found at the "user.name" path.
+//	// result.str will contain "John", representing the value found at the "user.name" path.
 //
 // Notes:
 //   - The function uses the `Get` function (presumably another function) to process the `unprocessed` JSON string
@@ -738,13 +738,13 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 //   - The function adjusts the indices of the results (if any) to account for the original position of the `Context`
 //     in the JSON string.
 func (ctx Context) Get(path string) Context {
-	q := Get(ctx.unprocessed, path)
-	if q.indexes != nil {
-		for i := 0; i < len(q.indexes); i++ {
-			q.indexes[i] += ctx.index
+	q := Get(ctx.raw, path)
+	if q.idxs != nil {
+		for i := 0; i < len(q.idxs); i++ {
+			q.idxs[i] += ctx.idx
 		}
 	} else {
-		q.index += ctx.index
+		q.idx += ctx.idx
 	}
 	return q
 }
@@ -770,10 +770,10 @@ func (ctx Context) Get(path string) Context {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "{\"user\": {\"name\": \"John\"}, \"items\": [1, 2, 3]}"}
+//	ctx := Context{kind: JSON, raw: "{\"user\": {\"name\": \"John\"}, \"items\": [1, 2, 3]}"}
 //	results := ctx.GetMul("user.name", "items[1]")
-//	// results[0].strings will contain "John" for the "user.name" path,
-//	// results[1].numeric will contain 2 for the "items[1]" path.
+//	// results[0].str will contain "John" for the "user.name" path,
+//	// results[1].num will contain 2 for the "items[1]" path.
 //
 // Notes:
 //   - This function uses the `GetMul` function (presumably another function) to process the `unprocessed` JSON string
@@ -781,7 +781,7 @@ func (ctx Context) Get(path string) Context {
 //   - Each result is returned as a separate `Context` for each path, allowing for multiple values to be retrieved
 //     at once from the JSON structure.
 func (ctx Context) GetMul(path ...string) []Context {
-	return GetMul(ctx.unprocessed, path...)
+	return GetMul(ctx.raw, path...)
 }
 
 // Path returns the original fj path for a Result where the Result came
@@ -829,7 +829,7 @@ func (ctx Context) GetMul(path ...string) []Context {
 //
 //	// Get the employee's last name who works in the Engineering department
 //	result := fj.Get(json, "employees.#(department=Engineering).name.last")
-//	path := result.Path(json)
+//	path := result.path(json)
 //
 //	// Output: "employees.1.name.last"
 //
@@ -841,14 +841,14 @@ func (ctx Context) GetMul(path ...string) []Context {
 func (ctx Context) Path(json string) string {
 	var path []byte
 	var components []string
-	i := ctx.index - 1
+	i := ctx.idx - 1
 	// Ensure the index is within bounds of the original JSON
-	if ctx.index+len(ctx.unprocessed) > len(json) {
+	if ctx.idx+len(ctx.raw) > len(json) {
 		// JSON cannot safely contain the Result.
 		goto fail
 	}
 	// Ensure that the unprocessed part matches the expected JSON structure
-	if !strings.HasPrefix(json[ctx.index:], ctx.unprocessed) {
+	if !strings.HasPrefix(json[ctx.idx:], ctx.raw) {
 		// Result is not at the expected index in the JSON.
 		goto fail
 	}
@@ -979,15 +979,15 @@ fail:
 //
 //	// Output: ["friends.0.first", "friends.1.first", "friends.2.first"]
 func (ctx Context) Paths(json string) []string {
-	if ctx.indexes == nil {
+	if ctx.idxs == nil {
 		return nil
 	}
-	paths := make([]string, 0, len(ctx.indexes))
+	paths := make([]string, 0, len(ctx.idxs))
 	ctx.Foreach(func(_, value Context) bool {
 		paths = append(paths, value.Path(json))
 		return true
 	})
-	if len(paths) != len(ctx.indexes) {
+	if len(paths) != len(ctx.idxs) {
 		return nil
 	}
 	return paths
@@ -1028,14 +1028,14 @@ func (ctx Context) Less(token Context, caseSensitive bool) bool {
 	}
 	if ctx.kind == String {
 		if caseSensitive {
-			return ctx.strings < token.strings
+			return ctx.str < token.str
 		}
-		return lessInsensitive(ctx.strings, token.strings)
+		return lessInsensitive(ctx.str, token.str)
 	}
 	if ctx.kind == Number {
-		return ctx.numeric < token.numeric
+		return ctx.num < token.num
 	}
-	return ctx.unprocessed < token.unprocessed
+	return ctx.raw < token.raw
 }
 
 // IsError checks if there is an error associated with the Context.
@@ -1083,7 +1083,7 @@ func (ctx Context) ErrMessage() string {
 //
 // The function examines the raw JSON string and determines whether it represents an array or an object by looking at
 // the first character ('[' for arrays, '{' for objects). It then processes the content accordingly and returns the
-// parsed results as a `queryContext`, which contains either an array or an object, depending on the type of the JSON structure.
+// parsed results as a `qCtx`, which contains either an array or an object, depending on the type of the JSON structure.
 //
 // Parameters:
 //   - vc: A byte representing the expected JSON structure type to parse ('[' for arrays, '{' for objects).
@@ -1091,7 +1091,7 @@ func (ctx Context) ErrMessage() string {
 //     or parsed into `Context` objects (`false`).
 //
 // Returns:
-//   - queryContext: A `queryContext` struct containing the parsed elements. This can include:
+//   - qCtx: A `qCtx` struct containing the parsed elements. This can include:
 //   - ArrayResult: A slice of `Context` elements for arrays.
 //   - ArrayIns: A slice of `interface{}` elements for arrays when `valueSize` is true.
 //   - OpMap: A map of string keys to `Context` values for objects when `valueSize` is false.
@@ -1126,11 +1126,11 @@ func (ctx Context) ErrMessage() string {
 //
 // Example Usage:
 //
-//	ctx := Context{kind: JSON, unprocessed: "[1, 2, 3]"}
+//	ctx := Context{kind: JSON, raw: "[1, 2, 3]"}
 //	result := ctx.parseJSONElements('[', false)
 //	// result.ArrayResult contains the parsed `Context` elements for the array.
 //
-//	ctx = Context{kind: JSON, unprocessed: "{\"key\": \"value\"}"}
+//	ctx = Context{kind: JSON, raw: "{\"key\": \"value\"}"}
 //	result = ctx.parseJSONElements('{', false)
 //	// result.OpMap contains the parsed key-value pair for the object.
 //
@@ -1140,8 +1140,8 @@ func (ctx Context) ErrMessage() string {
 //     to parse the raw JSON string into appropriate `Context` elements.
 //   - The `valueSize` flag controls whether the elements are stored as raw types (`interface{}`) or as `Context` objects.
 //   - If `valueSize` is `false`, the result will contain structured `Context` elements, which can be used for further processing or queries.
-func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result queryContext) {
-	var json = ctx.unprocessed
+func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result qCtx) {
+	var json = ctx.raw
 	var i int
 	var value Context
 	var count int
@@ -1149,7 +1149,7 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result queryConte
 	if vc == 0 {
 		for ; i < len(json); i++ {
 			if json[i] == '{' || json[i] == '[' {
-				result.valueN = json[i]
+				result.vn = json[i]
 				i++
 				break
 			}
@@ -1167,19 +1167,19 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result queryConte
 				goto end
 			}
 		}
-		result.valueN = vc
+		result.vn = vc
 	}
-	if result.valueN == '{' {
+	if result.vn == '{' {
 		if valueSize {
-			result.operationResults = make(map[string]interface{})
+			result.opResults = make(map[string]interface{})
 		} else {
-			result.operations = make(map[string]Context)
+			result.ops = make(map[string]Context)
 		}
 	} else {
 		if valueSize {
-			result.elements = make([]interface{}, 0)
+			result.elems = make([]interface{}, 0)
 		} else {
-			result.arrays = make([]Context, 0)
+			result.arr = make([]Context, 0)
 		}
 	}
 	for ; i < len(json); i++ {
@@ -1193,68 +1193,68 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result queryConte
 		default:
 			if (json[i] >= '0' && json[i] <= '9') || json[i] == '-' {
 				value.kind = Number
-				value.unprocessed, value.numeric = getNumeric(json[i:])
-				value.strings = ""
+				value.raw, value.num = getNumeric(json[i:])
+				value.str = ""
 			} else {
 				continue
 			}
 		case '{', '[':
 			value.kind = JSON
-			value.unprocessed = squash(json[i:])
-			value.strings, value.numeric = "", 0
+			value.raw = squash(json[i:])
+			value.str, value.num = "", 0
 		case 'n':
 			value.kind = Null
-			value.unprocessed = lowerPrefix(json[i:])
-			value.strings, value.numeric = "", 0
+			value.raw = lowerPrefix(json[i:])
+			value.str, value.num = "", 0
 		case 't':
 			value.kind = True
-			value.unprocessed = lowerPrefix(json[i:])
-			value.strings, value.numeric = "", 0
+			value.raw = lowerPrefix(json[i:])
+			value.str, value.num = "", 0
 		case 'f':
 			value.kind = False
-			value.unprocessed = lowerPrefix(json[i:])
-			value.strings, value.numeric = "", 0
+			value.raw = lowerPrefix(json[i:])
+			value.str, value.num = "", 0
 		case '"':
 			value.kind = String
-			value.unprocessed, value.strings = unescapeJSONEncoded(json[i:])
-			value.numeric = 0
+			value.raw, value.str = unescapeJSONEncoded(json[i:])
+			value.num = 0
 		}
-		value.index = i + ctx.index
+		value.idx = i + ctx.idx
 
-		i += len(value.unprocessed) - 1
+		i += len(value.raw) - 1
 
-		if result.valueN == '{' {
+		if result.vn == '{' {
 			if count%2 == 0 {
 				key = value
 			} else {
 				if valueSize {
-					if _, ok := result.operationResults[key.strings]; !ok {
-						result.operationResults[key.strings] = value.Value()
+					if _, ok := result.opResults[key.str]; !ok {
+						result.opResults[key.str] = value.Value()
 					}
 				} else {
-					if _, ok := result.operations[key.strings]; !ok {
-						result.operations[key.strings] = value
+					if _, ok := result.ops[key.str]; !ok {
+						result.ops[key.str] = value
 					}
 				}
 			}
 			count++
 		} else {
 			if valueSize {
-				result.elements = append(result.elements, value.Value())
+				result.elems = append(result.elems, value.Value())
 			} else {
-				result.arrays = append(result.arrays, value)
+				result.arr = append(result.arr, value)
 			}
 		}
 	}
 end:
-	if ctx.indexes != nil {
-		if len(ctx.indexes) != len(result.arrays) {
-			for i := 0; i < len(result.arrays); i++ {
-				result.arrays[i].index = 0
+	if ctx.idxs != nil {
+		if len(ctx.idxs) != len(result.arr) {
+			for i := 0; i < len(result.arr); i++ {
+				result.arr[i].idx = 0
 			}
 		} else {
-			for i := 0; i < len(result.arrays); i++ {
-				result.arrays[i].index = ctx.indexes[i]
+			for i := 0; i < len(result.arr); i++ {
+				result.arr[i].idx = ctx.idxs[i]
 			}
 		}
 	}

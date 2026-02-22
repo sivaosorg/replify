@@ -185,10 +185,10 @@ func TestTransformPadRight(t *testing.T) {
 
 func TestCalcSubstringIndex(t *testing.T) {
 	json := `{"key": "value"}`
-	value := Context{unprocessed: `"value"`}
-	c := &parser{json: json, value: value}
+	value := Context{raw: `"value"`}
+	c := &parser{json: json, val: value}
 	computeIndex(json, c)
-	t.Log(c.value.index)
+	t.Log(c.val.idx)
 }
 
 // TestToBytes ensures the toBytes function works as expected.
@@ -558,57 +558,57 @@ func TestContext_Less(t *testing.T) {
 	}{
 		{
 			name:          "String comparison case sensitive",
-			t1:            Context{kind: String, strings: "apple"},
-			t2:            Context{kind: String, strings: "banana"},
+			t1:            Context{kind: String, str: "apple"},
+			t2:            Context{kind: String, str: "banana"},
 			caseSensitive: true,
 			expected:      true, // "apple" < "banana"
 		},
 		{
 			name:          "String comparison case insensitive",
-			t1:            Context{kind: String, strings: "apple"},
-			t2:            Context{kind: String, strings: "Apple"},
+			t1:            Context{kind: String, str: "apple"},
+			t2:            Context{kind: String, str: "Apple"},
 			caseSensitive: false,
 			expected:      false, // "apple" == "Apple" case-insensitively
 		},
 		{
 			name:          "Number comparison",
-			t1:            Context{kind: Number, numeric: 3.14},
-			t2:            Context{kind: Number, numeric: 3.15},
+			t1:            Context{kind: Number, num: 3.14},
+			t2:            Context{kind: Number, num: 3.15},
 			caseSensitive: true,
 			expected:      true, // 3.14 < 3.15
 		},
 		{
 			name:          "Null vs Boolean comparison",
-			t1:            Context{kind: Null, unprocessed: "null"},
-			t2:            Context{kind: False, unprocessed: "false"},
+			t1:            Context{kind: Null, raw: "null"},
+			t2:            Context{kind: False, raw: "false"},
 			caseSensitive: true,
 			expected:      true, // Null < False
 		},
 		{
 			name:          "Boolean comparison",
-			t1:            Context{kind: False, unprocessed: "false"},
-			t2:            Context{kind: True, unprocessed: "true"},
+			t1:            Context{kind: False, raw: "false"},
+			t2:            Context{kind: True, raw: "true"},
 			caseSensitive: true,
 			expected:      true, // False < True
 		},
 		{
 			name:          "JSON comparison with unprocessed values",
-			t1:            Context{kind: JSON, unprocessed: "{\"key\": \"value\"}"},
-			t2:            Context{kind: JSON, unprocessed: "{\"key\": \"other\"}"},
+			t1:            Context{kind: JSON, raw: "{\"key\": \"value\"}"},
+			t2:            Context{kind: JSON, raw: "{\"key\": \"other\"}"},
 			caseSensitive: true,
 			expected:      false, // "{\"key\": \"value\"}" < "{\"key\": \"other\"}"
 		},
 		{
 			name:          "Empty string comparison",
-			t1:            Context{kind: String, strings: ""},
-			t2:            Context{kind: String, strings: "non-empty"},
+			t1:            Context{kind: String, str: ""},
+			t2:            Context{kind: String, str: "non-empty"},
 			caseSensitive: true,
 			expected:      true, // "" < "non-empty"
 		},
 		{
 			name:          "Equal strings with case sensitivity",
-			t1:            Context{kind: String, strings: "hello"},
-			t2:            Context{kind: String, strings: "hello"},
+			t1:            Context{kind: String, str: "hello"},
+			t2:            Context{kind: String, str: "hello"},
 			caseSensitive: true,
 			expected:      false, // "hello" == "hello"
 		},
@@ -665,11 +665,11 @@ func TestGetBytes(t *testing.T) {
 			got := GetBytes(tt.json, tt.path)
 
 			// Check if the unprocessed and strings are correct.
-			// if got.unprocessed != tt.wantUnprocessed {
-			// 	t.Errorf("GetBytes() unprocessed = %v, want %v", got.unprocessed, tt.wantUnprocessed)
+			// if got.raw != tt.wantUnprocessed {
+			// 	t.Errorf("GetBytes() unprocessed = %v, want %v", got.raw, tt.wantUnprocessed)
 			// }
-			if got.strings != tt.wantStrings {
-				t.Errorf("GetBytes() strings = %v, want %v", got.strings, tt.wantStrings)
+			if got.str != tt.wantStrings {
+				t.Errorf("GetBytes() strings = %v, want %v", got.str, tt.wantStrings)
 			}
 		})
 	}

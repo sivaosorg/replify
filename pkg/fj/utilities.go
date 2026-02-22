@@ -106,43 +106,43 @@ func getNumeric(json string) (raw string, num float64) {
 //	jsonBytes := []byte(`{"key": "value", "nested": {"innerKey": "innerValue"}}`)
 //	path := "nested.innerKey"
 //	context := getBytes(jsonBytes, path)
-//	fmt.Println("Unprocessed:", context.unprocessed) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
-//	fmt.Println("Strings:", context.strings)         // Output: `{"innerKey": "innerValue"}`
+//	fmt.Println("Unprocessed:", context.raw) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
+//	fmt.Println("Strings:", context.str)         // Output: `{"innerKey": "innerValue"}`
 func getBytes(json []byte, path string) Context {
 	var result Context
 	if json != nil {
 		// unsafe cast json bytes to a string and process it using the Get function.
 		result = Get(*(*string)(unsafe.Pointer(&json)), path)
 		// extract the string headers for unprocessed and strings.
-		rawSafe := *(*stringHeader)(unsafe.Pointer(&result.unprocessed))
-		stringSafe := *(*stringHeader)(unsafe.Pointer(&result.strings))
+		rawSafe := *(*stringHeader)(unsafe.Pointer(&result.raw))
+		stringSafe := *(*stringHeader)(unsafe.Pointer(&result.str))
 		// create byte slice headers for the unprocessed and strings.
-		rawHeader := sliceHeader{data: rawSafe.data, length: rawSafe.length, capacity: rawSafe.length}
-		sliceHeader := sliceHeader{data: stringSafe.data, length: stringSafe.length, capacity: rawSafe.length}
+		rawHeader := sliceHeader{data: rawSafe.data, n: rawSafe.n, cap: rawSafe.n}
+		sliceHeader := sliceHeader{data: stringSafe.data, n: stringSafe.n, cap: rawSafe.n}
 		// check for nil data and safely copy headers to strings if necessary.
 		if sliceHeader.data == nil {
 			if rawHeader.data == nil {
-				result.unprocessed = ""
+				result.raw = ""
 			} else {
 				// unprocessed has data, safely copy the slice header to a string
-				result.unprocessed = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
+				result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
 			}
-			result.strings = ""
+			result.str = ""
 		} else if rawHeader.data == nil {
-			result.unprocessed = ""
-			result.strings = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
+			result.raw = ""
+			result.str = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
 		} else if uintptr(sliceHeader.data) >= uintptr(rawHeader.data) &&
-			uintptr(sliceHeader.data)+uintptr(sliceHeader.length) <=
-				uintptr(rawHeader.data)+uintptr(rawHeader.length) {
+			uintptr(sliceHeader.data)+uintptr(sliceHeader.n) <=
+				uintptr(rawHeader.data)+uintptr(rawHeader.n) {
 			// strings is a substring of unprocessed.
 			start := uintptr(sliceHeader.data) - uintptr(rawHeader.data)
 			// safely copy the raw slice header
-			result.unprocessed = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
-			result.strings = result.unprocessed[start : start+uintptr(sliceHeader.length)]
+			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
+			result.str = result.raw[start : start+uintptr(sliceHeader.n)]
 		} else {
 			// safely copy both headers to strings.
-			result.unprocessed = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
-			result.strings = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
+			result.raw = string(*(*[]byte)(unsafe.Pointer(&rawHeader)))
+			result.str = string(*(*[]byte)(unsafe.Pointer(&sliceHeader)))
 		}
 	}
 	return result
@@ -307,17 +307,17 @@ func reverseSquash(json string) string {
 // Example:
 //
 //	json := `{"key": "value"}`
-//	value := Context{unprocessed: `"value"`}
+//	value := Context{raw: `"value"`}
 //	c := &parser{json: json, value: value}
 //	computeIndex(json, c)
-//	fmt.Println(c.value.index) // Outputs the starting position of `"value"` in the JSON string.
+//	fmt.Println(c.val.idx) // Outputs the starting position of `"value"` in the JSON string.
 func computeIndex(json string, c *parser) {
-	if len(c.value.unprocessed) > 0 && !c.calc {
+	if len(c.val.raw) > 0 && !c.calc {
 		jsonHeader := *(*stringHeader)(unsafe.Pointer(&json))
-		unprocessedHeader := *(*stringHeader)(unsafe.Pointer(&(c.value.unprocessed)))
-		c.value.index = int(uintptr(unprocessedHeader.data) - uintptr(jsonHeader.data))
-		if c.value.index < 0 || c.value.index >= len(json) {
-			c.value.index = 0
+		unprocessedHeader := *(*stringHeader)(unsafe.Pointer(&(c.val.raw)))
+		c.val.idx = int(uintptr(unprocessedHeader.data) - uintptr(jsonHeader.data))
+		if c.val.idx < 0 || c.val.idx >= len(json) {
+			c.val.idx = 0
 		}
 	}
 }
@@ -354,8 +354,8 @@ func computeIndex(json string, c *parser) {
 func unsafeStringToBytes(s string) []byte {
 	return *(*[]byte)(unsafe.Pointer(&sliceHeader{
 		data:     (*stringHeader)(unsafe.Pointer(&s)).data,
-		length:   len(s),
-		capacity: len(s),
+		n:        len(s),
+		cap:      len(s),
 	}))
 }
 
@@ -2082,21 +2082,21 @@ func parseNumeric(json string, i int) (int, string) {
 //
 //	path1 := "field.subfield|anotherField"
 //	result := parsePathWithTransformers(path1)
-//	// result.Part: "field"
-//	// result.Path: "subfield"
-//	// result.Pipe: "anotherField"
-//	// result.Piped: true
+//	// result.part: "field"
+//	// result.path: "subfield"
+//	// result.pipe: "anotherField"
+//	// result.piped: true
 //
 //	path2 := "object.field"
 //	result = parsePathWithTransformers(path2)
-//	// result.Part: "object"
-//	// result.Path: "field"
-//	// result.More: true
+//	// result.part: "object"
+//	// result.path: "field"
+//	// result.more: true
 //
 //	path3 := "path\\.*.field"
 //	result = parsePathWithTransformers(path3)
-//	// result.Part: "path.*"
-//	// result.Wild: true
+//	// result.part: "path.*"
+//	// result.wild: true
 //
 // Details:
 //   - The function scans through the path string character by character, processing the first encountered special
@@ -2110,24 +2110,24 @@ func parseNumeric(json string, i int) (int, string) {
 func parsePathWithTransformers(path string) (r wildcard) {
 	for i := 0; i < len(path); i++ {
 		if path[i] == '|' {
-			r.Part = path[:i]
-			r.Pipe = path[i+1:]
-			r.Piped = true
+			r.part = path[:i]
+			r.pipe = path[i+1:]
+			r.piped = true
 			return
 		}
 		if path[i] == '.' {
-			r.Part = path[:i]
+			r.part = path[:i]
 			if i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
-				r.Pipe = path[i+1:]
-				r.Piped = true
+				r.pipe = path[i+1:]
+				r.piped = true
 			} else {
-				r.Path = path[i+1:]
-				r.More = true
+				r.path = path[i+1:]
+				r.more = true
 			}
 			return
 		}
 		if path[i] == '*' || path[i] == '?' {
-			r.Wild = true
+			r.wild = true
 			continue
 		}
 		if path[i] == '\\' {
@@ -2146,31 +2146,31 @@ func parsePathWithTransformers(path string) (r wildcard) {
 						}
 						continue
 					} else if path[i] == '.' {
-						r.Part = string(escapePart)
+						r.part = string(escapePart)
 						if i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
-							r.Pipe = path[i+1:]
-							r.Piped = true
+							r.pipe = path[i+1:]
+							r.piped = true
 						} else {
-							r.Path = path[i+1:]
-							r.More = true
+							r.path = path[i+1:]
+							r.more = true
 						}
 						return
 					} else if path[i] == '|' {
-						r.Part = string(escapePart)
-						r.Pipe = path[i+1:]
-						r.Piped = true
+						r.part = string(escapePart)
+						r.pipe = path[i+1:]
+						r.piped = true
 						return
 					} else if path[i] == '*' || path[i] == '?' {
-						r.Wild = true
+						r.wild = true
 					}
 					escapePart = append(escapePart, path[i])
 				}
 			}
-			r.Part = string(escapePart)
+			r.part = string(escapePart)
 			return
 		}
 	}
-	r.Part = path
+	r.part = path
 	return
 }
 
@@ -2340,13 +2340,13 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 		if json[i] == '{' || json[i] == '[' {
 			i, val = parseJSONSquash(json, i)
 			if hit {
-				ctx.unprocessed = val
+				ctx.raw = val
 				ctx.kind = JSON
 			}
 			var tmp parser
-			tmp.value = ctx
+			tmp.val = ctx
 			computeIndex(json, &tmp)
-			return i, tmp.value, true
+			return i, tmp.val, true
 		}
 		if json[i] <= ' ' {
 			continue
@@ -2363,11 +2363,11 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			}
 			if hit {
 				ctx.kind = String
-				ctx.unprocessed = val
+				ctx.raw = val
 				if escVal {
-					ctx.strings = unescape(val[1 : len(val)-1])
+					ctx.str = unescape(val[1 : len(val)-1])
 				} else {
-					ctx.strings = val[1 : len(val)-1]
+					ctx.str = val[1 : len(val)-1]
 				}
 			}
 			return i, ctx, true
@@ -2381,7 +2381,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			vc := json[i]
 			i, val = parseJSONLiteral(json, i)
 			if hit {
-				ctx.unprocessed = val
+				ctx.raw = val
 				switch vc {
 				case 't':
 					ctx.kind = True
@@ -2397,9 +2397,9 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 		if num {
 			i, val = parseNumeric(json, i)
 			if hit {
-				ctx.unprocessed = val
+				ctx.raw = val
 				ctx.kind = Number
-				ctx.numeric, _ = strconv.ParseFloat(val, 64)
+				ctx.num, _ = strconv.ParseFloat(val, 64)
 			}
 			return i, ctx, true
 		}
@@ -2453,8 +2453,8 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 	var _match, keyEsc, escVal, ok, hit bool
 	var key, val string
 	pathtransformers := parsePathWithTransformers(path)
-	if !pathtransformers.More && pathtransformers.Piped {
-		c.pipe = pathtransformers.Pipe
+	if !pathtransformers.more && pathtransformers.piped {
+		c.pipe = pathtransformers.pipe
 		c.piped = true
 	}
 	for i < len(c.json) {
@@ -2508,20 +2508,20 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 		if !ok {
 			return i, false
 		}
-		if pathtransformers.Wild {
+		if pathtransformers.wild {
 			if keyEsc {
-				_match = matchSafely(unescape(key), pathtransformers.Part)
+				_match = matchSafely(unescape(key), pathtransformers.part)
 			} else {
-				_match = matchSafely(key, pathtransformers.Part)
+				_match = matchSafely(key, pathtransformers.part)
 			}
 		} else {
 			if keyEsc {
-				_match = pathtransformers.Part == unescape(key)
+				_match = pathtransformers.part == unescape(key)
 			} else {
-				_match = pathtransformers.Part == key
+				_match = pathtransformers.part == key
 			}
 		}
-		hit = _match && !pathtransformers.More
+		hit = _match && !pathtransformers.more
 		for ; i < len(c.json); i++ {
 			var num bool
 			switch c.json[i] {
@@ -2535,39 +2535,39 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				}
 				if hit {
 					if escVal {
-						c.value.strings = unescape(val[1 : len(val)-1])
+						c.val.str = unescape(val[1 : len(val)-1])
 					} else {
-						c.value.strings = val[1 : len(val)-1]
+						c.val.str = val[1 : len(val)-1]
 					}
-					c.value.unprocessed = val
-					c.value.kind = String
+					c.val.raw = val
+					c.val.kind = String
 					return i, true
 				}
 			case '{':
 				if _match && !hit {
-					i, hit = parseJSONObject(c, i+1, pathtransformers.Path)
+					i, hit = parseJSONObject(c, i+1, pathtransformers.path)
 					if hit {
 						return i, true
 					}
 				} else {
 					i, val = parseJSONSquash(c.json, i)
 					if hit {
-						c.value.unprocessed = val
-						c.value.kind = JSON
+						c.val.raw = val
+						c.val.kind = JSON
 						return i, true
 					}
 				}
 			case '[':
 				if _match && !hit {
-					i, hit = analyzeArray(c, i+1, pathtransformers.Path)
+					i, hit = analyzeArray(c, i+1, pathtransformers.path)
 					if hit {
 						return i, true
 					}
 				} else {
 					i, val = parseJSONSquash(c.json, i)
 					if hit {
-						c.value.unprocessed = val
-						c.value.kind = JSON
+						c.val.raw = val
+						c.val.kind = JSON
 						return i, true
 					}
 				}
@@ -2581,12 +2581,12 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				vc := c.json[i]
 				i, val = parseJSONLiteral(c.json, i)
 				if hit {
-					c.value.unprocessed = val
+					c.val.raw = val
 					switch vc {
 					case 't':
-						c.value.kind = True
+						c.val.kind = True
 					case 'f':
-						c.value.kind = False
+						c.val.kind = False
 					}
 					return i, true
 				}
@@ -2597,9 +2597,9 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 			if num {
 				i, val = parseNumeric(c.json, i)
 				if hit {
-					c.value.unprocessed = val
-					c.value.kind = Number
-					c.value.numeric, _ = strconv.ParseFloat(val, 64)
+					c.val.raw = val
+					c.val.kind = Number
+					c.val.num, _ = strconv.ParseFloat(val, 64)
 					return i, true
 				}
 			}
@@ -2745,25 +2745,25 @@ func analyzeQuery(query string) (
 //
 // Returns:
 //   - r (deeper): A struct containing the parsed components of the path, such as `Part`, `Pipe`, `Path`,
-//     and additional metadata (e.g., `Piped`, `More`, `Arch`, and query-related fields).
+//     and additional meta (e.g., `piped`, `more`, `arch`, and query-related fields).
 //
 // Fields in `deeper`:
-//   - `Part`: The main part of the path before special characters like '.', '|', or '#'.
-//   - `Path`: The remaining part of the path after '.' or other separators.
-//   - `Pipe`: A piped portion of the path, if separated by '|', indicating a subsequent operation.
-//   - `Piped`: A boolean indicating whether the path contains a pipe ('|').
-//   - `More`: A boolean indicating whether there is more of the path to process after the first separator.
-//   - `Arch`: A boolean indicating the presence of a '#' in the path, signifying an archive or query operation.
-//   - `ALogOk`: A boolean indicating a valid archive log if the path starts with `#.`.
-//   - `ALogKey`: The key following `#.` for archive logging, if applicable.
+//   - `part`: The main part of the path before special characters like '.', '|', or '#'.
+//   - `path`: The remaining part of the path after '.' or other separators.
+//   - `pipe`: A piped portion of the path, if separated by '|', indicating a subsequent operation.
+//   - `piped`: A boolean indicating whether the path contains a pipe ('|').
+//   - `more`: A boolean indicating whether there is more of the path to process after the first separator.
+//   - `arch`: A boolean indicating the presence of a '#' in the path, signifying an archive or query operation.
+//   - `logOk`: A boolean indicating a valid archive log if the path starts with `#.`.
+//   - `logKey`: The key following `#.` for archive logging, if applicable.
 //   - `query`: A nested struct providing details about a query if the path contains query operations:
-//   - `On`: Indicates whether the path contains a query (e.g., starting with `#(`).
-//   - `All`: Indicates whether the query applies to all elements.
-//   - `QueryPath`: The path portion of the query.
-//   - `Option`: The operator used in the query (e.g., `==`, `!=`, etc.).
-//   - `Value`: The value used in the query.
-//   - `Option`: The operator for comparison.
-//   - `Value`: The query value.
+//   - `on`: Indicates whether the path contains a query (e.g., starting with `#(`).
+//   - `all`: Indicates whether the query applies to all elements.
+//   - `path`: The path portion of the query.
+//   - `opt`: The operator used in the query (e.g., `==`, `!=`, etc.).
+//   - `val`: The value used in the query.
+//   - `opt`: The operator for comparison.
+//   - `val`: The query value.
 //
 // Details:
 //   - The function iterates through the `path` string character by character, identifying and processing special symbols
@@ -2811,35 +2811,35 @@ func analyzeQuery(query string) (
 // Edge Cases:
 //   - If no special characters are found, the entire input is stored in `Part`.
 //   - If the path contains an incomplete or invalid query, the function skips the query parsing gracefully.
-func analyzePath(path string) (r metadata) {
+func analyzePath(path string) (r meta) {
 	for i := 0; i < len(path); i++ {
 		if path[i] == '|' {
-			r.Part = path[:i]
-			r.Pipe = path[i+1:]
-			r.Piped = true
+			r.part = path[:i]
+			r.pipe = path[i+1:]
+			r.piped = true
 			return
 		}
 		if path[i] == '.' {
-			r.Part = path[:i]
-			if !r.Arch && i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
-				r.Pipe = path[i+1:]
-				r.Piped = true
+			r.part = path[:i]
+			if !r.arch && i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
+				r.pipe = path[i+1:]
+				r.piped = true
 			} else {
-				r.Path = path[i+1:]
-				r.More = true
+				r.path = path[i+1:]
+				r.more = true
 			}
 			return
 		}
 		if path[i] == '#' {
-			r.Arch = true
+			r.arch = true
 			if i == 0 && len(path) > 1 {
 				if path[1] == '.' {
-					r.ALogOk = true
-					r.ALogKey = path[2:]
-					r.Path = path[:1]
+					r.logOk = true
+					r.logKey = path[2:]
+					r.path = path[:1]
 				} else if path[1] == '[' || path[1] == '(' {
 					// query
-					r.query.On = true
+					r.query.on = true
 					queryPath, op, value, _, fi, escVal, ok :=
 						analyzeQuery(path[i:])
 					if !ok {
@@ -2852,21 +2852,21 @@ func analyzePath(path string) (r metadata) {
 							value = unescape(value)
 						}
 					}
-					r.query.QueryPath = queryPath
-					r.query.Option = op
-					r.query.Value = value
+					r.query.path = queryPath
+					r.query.opt = op
+					r.query.val = value
 
 					i = fi - 1
 					if i+1 < len(path) && path[i+1] == '#' {
-						r.query.All = true
+						r.query.all = true
 					}
 				}
 			}
 			continue
 		}
 	}
-	r.Part = path
-	r.Path = ""
+	r.part = path
+	r.path = ""
 	return
 }
 
@@ -2902,7 +2902,7 @@ func analyzePath(path string) (r metadata) {
 //     or array elements and evaluating whether they match the query conditions, if any.
 //   - If the query is satisfied, the function performs further processing on the matching element,
 //     such as storing the result or calculating a value. If no query is provided, it directly
-//     sets the `c.value` with the matched result.
+//     sets the `c.val` with the matched result.
 //   - It also handles special cases like archive logs and nested array structures.
 //   - If no valid match is found, the function returns `false`, and the search continues.
 //
@@ -2924,52 +2924,52 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 	var multics []byte
 	var queryIndexes []int
 	analysis := analyzePath(path)
-	if !analysis.Arch {
-		n, ok := parseUint64(analysis.Part)
+	if !analysis.arch {
+		n, ok := parseUint64(analysis.part)
 		if !ok {
 			partIdx = -1
 		} else {
 			partIdx = int(n)
 		}
 	}
-	if !analysis.More && analysis.Piped {
-		c.pipe = analysis.Pipe
+	if !analysis.more && analysis.piped {
+		c.pipe = analysis.pipe
 		c.piped = true
 	}
 
 	executeQuery := func(eVal Context) bool {
-		if analysis.query.All {
+		if analysis.query.all {
 			if len(multics) == 0 {
 				multics = append(multics, '[')
 			}
 		}
 		var tmp parser
-		tmp.value = eVal
+		tmp.val = eVal
 		computeIndex(c.json, &tmp)
-		parentIndex := tmp.value.index
+		parentIndex := tmp.val.idx
 		var res Context
 		if eVal.kind == JSON {
-			res = eVal.Get(analysis.query.QueryPath)
+			res = eVal.Get(analysis.query.path)
 		} else {
-			if analysis.query.QueryPath != "" {
+			if analysis.query.path != "" {
 				return false
 			}
 			res = eVal
 		}
 		if matchesQueryConditions(&analysis, res) {
-			if analysis.More {
-				left, right, ok := splitPathPipe(analysis.Path)
+			if analysis.more {
+				left, right, ok := splitPathPipe(analysis.path)
 				if ok {
-					analysis.Path = left
+					analysis.path = left
 					c.pipe = right
 					c.piped = true
 				}
-				res = eVal.Get(analysis.Path)
+				res = eVal.Get(analysis.path)
 			} else {
 				res = eVal
 			}
-			if analysis.query.All {
-				raw := res.unprocessed
+			if analysis.query.all {
+				raw := res.raw
 				if len(raw) == 0 {
 					raw = res.String()
 				}
@@ -2978,22 +2978,22 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 						multics = append(multics, ',')
 					}
 					multics = append(multics, raw...)
-					queryIndexes = append(queryIndexes, res.index+parentIndex)
+					queryIndexes = append(queryIndexes, res.idx+parentIndex)
 				}
 			} else {
-				c.value = res
+				c.val = res
 				return true
 			}
 		}
 		return false
 	}
 	for i < len(c.json)+1 {
-		if !analysis.Arch {
+		if !analysis.arch {
 			_match = partIdx == h
-			hit = _match && !analysis.More
+			hit = _match && !analysis.more
 		}
 		h++
-		if analysis.ALogOk {
+		if analysis.logOk {
 			aLog = append(aLog, i)
 		}
 		for ; ; i++ {
@@ -3015,76 +3015,76 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				if !ok {
 					return i, false
 				}
-				if analysis.query.On {
+				if analysis.query.on {
 					var cVal Context
 					if escVal {
-						cVal.strings = unescape(val[1 : len(val)-1])
+						cVal.str = unescape(val[1 : len(val)-1])
 					} else {
-						cVal.strings = val[1 : len(val)-1]
+						cVal.str = val[1 : len(val)-1]
 					}
-					cVal.unprocessed = val
+					cVal.raw = val
 					cVal.kind = String
 					if executeQuery(cVal) {
 						return i, true
 					}
 				} else if hit {
-					if analysis.ALogOk {
+					if analysis.logOk {
 						break
 					}
 					if escVal {
-						c.value.strings = unescape(val[1 : len(val)-1])
+						c.val.str = unescape(val[1 : len(val)-1])
 					} else {
-						c.value.strings = val[1 : len(val)-1]
+						c.val.str = val[1 : len(val)-1]
 					}
-					c.value.unprocessed = val
-					c.value.kind = String
+					c.val.raw = val
+					c.val.kind = String
 					return i, true
 				}
 			case '{':
 				if _match && !hit {
-					i, hit = parseJSONObject(c, i+1, analysis.Path)
+					i, hit = parseJSONObject(c, i+1, analysis.path)
 					if hit {
-						if analysis.ALogOk {
+						if analysis.logOk {
 							break
 						}
 						return i, true
 					}
 				} else {
 					i, val = parseJSONSquash(c.json, i)
-					if analysis.query.On {
-						if executeQuery(Context{unprocessed: val, kind: JSON}) {
+					if analysis.query.on {
+						if executeQuery(Context{raw: val, kind: JSON}) {
 							return i, true
 						}
 					} else if hit {
-						if analysis.ALogOk {
+						if analysis.logOk {
 							break
 						}
-						c.value.unprocessed = val
-						c.value.kind = JSON
+						c.val.raw = val
+						c.val.kind = JSON
 						return i, true
 					}
 				}
 			case '[':
 				if _match && !hit {
-					i, hit = analyzeArray(c, i+1, analysis.Path)
+					i, hit = analyzeArray(c, i+1, analysis.path)
 					if hit {
-						if analysis.ALogOk {
+						if analysis.logOk {
 							break
 						}
 						return i, true
 					}
 				} else {
 					i, val = parseJSONSquash(c.json, i)
-					if analysis.query.On {
-						if executeQuery(Context{unprocessed: val, kind: JSON}) {
+					if analysis.query.on {
+						if executeQuery(Context{raw: val, kind: JSON}) {
 							return i, true
 						}
 					} else if hit {
-						if analysis.ALogOk {
+						if analysis.logOk {
 							break
 						}
-						c.value.unprocessed = val
-						c.value.kind = JSON
+						c.val.raw = val
+						c.val.kind = JSON
 						return i, true
 					}
 				}
@@ -3097,9 +3097,9 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 			case 't', 'f':
 				vc := c.json[i]
 				i, val = parseJSONLiteral(c.json, i)
-				if analysis.query.On {
+				if analysis.query.on {
 					var cVal Context
-					cVal.unprocessed = val
+					cVal.raw = val
 					switch vc {
 					case 't':
 						cVal.kind = True
@@ -3110,15 +3110,15 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 						return i, true
 					}
 				} else if hit {
-					if analysis.ALogOk {
+					if analysis.logOk {
 						break
 					}
-					c.value.unprocessed = val
+					c.val.raw = val
 					switch vc {
 					case 't':
-						c.value.kind = True
+						c.val.kind = True
 					case 'f':
-						c.value.kind = False
+						c.val.kind = False
 					}
 					return i, true
 				}
@@ -3126,11 +3126,11 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				'i', 'I', 'N':
 				num = true
 			case ']':
-				if analysis.Arch && analysis.Part == "#" {
-					if analysis.ALogOk {
-						left, right, ok := splitPathPipe(analysis.ALogKey)
+				if analysis.arch && analysis.part == "#" {
+					if analysis.logOk {
+						left, right, ok := splitPathPipe(analysis.logKey)
 						if ok {
-							analysis.ALogKey = left
+							analysis.logKey = left
 							c.pipe = right
 							c.piped = true
 						}
@@ -3150,48 +3150,48 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 							if idx < len(c.json) && c.json[idx] != ']' {
 								_, res, ok := parseJSONAny(c.json, idx, true)
 								if ok {
-									res := res.Get(analysis.ALogKey)
+									res := res.Get(analysis.logKey)
 									if res.Exists() {
 										if k > 0 {
 											jsonVal = append(jsonVal, ',')
 										}
-										raw := res.unprocessed
+										raw := res.raw
 										if len(raw) == 0 {
 											raw = res.String()
 										}
 										jsonVal = append(jsonVal, []byte(raw)...)
-										indexes = append(indexes, res.index)
+										indexes = append(indexes, res.idx)
 										k++
 									}
 								}
 							}
 						}
 						jsonVal = append(jsonVal, ']')
-						c.value.kind = JSON
-						c.value.unprocessed = string(jsonVal)
-						c.value.indexes = indexes
+						c.val.kind = JSON
+						c.val.raw = string(jsonVal)
+						c.val.idxs = indexes
 						return i + 1, true
 					}
-					if analysis.ALogOk {
+					if analysis.logOk {
 						break
 					}
 
-					c.value.kind = Number
-					c.value.numeric = float64(h - 1)
-					c.value.unprocessed = strconv.Itoa(h - 1)
+					c.val.kind = Number
+					c.val.num = float64(h - 1)
+					c.val.raw = strconv.Itoa(h - 1)
 					c.calc = true
 					return i + 1, true
 				}
-				if !c.value.Exists() {
+				if !c.val.Exists() {
 					if len(multics) > 0 {
-						c.value = Context{
-							unprocessed: string(append(multics, ']')),
+						c.val = Context{
+							raw: string(append(multics, ']')),
 							kind:        JSON,
-							indexes:     queryIndexes,
+							idxs:     queryIndexes,
 						}
-					} else if analysis.query.All {
-						c.value = Context{
-							unprocessed: "[]",
+					} else if analysis.query.all {
+						c.val = Context{
+							raw: "[]",
 							kind:        JSON,
 						}
 					}
@@ -3200,21 +3200,21 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 			}
 			if num {
 				i, val = parseNumeric(c.json, i)
-				if analysis.query.On {
+				if analysis.query.on {
 					var cVal Context
-					cVal.unprocessed = val
+					cVal.raw = val
 					cVal.kind = Number
-					cVal.numeric, _ = strconv.ParseFloat(val, 64)
+					cVal.num, _ = strconv.ParseFloat(val, 64)
 					if executeQuery(cVal) {
 						return i, true
 					}
 				} else if hit {
-					if analysis.ALogOk {
+					if analysis.logOk {
 						break
 					}
-					c.value.unprocessed = val
-					c.value.kind = Number
-					c.value.numeric, _ = strconv.ParseFloat(val, 64)
+					c.val.raw = val
+					c.val.kind = Number
+					c.val.num, _ = strconv.ParseFloat(val, 64)
 					return i, true
 				}
 			}
@@ -3236,7 +3236,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 //     valid selectors or field-path pairs.
 //
 // Returns:
-//   - selectors: A slice of `subSelector` structs containing the parsed selectors and their associated paths.
+//   - selectors: A slice of `sel` structs containing the parsed selectors and their associated paths.
 //   - out: The remaining part of the path after parsing the selectors. This will be the part following the
 //     closing bracket (']') or brace ('}') if applicable.
 //   - ok: A boolean indicating whether the parsing was successful. It returns true if the parsing was
@@ -3270,14 +3270,14 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 //     nested structures).
 //   - If a valid selector is found, it is stored in the `selectors` slice.
 //   - The function returns the parsed selectors, the remaining path, and a success flag.
-func analyzeSubSelectors(path string) (selectors []subSelector, out string, ok bool) {
+func analyzeSubSelectors(path string) (selectors []sel, out string, ok bool) {
 	transformer := 0
 	depth := 1
 	colon := 0
 	start := 1
 	i := 1
 	pushSelectors := func() {
-		var selector subSelector
+		var selector sel
 		if colon == 0 {
 			selector.path = path[start:i]
 		} else {
@@ -3493,13 +3493,13 @@ func isFalsy(t Context) bool {
 	case False:
 		return true
 	case String:
-		b, err := strconv.ParseBool(strings.ToLower(t.strings))
+		b, err := strconv.ParseBool(strings.ToLower(t.str))
 		if err != nil {
 			return false
 		}
 		return !b
 	case Number:
-		return t.numeric == 0
+		return t.num == 0
 	default:
 		return false
 	}
@@ -3541,25 +3541,25 @@ func isTruthy(t Context) bool {
 	case True:
 		return true
 	case String:
-		b, err := strconv.ParseBool(strings.ToLower(t.strings))
+		b, err := strconv.ParseBool(strings.ToLower(t.str))
 		if err != nil {
 			return false
 		}
 		return b
 	case Number:
-		return t.numeric != 0
+		return t.num != 0
 	default:
 		return false
 	}
 }
 
-// matchesQueryConditions determines whether a given `Context` value matches the conditions specified in the `metadata` query.
+// matchesQueryConditions determines whether a given `Context` value matches the conditions specified in the `meta` query.
 //
 // This function evaluates a JSON path query against a specific `Context` value, checking for matching conditions such as
 // existence, equality, inequality, and other relational operations. It supports operations on strings, numbers, and booleans.
 //
 // Parameters:
-//   - dp: A pointer to the `metadata` structure containing query details, such as the value to match (`Value`) and
+//   - dp: A pointer to the `meta` structure containing query details, such as the value to match (`Value`) and
 //     the comparison option (`Option`).
 //   - value: A `Context` structure representing the JSON value to be evaluated against the query.
 //
@@ -3584,8 +3584,8 @@ func isTruthy(t Context) bool {
 //
 // Example Usage:
 //
-//	dp := &metadata{query: {Option: "=", Value: "example"}}
-//	value := Context{kind: String, strings: "example"}
+//	dp := &meta{query: {opt: "=", val: "example"}}
+//	value := Context{kind: String, str: "example"}
 //	matches := matchesQueryConditions(dp, value)
 //	// matches: true
 //
@@ -3597,8 +3597,8 @@ func isTruthy(t Context) bool {
 // Limitations:
 //   - String pattern matching (`%`, `!%`) relies on the `matchSafely` function, which is not defined here.
 //   - Unsupported types or operations return `false`.
-func matchesQueryConditions(dp *metadata, value Context) bool {
-	mt := dp.query.Value
+func matchesQueryConditions(dp *meta, value Context) bool {
+	mt := dp.query.val
 	if len(mt) > 0 {
 		if mt[0] == '~' {
 			mt = mt[1:]
@@ -3629,47 +3629,47 @@ func matchesQueryConditions(dp *metadata, value Context) bool {
 	if !value.Exists() {
 		return false
 	}
-	if dp.query.Option == "" {
+	if dp.query.opt == "" {
 		return true
 	}
 	switch value.kind {
 	case String:
-		switch dp.query.Option {
+		switch dp.query.opt {
 		case "=":
-			return value.strings == mt
+			return value.str == mt
 		case "!=":
-			return value.strings != mt
+			return value.str != mt
 		case "<":
-			return value.strings < mt
+			return value.str < mt
 		case "<=":
-			return value.strings <= mt
+			return value.str <= mt
 		case ">":
-			return value.strings > mt
+			return value.str > mt
 		case ">=":
-			return value.strings >= mt
+			return value.str >= mt
 		case "%":
-			return matchSafely(value.strings, mt)
+			return matchSafely(value.str, mt)
 		case "!%":
-			return !matchSafely(value.strings, mt)
+			return !matchSafely(value.str, mt)
 		}
 	case Number:
 		_rightVal, _ := strconv.ParseFloat(mt, 64)
-		switch dp.query.Option {
+		switch dp.query.opt {
 		case "=":
-			return value.numeric == _rightVal
+			return value.num == _rightVal
 		case "!=":
-			return value.numeric != _rightVal
+			return value.num != _rightVal
 		case "<":
-			return value.numeric < _rightVal
+			return value.num < _rightVal
 		case "<=":
-			return value.numeric <= _rightVal
+			return value.num <= _rightVal
 		case ">":
-			return value.numeric > _rightVal
+			return value.num > _rightVal
 		case ">=":
-			return value.numeric >= _rightVal
+			return value.num >= _rightVal
 		}
 	case True:
-		switch dp.query.Option {
+		switch dp.query.opt {
 		case "=":
 			return mt == "true"
 		case "!=":
@@ -3680,7 +3680,7 @@ func matchesQueryConditions(dp *metadata, value Context) bool {
 			return true
 		}
 	case False:
-		switch dp.query.Option {
+		switch dp.query.opt {
 		case "=":
 			return mt == "false"
 		case "!=":

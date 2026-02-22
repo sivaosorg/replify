@@ -274,7 +274,7 @@ func transformReverse(json, arg string) string {
 			if j > 0 {
 				out = append(out, ',')
 			}
-			out = append(out, values[i].unprocessed...)
+			out = append(out, values[i].raw...)
 		}
 		out = append(out, ']')
 		return unsafeBytesToString(out)
@@ -291,9 +291,9 @@ func transformReverse(json, arg string) string {
 			if j > 0 {
 				out = append(out, ',')
 			}
-			out = append(out, keyValues[i+0].unprocessed...)
+			out = append(out, keyValues[i+0].raw...)
 			out = append(out, ':')
-			out = append(out, keyValues[i+1].unprocessed...)
+			out = append(out, keyValues[i+1].raw...)
 		}
 		out = append(out, '}')
 		return unsafeBytesToString(out)
@@ -379,12 +379,12 @@ func transformFlatten(json, arg string) string {
 		var raw string
 		if value.IsArray() {
 			if deep {
-				raw = removeOuterBraces(transformFlatten(value.unprocessed, arg))
+				raw = removeOuterBraces(transformFlatten(value.raw, arg))
 			} else {
-				raw = removeOuterBraces(value.unprocessed)
+				raw = removeOuterBraces(value.raw)
 			}
 		} else {
-			raw = value.unprocessed
+			raw = value.raw
 		}
 		raw = strings.TrimSpace(raw)
 		if len(raw) > 0 {
@@ -469,7 +469,7 @@ func transformJoin(json, arg string) string {
 			if idx > 0 {
 				target = append(target, ',')
 			}
-			target = append(target, removeOuterBraces(value.unprocessed)...)
+			target = append(target, removeOuterBraces(value.raw)...)
 			idx++
 			return true
 		})
@@ -494,9 +494,9 @@ func transformJoin(json, arg string) string {
 			if i > 0 {
 				target = append(target, ',')
 			}
-			target = append(target, keys[i].unprocessed...)
+			target = append(target, keys[i].raw...)
 			target = append(target, ':')
-			target = append(target, keyVal[keys[i].String()].unprocessed...)
+			target = append(target, keyVal[keys[i].String()].raw...)
 		}
 	}
 	target = append(target, '}')
@@ -570,7 +570,7 @@ func transformKeys(json, arg string) string {
 			builder.WriteByte(',')
 		}
 		if o {
-			builder.WriteString(key.unprocessed)
+			builder.WriteString(key.raw)
 		} else {
 			builder.WriteString("null")
 		}
@@ -642,7 +642,7 @@ func transformValues(json, arg string) string {
 		if i > 0 {
 			builder.WriteByte(',')
 		}
-		builder.WriteString(value.unprocessed)
+		builder.WriteString(value.raw)
 		i++
 		return true
 	})
@@ -784,7 +784,7 @@ func transformGroup(json, arg string) string {
 			if idx == len(all) {
 				all = append(all, []byte{})
 			}
-			all[idx] = append(all[idx], ("," + key.unprocessed + ":" + value.unprocessed)...)
+			all[idx] = append(all[idx], ("," + key.raw + ":" + value.raw)...)
 			idx++
 			return true
 		})
@@ -864,7 +864,7 @@ func transformSearch(json, arg string) string {
 		if i > 0 {
 			seg = append(seg, ',')
 		}
-		seg = append(seg, res.unprocessed...)
+		seg = append(seg, res.raw...)
 	}
 	seg = append(seg, ']')
 	return string(seg)

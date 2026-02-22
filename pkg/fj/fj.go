@@ -50,7 +50,7 @@ func Parse(json string) Context {
 	for ; i < len(json); i++ {
 		if json[i] == '{' || json[i] == '[' {
 			value.kind = JSON
-			value.unprocessed = json[i:]
+			value.raw = json[i:]
 			break
 		}
 		if json[i] <= ' ' {
@@ -60,33 +60,33 @@ func Parse(json string) Context {
 		case '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 			'i', 'I', 'N':
 			value.kind = Number
-			value.unprocessed, value.numeric = getNumeric(json[i:])
+			value.raw, value.num = getNumeric(json[i:])
 		case 'n':
 			if i+1 < len(json) && json[i+1] != 'u' {
 				// nan
 				value.kind = Number
-				value.unprocessed, value.numeric = getNumeric(json[i:])
+				value.raw, value.num = getNumeric(json[i:])
 			} else {
 				// null
 				value.kind = Null
-				value.unprocessed = lowerPrefix(json[i:])
+				value.raw = lowerPrefix(json[i:])
 			}
 		case 't':
 			value.kind = True
-			value.unprocessed = lowerPrefix(json[i:])
+			value.raw = lowerPrefix(json[i:])
 		case 'f':
 			value.kind = False
-			value.unprocessed = lowerPrefix(json[i:])
+			value.raw = lowerPrefix(json[i:])
 		case '"':
 			value.kind = String
-			value.unprocessed, value.strings = unescapeJSONEncoded(json[i:])
+			value.raw, value.str = unescapeJSONEncoded(json[i:])
 		default:
 			return Context{}
 		}
 		break
 	}
 	if value.Exists() {
-		value.index = i
+		value.idx = i
 	}
 	return value
 }
@@ -277,8 +277,8 @@ func Get(json, path string) Context {
 				path = cPath
 				if len(path) > 0 && (path[0] == '|' || path[0] == '.') {
 					res := Get(cJson, path[1:])
-					res.index = 0
-					res.indexes = nil
+					res.idx = 0
+					res.idxs = nil
 					return res
 				}
 				return Parse(cJson)
@@ -287,7 +287,7 @@ func Get(json, path string) Context {
 		if path[0] == '[' || path[0] == '{' {
 			kind := path[0] // using a sub-selector path
 			var ok bool
-			var subs []subSelector
+			var subs []sel
 			subs, path, ok = analyzeSubSelectors(path)
 			if ok {
 				if len(path) == 0 || (path[0] == '|' || path[0] == '.') {
@@ -318,13 +318,13 @@ func Get(json, path string) Context {
 								b = append(b, ':')
 							}
 							var raw string
-							if len(res.unprocessed) == 0 {
+							if len(res.raw) == 0 {
 								raw = res.String()
 								if len(raw) == 0 {
 									raw = "null"
 								}
 							} else {
-								raw = res.unprocessed
+								raw = res.raw
 							}
 							b = append(b, raw...)
 							i++
@@ -332,12 +332,12 @@ func Get(json, path string) Context {
 					}
 					b = append(b, kind+2)
 					var res Context
-					res.unprocessed = string(b)
+					res.raw = string(b)
 					res.kind = JSON
 					if len(path) > 0 {
 						res = res.Get(path[1:])
 					}
-					res.index = 0
+					res.idx = 0
 					return res
 				}
 			}
@@ -363,12 +363,12 @@ func Get(json, path string) Context {
 		}
 	}
 	if c.piped {
-		res := c.value.Get(c.pipe)
-		res.index = 0
+		res := c.val.Get(c.pipe)
+		res.idx = 0
 		return res
 	}
 	computeIndex(json, c)
-	return c.value
+	return c.val
 }
 
 // GetMul searches json for multiple paths.
@@ -434,8 +434,8 @@ func GetMul(json string, path ...string) []Context {
 //	jsonBytes := []byte(`{"key": "value", "nested": {"innerKey": "innerValue"}}`)
 //	path := "nested.innerKey"
 //	context := GetBytes(jsonBytes, path)
-//	fmt.Println("Unprocessed:", context.unprocessed) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
-//	fmt.Println("Strings:", context.strings)         // Output: `"innerValue"`
+//	fmt.Println("Unprocessed:", context.raw) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
+//	fmt.Println("Strings:", context.str)         // Output: `"innerValue"`
 func GetBytes(json []byte, path string) Context {
 	return getBytes(json, path)
 }

@@ -653,8 +653,8 @@ Available named style variables:
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `Kind` | `Kind() Type` | Return the JSON type (`Null`, `False`, `Number`, `String`, `True`, `JSON`). |
-| `Unprocessed` | `Unprocessed() string` | Return the raw unprocessed JSON fragment. |
-| `Numeric` | `Numeric() float64` | Return the numeric value (for `Number` type). |
+| `Raw` | `Raw() string` | Return the raw unprocessed JSON fragment. |
+| `Number` | `Number() float64` | Return the numeric value (for `Number` type). |
 | `Index` | `Index() int` | Return the byte offset of this value in the original JSON. |
 | `Indexes` | `Indexes() []int` | Return positions of all `#`-matched elements. |
 | `String` | `String() string` | Return a string representation of the value. |
@@ -676,7 +676,7 @@ Available named style variables:
 | `Map` | `Map() map[string]Context` | Return the value as a `map[string]Context` (for JSON objects). |
 | `Foreach` | `Foreach(iterator func(key, value Context) bool)` | Iterate over array elements or object key-value pairs. |
 | `Get` | `Get(path string) Context` | Query a sub-path (enables chaining). |
-| `GetMul` | `GetMul(paths ...string) []Context` | Query multiple paths simultaneously. |
+| `GetMulti` | `GetMulti(paths ...string) []Context` | Query multiple paths simultaneously. |
 | `Path` | `Path(json string) string` | Return the dot-notation path that produced this context. |
 | `Paths` | `Paths(json string) []string` | Return paths for each element in an array result. |
 | `Less` | `Less(token Context, caseSensitive bool) bool` | Report whether this value is less than `token`. |

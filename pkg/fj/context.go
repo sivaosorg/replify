@@ -1137,7 +1137,7 @@ func (ctx Context) Get(path string) Context {
 	return q
 }
 
-// GetMul searches for multiple paths within a JSON structure and returns a slice of results.
+// GetMulti searches for multiple paths within a JSON structure and returns a slice of results.
 //
 // This function allows you to search for multiple paths in the JSON structure, each represented as a string.
 // It returns a slice of `Context` instances for each of the specified paths. The paths can be used to navigate
@@ -1159,17 +1159,17 @@ func (ctx Context) Get(path string) Context {
 // Example Usage:
 //
 //	ctx := Context{kind: JSON, raw: "{\"user\": {\"name\": \"John\"}, \"items\": [1, 2, 3]}"}
-//	results := ctx.GetMul("user.name", "items[1]")
+//	results := ctx.GetMulti("user.name", "items[1]")
 //	// results[0].str will contain "John" for the "user.name" path,
 //	// results[1].num will contain 2 for the "items[1]" path.
 //
 // Notes:
-//   - This function uses the `GetMul` function (presumably another function) to process the `raw` JSON string
+//   - This function uses the `GetMulti` function (presumably another function) to process the `raw` JSON string
 //     and search for each of the specified paths.
 //   - Each result is returned as a separate `Context` for each path, allowing for multiple values to be retrieved
 //     at once from the JSON structure.
-func (ctx Context) GetMul(path ...string) []Context {
-	return GetMul(ctx.raw, path...)
+func (ctx Context) GetMulti(path ...string) []Context {
+	return GetMulti(ctx.raw, path...)
 }
 
 /////////////////////////////////////////////////

@@ -380,7 +380,7 @@ func Get(json, path string) Context {
 	return c.val
 }
 
-// GetMul searches json for multiple paths.
+// GetMulti searches json for multiple paths.
 // The return value is a slice of `Context` objects, where the number of items
 // will be equal to the number of input paths. Each `Context` represents the value
 // extracted for the corresponding path.
@@ -408,9 +408,9 @@ func Get(json, path string) Context {
 //	  ]
 //	}`
 //	paths := []string{"user.lastName", "age", "siblings.#", "friends.#.firstName"}
-//	results := GetMul(json, paths...)
+//	results := GetMulti(json, paths...)
 //	// The result will contain Contexts for each path: ["Johnson", 29, 3, ["Tom", "Sophia"]]
-func GetMul(json string, path ...string) []Context {
+func GetMulti(json string, path ...string) []Context {
 	ctx := make([]Context, len(path))
 	for i, path := range path {
 		ctx[i] = Get(json, path)

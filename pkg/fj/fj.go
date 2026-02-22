@@ -93,7 +93,7 @@ func Parse(json string) Context {
 	return value
 }
 
-// ParseBufio reads a JSON string from an `io.Reader` and parses it into a Context.
+// ParseReader reads a JSON string from an `io.Reader` and parses it into a Context.
 //
 // This function combines the reading and parsing operations. It first reads the JSON
 // string using the `BufioRead` function, then processes the string using the `Parse`
@@ -118,7 +118,7 @@ func Parse(json string) Context {
 //	}
 //	defer file.Close()
 //
-//	ctx := ParseBufio(file)
+//	ctx := ParseReader(file)
 //	if ctx.err != nil {
 //	    log.Fatalf("Failed to parse JSON: %v", ctx.err)
 //	}
@@ -126,7 +126,7 @@ func Parse(json string) Context {
 //
 //	// Reading JSON from standard input
 //	fmt.Println("Enter JSON:")
-//	ctx = ParseBufio(os.Stdin)
+//	ctx = ParseReader(os.Stdin)
 //	if ctx.err != nil {
 //	    log.Fatalf("Failed to parse JSON: %v", ctx.err)
 //	}
@@ -138,7 +138,7 @@ func Parse(json string) Context {
 //     JSON string is read correctly before parsing begins.
 //   - If the input JSON is malformed or invalid, the returned Context from `Parse` will reflect
 //     the issue as an empty Context or an error in the `err` field.
-func ParseBufio(in io.Reader) Context {
+func ParseReader(in io.Reader) Context {
 	json, err := common.SlurpLine(in)
 	if err != nil {
 		return Context{
@@ -150,7 +150,7 @@ func ParseBufio(in io.Reader) Context {
 
 // ParseFilepath reads a JSON string from a file specified by the filepath and parses it into a Context.
 //
-// This function opens the specified file, reads its contents using the `ParseBufio` function,
+// This function opens the specified file, reads its contents using the `ParseReader` function,
 // and returns a Context representing the parsed JSON element. If any error occurs during
 // file reading or JSON parsing, the returned Context will include the error details.
 //
@@ -182,7 +182,7 @@ func ParseFilepath(filepath string) Context {
 		}
 	}
 	defer file.Close()
-	return ParseBufio(file)
+	return ParseReader(file)
 }
 
 // ParseBytes parses a JSON byte slice and returns a Context representing the parsed value.

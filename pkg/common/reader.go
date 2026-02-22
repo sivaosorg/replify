@@ -241,7 +241,6 @@ func SlurpLines(in io.Reader) ([]string, error) {
 //	fmt.Println("You entered:", content)
 //
 // SlurpLine reads all lines from an io.Reader and returns them as a single string.
-// It is used internally by ParseBufio.
 func SlurpLine(in io.Reader) (string, error) {
 	var lines strings.Builder
 	scanner := bufio.NewReader(in)

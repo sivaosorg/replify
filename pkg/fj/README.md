@@ -614,7 +614,7 @@ Available named style variables:
 | `GetBytes` | `GetBytes(json []byte, path string) Context` | Same as `Get` but accepts a byte slice. |
 | `Parse` | `Parse(json string) Context` | Parse a JSON string into a `Context` without path querying. |
 | `ParseBytes` | `ParseBytes(json []byte) Context` | Same as `Parse` but accepts a byte slice. |
-| `ParseBufio` | `ParseBufio(in io.Reader) (string, error)` | Read all data from an `io.Reader` and return as a string. |
+| `ParseReader` | `ParseReader(in io.Reader) (string, error)` | Read all data from an `io.Reader` and return as a string. |
 | `ParseFilepath` | `ParseFilepath(filepath string) (string, error)` | Read a JSON file and return its contents as a string. |
 | `IsValidJSON` | `IsValidJSON(json string) bool` | Report whether a string is valid JSON. |
 | `IsValidJSONBytes` | `IsValidJSONBytes(json []byte) bool` | Report whether a byte slice is valid JSON. |

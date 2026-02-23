@@ -46,13 +46,13 @@ type qCtx struct {
 	arr []Context
 
 	// elems stores a slice of interface{} elements, used for intermediary results.
-	elems []interface{}
+	elems []any
 
 	// ops maps string keys to Context values, used for handling operations on specific paths.
 	ops map[string]Context
 
 	// opResults maps string keys to interface{} values, used for operation results on specific paths.
-	opResults map[string]interface{}
+	opResults map[string]any
 
 	// vn stores a byte value for a specific operation, likely used for flagging or identifying states.
 	vn byte

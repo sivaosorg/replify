@@ -446,7 +446,7 @@ func GetMulti(json string, path ...string) []Context {
 //	fmt.Println("Unprocessed:", context.raw) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
 //	fmt.Println("Strings:", context.str)         // Output: `"innerValue"`
 func GetBytes(json []byte, path string) Context {
-	return getBytes(json, path)
+	return getBytesZeroCopy(json, path)
 }
 
 // GetBytesMulti searches json for multiple paths in the provided JSON byte slice.

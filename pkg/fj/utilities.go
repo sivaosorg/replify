@@ -63,7 +63,7 @@ func tokenizeNumber(json string) (raw string, num float64) {
 	return
 }
 
-// getBytes efficiently processes a JSON byte slice and a path string to produce a `Context`.
+// getBytesZeroCopy efficiently processes a JSON byte slice and a path string to produce a `Context`.
 // This function minimizes memory allocations and copies, leveraging unsafe operations
 // to handle large JSON strings and slice conversions.
 //
@@ -86,10 +86,10 @@ func tokenizeNumber(json string) (raw string, num float64) {
 //
 //	jsonBytes := []byte(`{"key": "value", "nested": {"innerKey": "innerValue"}}`)
 //	path := "nested.innerKey"
-//	context := getBytes(jsonBytes, path)
+//	context := getBytesZeroCopy(jsonBytes, path)
 //	fmt.Println("Unprocessed:", context.raw) // Output: `{"key": "value", "nested": {"innerKey": "innerValue"}}`
 //	fmt.Println("Strings:", context.str)         // Output: `{"innerKey": "innerValue"}`
-func getBytes(json []byte, path string) Context {
+func getBytesZeroCopy(json []byte, path string) Context {
 	var result Context
 	if json != nil {
 		// unsafe cast json bytes to a string and process it using the Get function.

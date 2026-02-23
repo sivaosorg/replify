@@ -742,7 +742,7 @@ fmt.Println(result.String())
 
 ```go
 json := `{"name":"Alice","scores":[95,87,91]}`
-m := fj.Get(json, "").Map()
+m := fj.Parse(json).Map()
 name := m["name"].String()
 scores := m["scores"].Array()
 fmt.Println(name)                           // Alice

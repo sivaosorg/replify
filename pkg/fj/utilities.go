@@ -608,34 +608,40 @@ func unescape(json string) string {
 	return string(str)
 }
 
-// hexToRune converts a hexadecimal Unicode escape sequence (represented as a string)
-// into the corresponding Unicode code point (rune).
+// hexToRune converts the first four characters of s from a hexadecimal code
+// point into a rune. It is a small helper used when interpreting "\uXXXX"
+// escape sequences.
 //
-// This function expects a string containing a 4-digit hexadecimal number that represents
-// a Unicode code point (e.g., "0048" for the letter 'H') and converts it to a rune (i.e., a Unicode code point).
+// If s is empty, shorter than four bytes, or the substring cannot be parsed as
+// valid hexadecimal, the function returns unicode.ReplacementChar (U+FFFD).
+// The returned rune is produced without allocation.
 //
 // Parameters:
-//   - `json`: A string containing the first 4 characters of the Unicode escape sequence in hexadecimal format
-//     (e.g., `json` would be `"0048"` for the Unicode code point 'H').
+//   - s: a string expected to contain at least four hexadecimal digits
+//     beginning at index 0
 //
 // Returns:
-//   - A rune corresponding to the Unicode code point represented by the provided hexadecimal string.
+//   - rune: the Unicode code point represented by the first four hex digits of s,
+//     or unicode.ReplacementChar on invalid or insufficient input.
 //
-// Notes:
-//   - The function assumes that the input string (`json`) is at least 4 characters long and contains valid
-//     hexadecimal digits (e.g., "0048"). If the input string is shorter or invalid, the function will panic or behave
-//     unpredictably. In production code, input validation should be added to handle such cases safely.
-//   - The function only parses the first 4 characters of the input string as a 16-bit hexadecimal number, suitable
-//     for representing Basic Multilingual Plane (BMP) characters (Unicode code points U+0000 to U+FFFF). For surrogate pairs
-//     (characters outside the BMP), additional handling is required.
+// Limitations:
+//   - Only the first four ASCII bytes are parsed; it does not handle surrogate
+//     pairs or extended escape formats.
+//   - No validation is performed on remaining characters in s.
 //
-// Example Usage:
+// Examples:
 //
-//		input := "0048" // Hexadecimal for Unicode character 'H'
-//		result := hexToRune(input)
-//		// result: 'H' (rune corresponding to U+0048)
+//	// Valid hexadecimal escape
+//	r := hexToRune("0041rest")
+//	// r == 'A'
 //
-//	  Note: This function is specifically designed to handle only the first 4 characters of a Unicode escape sequence.
+//	// Invalid hex sequence returns replacement character
+//	r = hexToRune("ZZZZ")
+//	// r == unicode.ReplacementChar
+//
+//	// Input too short
+//	r = hexToRune("12")
+//	// r == unicode.ReplacementChar
 func hexToRune(s string) rune {
 	if strutil.IsEmpty(s) || len(s) < 4 {
 		return unicode.ReplacementChar

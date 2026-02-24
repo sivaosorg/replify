@@ -1044,7 +1044,7 @@ func expectCommaOrEnd(data []byte, i int, end byte) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyColon checks for the presence of a colon (':') in the given byte slice starting at index i.
+// expectColon checks for the presence of a colon (':') in the given byte slice starting at index i.
 // It skips over any whitespace characters and ensures valid JSON structure.
 //
 // Parameters:
@@ -1064,7 +1064,7 @@ func expectCommaOrEnd(data []byte, i int, end byte) (newPos int, ok bool) {
 //
 //	data := []byte(" : value")
 //	i := 0
-//	val, ok := verifyColon(data, i)
+//	val, ok := expectColon(data, i)
 //	// val: 2 (the index after the colon)
 //	// ok: true (because a colon was found)
 //
@@ -1072,7 +1072,7 @@ func expectCommaOrEnd(data []byte, i int, end byte) (newPos int, ok bool) {
 //   - Iterates over characters, skipping valid whitespace.
 //   - Checks for a colon and returns the next index upon finding it.
 //   - Returns false if an invalid character is encountered.
-func verifyColon(data []byte, i int) (val int, ok bool) {
+func expectColon(data []byte, i int) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		switch data[i] {
 		default:
@@ -1186,7 +1186,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 			if i, ok = expectString(data, i+1); !ok {
 				return i, false
 			}
-			if i, ok = verifyColon(data, i); !ok {
+			if i, ok = expectColon(data, i); !ok {
 				return i, false
 			}
 			if i, ok = verifyAny(data, i); !ok {

@@ -998,7 +998,7 @@ func expectString(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyComma checks for the presence of a comma (',') or the specified end character in the given byte slice
+// expectCommaOrEnd checks for the presence of a comma (',') or the specified end character in the given byte slice
 // starting at index i. It skips over any whitespace characters and ensures valid structure.
 //
 // Parameters:
@@ -1020,7 +1020,7 @@ func expectString(data []byte, i int) (newPos int, ok bool) {
 //	data := []byte(" , next")
 //	i := 0
 //	end := byte('n')
-//	val, ok := verifyComma(data, i, end)
+//	val, ok := expectCommaOrEnd(data, i, end)
 //	// val: 1 (the index of the comma)
 //	// ok: true (because a comma was found)
 //
@@ -1028,7 +1028,7 @@ func expectString(data []byte, i int) (newPos int, ok bool) {
 //   - Iterates over characters, skipping valid whitespace.
 //   - Checks for either a comma or the specified end character.
 //   - Returns false if an invalid character is encountered.
-func verifyComma(data []byte, i int, end byte) (val int, ok bool) {
+func expectCommaOrEnd(data []byte, i int, end byte) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		switch data[i] {
 		default:
@@ -1125,7 +1125,7 @@ func verifyArray(data []byte, i int) (val int, ok bool) {
 				if i, ok = verifyAny(data, i); !ok {
 					return i, false
 				}
-				if i, ok = verifyComma(data, i, ']'); !ok {
+				if i, ok = expectCommaOrEnd(data, i, ']'); !ok {
 					return i, false
 				}
 				if data[i] == ']' {
@@ -1192,7 +1192,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 			if i, ok = verifyAny(data, i); !ok {
 				return i, false
 			}
-			if i, ok = verifyComma(data, i, '}'); !ok {
+			if i, ok = expectCommaOrEnd(data, i, '}'); !ok {
 				return i, false
 			}
 			if data[i] == '}' {

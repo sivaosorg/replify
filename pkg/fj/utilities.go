@@ -129,7 +129,7 @@ func getBytesZeroCopy(json []byte, path string) Context {
 	return result
 }
 
-// isSafeKeyChar checks if a given byte is a valid character for a safe path key.
+// isSafePathKeyByte checks if a given byte is a valid character for a safe path key.
 //
 // This function is used to determine if a character can be part of a safe key in a path,
 // where safe characters are typically those that are printable and non-special. It checks if the
@@ -150,9 +150,9 @@ func getBytesZeroCopy(json []byte, path string) Context {
 //
 // Example:
 //
-//	isSafeKeyChar('a') // true
-//	isSafeKeyChar('$') // false
-func isSafeKeyChar(c byte) bool {
+//	isSafePathKeyByte('a') // true
+//	isSafePathKeyByte('$') // false
+func isSafePathKeyByte(c byte) bool {
 	return c <= ' ' || c > '~' || c == '_' || c == '-' || c == ':' ||
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9')
@@ -3725,7 +3725,7 @@ func deepSearchRecursively(all []Context, parent Context, path string) []Context
 }
 
 // escapeUnsafeChars processes a string `component` to escape characters that are not considered safe
-// according to the `isSafeKeyChar` function. It inserts a backslash (`\`) before each unsafe
+// according to the `isSafePathKeyByte` function. It inserts a backslash (`\`) before each unsafe
 // character, ensuring that the resulting string contains only safe characters.
 //
 // Parameters:
@@ -3736,7 +3736,7 @@ func deepSearchRecursively(all []Context, parent Context, path string) []Context
 //
 // Notes:
 //   - The function iterates through the input string and checks each character using the
-//     `isSafeKeyChar` function. When it encounters an unsafe character, it escapes it with a backslash.
+//     `isSafePathKeyByte` function. When it encounters an unsafe character, it escapes it with a backslash.
 //   - Once an unsafe character is found, the function adds a backslash before each subsequent unsafe character
 //     and continues until the end of the string.
 //
@@ -3746,10 +3746,10 @@ func deepSearchRecursively(all []Context, parent Context, path string) []Context
 //	escaped := escapeUnsafeChars(component) // escaped: "key-with\$pecial\*chars"
 func escapeUnsafeChars(component string) string {
 	for i := 0; i < len(component); i++ {
-		if !isSafeKeyChar(component[i]) {
+		if !isSafePathKeyByte(component[i]) {
 			noneComponent := []byte(component[:i])
 			for ; i < len(component); i++ {
-				if !isSafeKeyChar(component[i]) {
+				if !isSafePathKeyByte(component[i]) {
 					noneComponent = append(noneComponent, '\\')
 				}
 				noneComponent = append(noneComponent, component[i])

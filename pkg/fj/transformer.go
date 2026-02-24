@@ -176,9 +176,9 @@ func transformPretty(json, arg string) string {
 			}
 			return true
 		})
-		return unsafeBytesToString(encoding.PrettyOptions(unsafeStringToBytes(json), &opts))
+		return strutil.SafeStr(encoding.PrettyOptions(unsafeStringToBytes(json), &opts))
 	}
-	return unsafeBytesToString(encoding.Pretty(unsafeStringToBytes(json)))
+	return strutil.SafeStr(encoding.Pretty(unsafeStringToBytes(json)))
 }
 
 // transformMinify removes all whitespace characters from the input JSON string,
@@ -221,7 +221,7 @@ func transformPretty(json, arg string) string {
 //     whitespace from the JSON data.
 //   - This function is often used to reduce the size of JSON data for storage or transmission.
 func transformMinify(json, arg string) string {
-	return unsafeBytesToString(encoding.Ugly(unsafeStringToBytes(json)))
+	return strutil.SafeStr(encoding.Ugly(unsafeStringToBytes(json)))
 }
 
 // transformReverse reverses the order of elements in an array or the order of key-value
@@ -279,7 +279,7 @@ func transformReverse(json, arg string) string {
 			out = append(out, values[i].raw...)
 		}
 		out = append(out, ']')
-		return unsafeBytesToString(out)
+		return strutil.SafeStr(out)
 	}
 	if ctx.IsObject() {
 		var keyValues []Context
@@ -298,7 +298,7 @@ func transformReverse(json, arg string) string {
 			out = append(out, keyValues[i+1].raw...)
 		}
 		out = append(out, '}')
-		return unsafeBytesToString(out)
+		return strutil.SafeStr(out)
 	}
 	return json
 }
@@ -399,7 +399,7 @@ func transformFlatten(json, arg string) string {
 		return true
 	})
 	out = append(out, ']')
-	return unsafeBytesToString(out)
+	return strutil.SafeStr(out)
 }
 
 // transformJoin merges multiple JSON objects into a single object.
@@ -502,7 +502,7 @@ func transformJoin(json, arg string) string {
 		}
 	}
 	target = append(target, '}')
-	return unsafeBytesToString(target)
+	return strutil.SafeStr(target)
 }
 
 // transformJSONValidity reports whether the input is valid JSON.

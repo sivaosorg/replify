@@ -1430,7 +1430,7 @@ func isValidName(component string) bool {
 	return true
 }
 
-// appendHex16 appends the hexadecimal representation of a 16-bit unsigned integer (uint16)
+// appendHex appends the hexadecimal representation of a 16-bit unsigned integer (uint16)
 // to a byte slice. The integer is converted to a 4-character hexadecimal string, and each character
 // is appended to the input byte slice in sequence. The function uses a pre-defined set of hexadecimal
 // digits ('0'–'9' and 'a'–'f') for the conversion.
@@ -1447,14 +1447,14 @@ func isValidName(component string) bool {
 //
 //	var result []byte
 //	x := uint16(3055) // Decimal 3055 is 0x0BEF in hexadecimal
-//	result = appendHex16(result, x)
+//	result = appendHex(result, x)
 //	// result: []byte{'0', 'b', 'e', 'f'} (hexadecimal representation of 3055)
 //
 // Details:
 //   - The function shifts and masks the 16-bit integer to extract each of the four hexadecimal digits.
 //   - It uses the pre-defined `hexDigits` array to convert the integer's nibbles (4 bits) into their
 //     corresponding hexadecimal characters.
-func appendHex16(bytes []byte, x uint16) []byte {
+func appendHex(bytes []byte, x uint16) []byte {
 	return append(bytes,
 		hexDigits[x>>12&0xF], hexDigits[x>>8&0xF],
 		hexDigits[x>>4&0xF], hexDigits[x>>0&0xF],
@@ -3669,11 +3669,11 @@ func appendJSON(target []byte, s string) []byte {
 				target = append(target, 't')
 			default:
 				target = append(target, 'u')
-				target = appendHex16(target, uint16(s[i]))
+				target = appendHex(target, uint16(s[i]))
 			}
 		} else if s[i] == '>' || s[i] == '<' || s[i] == '&' {
 			target = append(target, '\\', 'u')
-			target = appendHex16(target, uint16(s[i]))
+			target = appendHex(target, uint16(s[i]))
 		} else if s[i] == '\\' {
 			target = append(target, '\\', '\\')
 		} else if s[i] == '"' {

@@ -11,34 +11,47 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// tokenizeNumber extracts the numeric portion of a JSON-encoded string and converts it to a float.
+// tokenizeNumber scans json starting at position 0—assumed to be the beginning
+// of a numeric literal—and returns the raw numeric token and its float64 value.
 //
-// This function processes a JSON-encoded string to extract a numeric value
-// up to a specified delimiter or end of the string. It handles delimiters such as
-// whitespace, commas, closing brackets (`]`), and closing braces (`}`). Additionally,
-// it assumes that characters such as '+' and '-' may be part of the numeric value.
+// The scan proceeds forward until a delimiter that ends a JSON number is
+// encountered: any ASCII whitespace, a comma ',', or a closing ']' or '}'.
+// Characters commonly found inside JSON numbers (digits, '.', exponent markers
+// 'e'/'E', and explicit signs '+'/'-' after an exponent) are treated as part of
+// the token. The function is a lightweight tokenizer; it does not perform full
+// JSON validation.
 //
 // Parameters:
-//   - `json`: A string containing the JSON-encoded numeric data.
+//   - json: a string whose first byte must be part of a number (e.g., '-', '0'–'9').
+//     The caller retains ownership and must not mutate it concurrently.
 //
 // Returns:
-//   - `raw`: A substring of the input string containing the numeric portion.
-//   - `num`: A float64 representation of the extracted numeric value. If the conversion fails, `num` will be 0.
+//   - raw: the zero-copy substring of json that forms the numeric token
+//   - num: the float64 parsed from raw; if parsing fails, num is 0 and raw still
+//     contains the token that was attempted
 //
-// Notes:
-//   - The function does not validate the structure of the input JSON beyond extracting the numeric portion.
-//   - This function assumes that the input string contains valid JSON data.
+// Limitations & Nuances:
+//   - Heuristic tokenization only: content is not validated beyond delimiter scanning.
+//   - Parsing uses strconv.ParseFloat on the token and ignores the returned error,
+//     yielding 0 on failure—callers should validate raw if 0 is ambiguous.
+//   - Leading/trailing whitespace before the number is not skipped; json[0] must
+//     start at the number for correct results.
+//   - No allocations aside from those performed internally by ParseFloat; raw
+//     shares backing storage with json.
 //
-// Example:
+// Examples:
 //
-//	json := "123.45, other data"
-//	raw, num := tokenizeNumber(json) // raw: "123.45", num: 123.45
+//	// Typical number before a comma
+//	raw, n := tokenizeNumber("123.45, more")
+//	// raw == "123.45", n == 123.45
 //
-// Note:
+//	// Scientific notation ending at closing bracket
+//	raw, n = tokenizeNumber("-1.2e+3]")
+//	// raw == "-1.2e+3", n == -1200
 //
-//   - If the input does not contain a valid numeric value, `num` will be 0 and `raw` will contain
-//     the unmodified input string. The function will attempt to extract and convert the first numeric
-//     portion it encounters, stopping when a delimiter is found.
+//	// Invalid numeric token: parsing yields 0, but raw reflects the token
+//	raw, n = tokenizeNumber("-]")
+//	// raw == "-", n == 0
 func tokenizeNumber(json string) (raw string, num float64) {
 	for i := 1; i < len(json); i++ {
 		// check for characters that signify the end of a numeric value.

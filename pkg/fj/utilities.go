@@ -270,23 +270,40 @@ func extractOutermostValue(json string) string {
 	return json
 }
 
-// computeIndex calculates and assigns the starting index of the `raw` field in the `value`
-// field of the `parser` struct relative to the `json` string.
+// computeIndex sets c.val.idx to the byte offset of c.val.raw within the
+// provided json string.
+//
+// The function assumes that c.val.raw is a substring (sharing backing storage)
+// of json. When c.calc is false and c.val.raw is non‑empty, computeIndex derives
+// the offset by comparing the underlying data pointers of both strings and
+// writes the result into c.val.idx. If the computed offset falls outside the
+// bounds of json, the index is clamped to 0.
+//
+// This routine is a low‑level, performance‑oriented helper that uses unsafe
+// pointer arithmetic to avoid allocations and additional scans. It does not
+// validate substring relationships; correctness relies on the invariant that
+// c.val.raw was obtained from json without copying. If c.val.raw does not share
+// the same backing array as json (e.g., constructed independently, decoded, or
+// allocated separately), the computed index is undefined and will be coerced to
+// 0 by the bounds check.
 //
 // Parameters:
-//   - `json`: The complete JSON string from which the index is derived.
-//   - `c`: A pointer to a `parser` instance containing the `value` with the `raw` field.
+//   - json: the original source string that backs c.val.raw
+//   - c: a parser whose current value (c.val) contains raw and idx fields;
+//     ownership remains with the caller and must not be mutated concurrently
 //
-// Behavior:
-//   - If the `raw` field in `value` is non-empty and the `calc` flag in the parser is false:
-//     1. It computes the relative index of `raw` within the `json` string by comparing
-//     the memory addresses of the respective string headers.
-//     2. If the computed index is invalid (e.g., out of bounds of `json`), it sets the index to 0.
+// Side Effects & Performance:
+//   - Writes to c.val.idx; no other state is modified.
+//   - Zero additional allocations; uses unsafe pointer math for O(1) index
+//     computation.
+//   - No errors are returned; invalid relationships are handled by setting
+//     c.val.idx to 0.
 //
-// Notes:
-//   - The function uses unsafe operations to access the memory layout of strings and compute their
-//     relative positions. This minimizes overhead but requires care to ensure memory safety.
-//   - The `idx` field is useful for tracking the position of a substring within the original JSON data.
+// Limitations & Nuances:
+//   - Requires that c.val.raw and json share the same backing storage.
+//   - Behavior is undefined if the strings originate from different allocations,
+//     even if they contain identical content.
+//   - Skips computation when c.calc is true or c.val.raw is empty.
 //
 // Example:
 //

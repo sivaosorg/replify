@@ -8,6 +8,7 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+	"unsafe"
 
 	"github.com/sivaosorg/replify/pkg/truncate"
 )
@@ -3135,6 +3136,50 @@ func StripNonWhitespace(s string) string {
 		}
 	}
 	return s
+}
+
+// UnsafeStr converts a byte slice to a string without copying.
+//
+// Parameters:
+//   - b: The byte slice to convert.
+//
+// Returns:
+//   - A string representation of the byte slice.
+//
+// Notes:
+//   - This function uses unsafe operations to directly reinterpret the byte slice's underlying data
+//     structure as a string. This allows efficient conversion without copying the data.
+//   - The resulting string must be treated with care. Modifying the original byte slice
+//     after conversion will affect the string and can lead to undefined behavior.
+//
+// Example:
+//
+//	result := UnsafeStr([]byte("hello")) // result will be "hello"
+func UnsafeStr(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b))
+}
+
+// SafeStr converts a byte slice to a string safely.
+//
+// Parameters:
+//   - b: The byte slice to convert.
+//
+// Returns:
+//   - A string representation of the byte slice.
+//
+// Notes:
+//   - This function use safe operations to convert a byte slice to a string.
+//   - It is safer than UnsafeStr because it does not use unsafe operations.
+//   - It is slower than UnsafeStr because it copies the data.
+//
+// Example:
+//
+//	result := SafeStr([]byte("hello")) // result will be "hello"
+func SafeStr(b []byte) string {
+	if b == nil {
+		return ""
+	}
+	return string(b)
 }
 
 // isDelimiter checks if a character is a delimiter.

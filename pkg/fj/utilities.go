@@ -726,7 +726,7 @@ func lessFold(a, b string) bool {
 	return len(a) < len(b)
 }
 
-// verifyBoolTrue checks if the given byte slice starting at index i represents the string "true".
+// expectTrue checks if the given byte slice starting at index i represents the string "true".
 // It returns the next index after "true" and true if the sequence matches, otherwise it returns the current index and false.
 //
 // Parameters:
@@ -746,10 +746,10 @@ func lessFold(a, b string) bool {
 //
 //	data := []byte("this is true")
 //	i := 10
-//	value, ok := verifyBoolTrue(data, i)
+//	value, ok := expectTrue(data, i)
 //	// value: 13 (the index after the word "true")
 //	// ok: true (because "true" was found starting at index 10)
-func verifyBoolTrue(data []byte, i int) (val int, ok bool) {
+func expectTrue(data []byte, i int) (newPos int, ok bool) {
 	if i+3 <= len(data) && data[i] == 'r' && data[i+1] == 'u' &&
 		data[i+2] == 'e' {
 		return i + 3, true
@@ -1267,7 +1267,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			return verifyNumeric(data, i+1)
 		case 't':
-			return verifyBoolTrue(data, i+1)
+			return expectTrue(data, i+1)
 		case 'f':
 			return verifyBoolFalse(data, i+1)
 		case 'n':

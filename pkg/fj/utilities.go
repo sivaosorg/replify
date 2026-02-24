@@ -307,11 +307,11 @@ func extractOutermostValue(json string) string {
 	return json
 }
 
-// computeIndex sets c.val.idx to the byte offset of c.val.raw within the
+// computeOffset sets c.val.idx to the byte offset of c.val.raw within the
 // provided json string.
 //
 // The function assumes that c.val.raw is a substring (sharing backing storage)
-// of json. When c.calc is false and c.val.raw is non‑empty, computeIndex derives
+// of json. When c.calc is false and c.val.raw is non‑empty, computeOffset derives
 // the offset by comparing the underlying data pointers of both strings and
 // writes the result into c.val.idx. If the computed offset falls outside the
 // bounds of json, the index is clamped to 0.
@@ -347,9 +347,9 @@ func extractOutermostValue(json string) string {
 //	json := `{"key": "value"}`
 //	value := Context{raw: `"value"`}
 //	c := &parser{json: json, value: value}
-//	computeIndex(json, c)
+//	computeOffset(json, c)
 //	fmt.Println(c.val.idx) // Outputs the starting position of `"value"` in the JSON string.
-func computeIndex(json string, c *parser) {
+func computeOffset(json string, c *parser) {
 	if len(c.val.raw) > 0 && !c.calc {
 		jsonHeader := *(*stringHeader)(unsafe.Pointer(&json))
 		unprocessedHeader := *(*stringHeader)(unsafe.Pointer(&(c.val.raw)))
@@ -2237,7 +2237,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			}
 			var tmp parser
 			tmp.val = ctx
-			computeIndex(json, &tmp)
+			computeOffset(json, &tmp)
 			return i, tmp.val, true
 		}
 		if json[i] <= ' ' {
@@ -2837,7 +2837,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 		}
 		var tmp parser
 		tmp.val = eVal
-		computeIndex(c.json, &tmp)
+		computeOffset(c.json, &tmp)
 		parentIndex := tmp.val.idx
 		var res Context
 		if eVal.kind == JSON {

@@ -376,7 +376,7 @@ func Get(json, path string) Context {
 		res.idx = 0
 		return res
 	}
-	computeIndex(json, c)
+	computeOffset(json, c)
 	return c.val
 }
 

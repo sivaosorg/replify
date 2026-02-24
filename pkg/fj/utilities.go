@@ -430,7 +430,7 @@ func leadingLowercase(json string) (raw string) {
 	return json
 }
 
-// squash returns the shortest prefix of json that forms a complete top‑level
+// compactJSON returns the shortest prefix of json that forms a complete top‑level
 // JSON token and discards the rest. If json starts with a double quote, the
 // token is treated as a JSON string literal; otherwise it is treated as a
 // delimited structure and scanned by nesting depth until the matching closing
@@ -481,19 +481,19 @@ func leadingLowercase(json string) (raw string) {
 //
 //	// Object token
 //	in := `{"a":1,"b":[2,3]} trailing`
-//	out := squash(in)
+//	out := compactJSON(in)
 //	// out == `{"a":1,"b":[2,3]}`
 //
 //	// String with escaped quote
 //	in = `"he said \"hi\"" extra`
-//	out = squash(in)
+//	out = compactJSON(in)
 //	// out == `"he said \"hi\""`
 //
 //	// Unterminated structure returns original
 //	in = `{"a":1`
-//	out = squash(in)
+//	out = compactJSON(in)
 //	// out == `{"a":1`
-func squash(json string) string {
+func compactJSON(json string) string {
 	var i, depth int
 	// If the first character is not a quote, initialize i and depth for the JSON object/array parsing.
 	if json[0] != '"' {
@@ -1801,7 +1801,7 @@ func splitPathPipe(path string) (left, right string, ok bool) {
 		return
 	}
 	if len(path) > 0 && path[0] == '{' {
-		squashed := squash(path[1:])
+		squashed := compactJSON(path[1:])
 		if len(squashed) < len(path)-1 {
 			squashed = path[:len(squashed)+1]
 			remain := path[len(squashed):]
@@ -3325,7 +3325,7 @@ func adjustTransformer(json, path string) (pathYield, result string, ok bool) {
 			case '{', '[', '"': // handle JSON-like arguments.
 				ctx := Parse(pathYield)
 				if ctx.Exists() {
-					args = squash(pathYield) // squash the JSON to remove nested structures.
+					args = compactJSON(pathYield) // squash the JSON to remove nested structures.
 					pathYield = pathYield[len(args):]
 					parsedArgs = true
 				}
@@ -3339,7 +3339,7 @@ func adjustTransformer(json, path string) (pathYield, result string, ok bool) {
 					}
 					switch pathYield[i] {
 					case '{', '[', '"', '(': // handle nested structures like arrays or objects.
-						s := squash(pathYield[i:])
+						s := compactJSON(pathYield[i:])
 						i += len(s) - 1
 					}
 				}

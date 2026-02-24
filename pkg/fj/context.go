@@ -1559,7 +1559,7 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result qCtx) {
 			}
 		case '{', '[':
 			value.kind = JSON
-			value.raw = squash(json[i:])
+			value.raw = compactJSON(json[i:])
 			value.str, value.num = "", 0
 		case 'n':
 			value.kind = Null

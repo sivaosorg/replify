@@ -935,7 +935,7 @@ func expectNumber(data []byte, i int) (newPos int, ok bool) {
 	return i, true
 }
 
-// verifyString validates whether the byte slice starting at index i represents a valid JSON string.
+// expectString validates whether the byte slice starting at index i represents a valid JSON string.
 // The function ensures the string adheres to the JSON string format, including proper escaping of special characters.
 //
 // Parameters:
@@ -957,7 +957,7 @@ func expectNumber(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte("\"Hello, \\\"world!\\\"\"")
 //	i := 0 // Start at the first character
-//	val, ok := verifyString(data, i)
+//	val, ok := expectString(data, i)
 //	// val: 20 (the index after the string)
 //	// ok: true (because "\"Hello, \\\"world!\\\"\"" is a valid JSON string)
 //
@@ -965,7 +965,7 @@ func expectNumber(data []byte, i int) (newPos int, ok bool) {
 //   - The function iterates over the characters, checking for valid JSON string content.
 //   - It handles special escape sequences, ensuring their correctness.
 //   - Early exit occurs if any invalid sequence or character is detected.
-func verifyString(data []byte, i int) (val int, ok bool) {
+func expectString(data []byte, i int) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		if data[i] < ' ' {
 			return i, false
@@ -1183,7 +1183,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 			return i + 1, true
 		case '"':
 		key:
-			if i, ok = verifyString(data, i+1); !ok {
+			if i, ok = expectString(data, i+1); !ok {
 				return i, false
 			}
 			if i, ok = verifyColon(data, i); !ok {
@@ -1263,7 +1263,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case '[':
 			return verifyArray(data, i+1)
 		case '"':
-			return verifyString(data, i+1)
+			return expectString(data, i+1)
 		case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			return expectNumber(data, i+1)
 		case 't':

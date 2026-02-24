@@ -757,7 +757,7 @@ func expectTrue(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyBoolFalse checks if the given byte slice starting at index i represents the string "false".
+// expectFalse checks if the given byte slice starting at index i represents the string "false".
 // It returns the next index after "false" and true if the sequence matches, otherwise it returns the current index and false.
 //
 // Parameters:
@@ -777,10 +777,10 @@ func expectTrue(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte("this is false")
 //	i := 8
-//	val, ok := verifyBoolFalse(data, i)
+//	val, ok := expectFalse(data, i)
 //	// val: 13 (the index after the word "false")
 //	// ok: true (because "false" was found starting at index 8)
-func verifyBoolFalse(data []byte, i int) (val int, ok bool) {
+func expectFalse(data []byte, i int) (newPos int, ok bool) {
 	if i+4 <= len(data) && data[i] == 'a' && data[i+1] == 'l' &&
 		data[i+2] == 's' && data[i+3] == 'e' {
 		return i + 4, true
@@ -1269,7 +1269,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case 't':
 			return expectTrue(data, i+1)
 		case 'f':
-			return verifyBoolFalse(data, i+1)
+			return expectFalse(data, i+1)
 		case 'n':
 			return verifyNullable(data, i+1)
 		}

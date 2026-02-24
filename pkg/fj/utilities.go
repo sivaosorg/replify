@@ -1661,7 +1661,7 @@ func extractAndUnescapeJSONString(json string) (quoted string, unescaped string)
 	return json, json[1:]
 }
 
-// isTransformerOrJSONStart checks whether the first character of the input string `s` is a special character
+// looksLikeJSONOrTransformer checks whether the first character of the input string `s` is a special character
 // (such as '@', '[', or '{') that might indicate a transformer or a JSON structure in the context of processing.
 //
 // The function performs the following checks:
@@ -1679,19 +1679,19 @@ func extractAndUnescapeJSONString(json string) (quoted string, unescaped string)
 // Example Usage:
 //
 //	s1 := "@transformer|value"
-//	isTransformerOrJSONStart(s1)
+//	looksLikeJSONOrTransformer(s1)
 //	// Returns: true (because it starts with '@' and is followed by a transformer)
 //
 //	s2 := "[1, 2, 3]"
-//	isTransformerOrJSONStart(s2)
+//	looksLikeJSONOrTransformer(s2)
 //	// Returns: true (because it starts with '[')
 //
 //	s3 := "{ \"key\": \"value\" }"
-//	isTransformerOrJSONStart(s3)
+//	looksLikeJSONOrTransformer(s3)
 //	// Returns: true (because it starts with '{')
 //
 //	s4 := "normalString"
-//	isTransformerOrJSONStart(s4)
+//	looksLikeJSONOrTransformer(s4)
 //	// Returns: false (no '@', '[', or '{')
 //
 // Details:
@@ -1699,7 +1699,7 @@ func extractAndUnescapeJSONString(json string) (quoted string, unescaped string)
 //   - If the string starts with '@', it scans for a potential transformer by checking if there is a '.' or '|' after it,
 //     and verifies whether the transformer exists in the `transformers` map.
 //   - If the string starts with '[' or '{', it immediately returns `true`, as those characters typically indicate the start of a JSON array or object.
-func isTransformerOrJSONStart(s string) bool {
+func looksLikeJSONOrTransformer(s string) bool {
 	if DisableTransformers {
 		return false
 	}
@@ -2027,7 +2027,7 @@ func parsePathWithTransformers(path string) (r wildcard) {
 		}
 		if path[i] == '.' {
 			r.part = path[:i]
-			if i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
+			if i < len(path)-1 && looksLikeJSONOrTransformer(path[i+1:]) {
 				r.pipe = path[i+1:]
 				r.piped = true
 			} else {
@@ -2057,7 +2057,7 @@ func parsePathWithTransformers(path string) (r wildcard) {
 						continue
 					} else if path[i] == '.' {
 						r.part = string(escapePart)
-						if i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
+						if i < len(path)-1 && looksLikeJSONOrTransformer(path[i+1:]) {
 							r.pipe = path[i+1:]
 							r.piped = true
 						} else {
@@ -2731,7 +2731,7 @@ func analyzePath(path string) (r meta) {
 		}
 		if path[i] == '.' {
 			r.part = path[:i]
-			if !r.arch && i < len(path)-1 && isTransformerOrJSONStart(path[i+1:]) {
+			if !r.arch && i < len(path)-1 && looksLikeJSONOrTransformer(path[i+1:]) {
 				r.pipe = path[i+1:]
 				r.piped = true
 			} else {

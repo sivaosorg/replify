@@ -788,7 +788,7 @@ func expectFalse(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyNullable checks if the given byte slice starting at index i represents the string "null".
+// expectNull checks if the given byte slice starting at index i represents the string "null".
 // It returns the next index after "null" and true if the sequence matches, otherwise it returns the current index and false.
 //
 // Parameters:
@@ -808,10 +808,10 @@ func expectFalse(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte("value is null")
 //	i := 9
-//	val, ok := verifyNullable(data, i)
+//	val, ok := expectNull(data, i)
 //	// val: 13 (the index after the word "null")
 //	// ok: true (because "null" was found starting at index 9)
-func verifyNullable(data []byte, i int) (val int, ok bool) {
+func expectNull(data []byte, i int) (newPos int, ok bool) {
 	if i+3 <= len(data) && data[i] == 'u' && data[i+1] == 'l' &&
 		data[i+2] == 'l' {
 		return i + 3, true
@@ -1271,7 +1271,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case 'f':
 			return expectFalse(data, i+1)
 		case 'n':
-			return verifyNullable(data, i+1)
+			return expectNull(data, i+1)
 		}
 	}
 	return i, false

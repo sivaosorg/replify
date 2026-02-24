@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 	"unsafe"
 
+	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/match"
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
@@ -1493,18 +1494,11 @@ func appendHex(bytes []byte, x uint16) []byte {
 //   - If any non-digit character is encountered, the function returns `0` and `false`.
 //   - The function assumes that the input string is non-empty and only contains valid ASCII digits if valid.
 func parseUint64(s string) (n uint64, ok bool) {
-	var i int
-	if i == len(s) {
+	num, err := conv.Uint64(s)
+	if err != nil {
 		return 0, false
 	}
-	for ; i < len(s); i++ {
-		if s[i] >= '0' && s[i] <= '9' {
-			n = n*10 + uint64(s[i]-'0')
-		} else {
-			return 0, false
-		}
-	}
-	return n, true
+	return num, true
 }
 
 // parseStaticSegment parses a string path to find a static value, such as a boolean, null, or number.

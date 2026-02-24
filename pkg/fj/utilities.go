@@ -1141,7 +1141,7 @@ func expectArray(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyObject validates whether the byte slice starting at index i represents a valid JSON object.
+// expectObject validates whether the byte slice starting at index i represents a valid JSON object.
 // It ensures that the object starts and ends with curly braces ('{' and '}') and contains valid key-value pairs.
 //
 // Parameters:
@@ -1164,7 +1164,7 @@ func expectArray(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte(`{"key1": 123, "key2": "value"}`)
 //	i := 0
-//	val, ok := verifyObject(data, i)
+//	val, ok := expectObject(data, i)
 //	// val: 28 (the index after the object)
 //	// ok: true (because the input is a valid JSON object)
 //
@@ -1172,7 +1172,7 @@ func expectArray(data []byte, i int) (newPos int, ok bool) {
 //   - Skips leading whitespace.
 //   - Validates the presence of keys (JSON strings) and their corresponding values.
 //   - Ensures that the structure adheres to JSON object syntax, returning false for any invalid structure.
-func verifyObject(data []byte, i int) (val int, ok bool) {
+func expectObject(data []byte, i int) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		switch data[i] {
 		default:
@@ -1259,7 +1259,7 @@ func expectValue(data []byte, i int) (newPos int, ok bool) {
 		case ' ', '\t', '\n', '\r':
 			continue
 		case '{':
-			return verifyObject(data, i+1)
+			return expectObject(data, i+1)
 		case '[':
 			return expectArray(data, i+1)
 		case '"':

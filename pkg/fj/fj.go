@@ -555,7 +555,7 @@ func Foreach(json string, iterator func(line Context) bool) {
 //
 //	// Output: "IsValidJSON JSON"
 func IsValidJSON(json string) bool {
-	_, ok := verifyJSON(UnsafeBytes(json), 0)
+	_, ok := expectJSON(UnsafeBytes(json), 0)
 	return ok
 }
 
@@ -591,7 +591,7 @@ func IsValidJSON(json string) bool {
 //
 //	// Output: "Valid JSON"
 func IsValidJSONBytes(json []byte) bool {
-	_, ok := verifyJSON(json, 0)
+	_, ok := expectJSON(json, 0)
 	return ok
 }
 

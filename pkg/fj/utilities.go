@@ -129,91 +129,81 @@ func getBytesZeroCopy(json []byte, path string) Context {
 	return result
 }
 
-// isSafePathKeyByte checks if a given byte is a valid character for a safe path key.
+// isSafePathKeyByte reports whether c is considered a "safe" byte for use in a
+// path‑key segment.
 //
-// This function is used to determine if a character can be part of a safe key in a path,
-// where safe characters are typically those that are printable and non-special. It checks if the
-// byte is a valid alphanumeric character or one of a few other acceptable symbols, including
-// underscore ('_'), hyphen ('-'), and colon (':').
+// A byte is treated as safe if it falls within a restricted, ASCII‑only set
+// suitable for lightweight path parsing and key matching. The accepted
+// characters include:
+//   - letters (A–Z, a–z)
+//   - digits (0–9)
+//   - '_', '-', ':'
+//   - any control or whitespace byte (<= ' ')
+//   - any non‑ASCII byte (> '~')
 //
-// Parameters:
-//   - `c`: The byte (character) to be checked.
+// This helper performs a simple classification and is intended for
+// performance‑sensitive code that validates or tokenizes path segments.
+// It assumes ASCII semantics and does not attempt normalization or Unicode
+// category checks.
 //
-// Returns:
-//   - `true`: If the byte is considered a safe character for a path key.
-//   - `false`: If the byte is not considered safe for a path key.
+// Examples:
 //
-// Safe characters for a path key include:
-//   - Whitespace characters (ASCII values <= 32)
-//   - Printable characters from ASCII ('!' to '~')
-//   - Letters (uppercase and lowercase), numbers, underscore ('_'), hyphen ('-'), and colon (':')
+//	// Typical ASCII key
+//	ok := isSafePathKeyByte('a')
+//	// ok == true
 //
-// Example:
+//	// Disallowed punctuation
+//	ok = isSafePathKeyByte('%')
+//	// ok == false
 //
-//	isSafePathKeyByte('a') // true
-//	isSafePathKeyByte('$') // false
+//	// Non‑ASCII bytes are treated as safe
+//	ok = isSafePathKeyByte(0xC3) // 'Ã' in UTF‑8
+//	// ok == true
 func isSafePathKeyByte(c byte) bool {
 	return c <= ' ' || c > '~' || c == '_' || c == '-' || c == ':' ||
 		(c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
 		(c >= '0' && c <= '9')
 }
 
-// reverseSquash processes a JSON-like string in reverse, extracting the portion of the string
-// starting from the last significant character (ignoring nested objects and arrays).
-// It is designed to handle strings that end with a closing bracket (`]`), closing brace (`}`),
-// closing parenthesis (`)`), or a double-quote (`"`), and it squashes the value by
-// ignoring any nested structures within arrays or objects.
+// extractOutermostValue returns the syntactic outermost JSON value beginning at
+// its start position within the provided string.
+//
+// The function walks the input backward to locate the boundary of the top‑level
+// JSON value. It supports strings, arrays, objects, and parenthesized values by
+// tracking bracket depth and correctly handling escaped quotes. This makes it
+// suitable for lightweight extraction tasks where the input may contain
+// surrounding text or multiple concatenated JSON-like fragments.
+//
+// This function performs a heuristic scan rather than full JSON parsing. It does
+// not validate that the input is well‑formed JSON and may yield unexpected
+// results on malformed or deeply irregular input. Escaped quotes inside strings
+// are handled, but control characters and Unicode escapes are not interpreted.
+// No allocations are introduced beyond the returned substring.
 //
 // Parameters:
-//   - `json`: A string representing the JSON data to be processed.
+//   - json: a raw JSON or JSON‑like string; must contain at least one syntactic
+//     value at the end of the string. The caller owns the memory and must not
+//     mutate it concurrently.
 //
 // Returns:
-//   - A substring starting from the last non-nested character, effectively squashing the value
-//     by ignoring nested objects and arrays. If no nested structures are present, it returns the
-//     portion of the string starting from the last significant character.
+//   - string: a substring of the input representing the outermost JSON value,
+//     sharing memory with the original string. If no structural boundaries can
+//     be determined, the entire input is returned.
 //
-// Notes:
-//   - The function assumes that the last character in the string is a valid closing character
-//     (`]`, `}`, `)`, or `"`).
-//   - It handles escaping of quotes within the string by checking for escape sequences (e.g., `\"`).
-//   - It counts the depth of nested objects and arrays using a `depth` variable to ensure that nested
-//     structures are ignored while processing.
-//   - The function works in reverse from the end of the string, looking for the outermost value or
-//     structure and returning the corresponding substring.
+// Examples:
 //
-// Example:
+//	// Extracting a simple object
+//	v := extractOutermostValue(`prefix {"a":1,"b":2}`)
+//	// v == {"a":1,"b":2}
 //
-//		json := "{\"key\": \"value\", \"nested\": {\"innerKey\": \"innerValue\"}}"
-//		result := reverseSquash(json) // result: "{\"key\": \"value\", \"nested\": {\"innerKey\": \"innerValue\"}}"
-//		json1 := `{"key": "value", "nested": {"innerKey": "innerValue"}}`
+//	// Extracting an array from trailing content
+//	v := extractOutermostValue(`header [1,2,3] footer`)
+//	// v == [1,2,3]
 //
-//	 result1 := reverseSquash(json1)
-//	 fmt.Println("Result 1:", result1) // Expected output: {"key": "value", "nested": {"innerKey": "innerValue"}}
-//
-// // Example 2: A JSON array with nested objects
-//
-//	json2 := `["item1", {"key": "value"}, ["nestedItem1", "nestedItem2"]]`
-//	result2 := reverseSquash(json2)
-//	fmt.Println("Result 2:", result2) // Expected output: ["item1", {"key": "value"}, ["nestedItem1", "nestedItem2"]]
-//
-// // Example 3: A JSON string with nested arrays
-//
-//	json3 := `{"array": [1, 2, [3, 4], 5]}`
-//	result3 := reverseSquash(json3)
-//	fmt.Println("Result 3:", result3) // Expected output: {"array": [1, 2, [3, 4], 5]}
-//
-// // Example 4: A simple string value (no nested structures)
-//
-//	json4 := `"simpleString"`
-//	result4 := reverseSquash(json4)
-//	fmt.Println("Result 4:", result4) // Expected output: "simpleString"
-//
-// // Example 5: A deeply nested structure with complex objects and arrays
-//
-//	json5 := `{"outer": {"inner": {"key": "value"}}}`
-//	result5 := reverseSquash(json5)
-//	fmt.Println("Result 5:", result5) // Expected output: {"outer": {"inner": {"key": "value"}}}
-func reverseSquash(json string) string {
+//	// Strings with escaped quotes
+//	v := extractOutermostValue(`data "he said \"hello\"" extra`)
+//	// v == "he said \"hello\""
+func extractOutermostValue(json string) string {
 	i := len(json) - 1
 	var depth int
 	// if the last character is not a quote, assume it's part of a value and increase depth

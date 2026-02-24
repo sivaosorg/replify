@@ -1256,11 +1256,11 @@ func (ctx Context) Path(json string) string {
 				}
 				break
 			}
-			raw := reverseSquash(json[:i+1])
+			raw := extractOutermostValue(json[:i+1])
 			i = i - len(raw)
 			components = append(components, raw)
 			// Key obtained, now process the next component
-			raw = reverseSquash(json[:i+1])
+			raw = extractOutermostValue(json[:i+1])
 			i = i - len(raw)
 			i++ // Move index for next loop step
 		} else if json[i] == '{' {
@@ -1283,7 +1283,7 @@ func (ctx Context) Path(json string) string {
 					components = append(components, strconv.Itoa(arrayIdx))
 					break
 				} else if json[i] == ']' || json[i] == '}' || json[i] == '"' {
-					raw := reverseSquash(json[:i+1])
+					raw := extractOutermostValue(json[:i+1])
 					i = i - len(raw) + 1
 				}
 			}

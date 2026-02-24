@@ -819,7 +819,7 @@ func expectNull(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyNumeric validates whether the byte slice starting at index i represents a valid numeric value.
+// expectNumber validates whether the byte slice starting at index i represents a valid numeric value.
 // It supports integer, floating-point, and exponential number formats as per JSON specifications.
 //
 // Parameters:
@@ -844,7 +844,7 @@ func expectNull(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte("-123.45e+6")
 //	i := 1 // Start after the '-' sign
-//	val, ok := verifyNumeric(data, i)
+//	val, ok := expectNumber(data, i)
 //	// val: 10 (the index after the number)
 //	// ok: true (because "-123.45e+6" is a valid numeric value)
 //
@@ -853,7 +853,7 @@ func expectNull(data []byte, i int) (newPos int, ok bool) {
 //   - The function handles three major components of a number: sign, integer part, and optional components
 //     (fractional and exponential parts).
 //   - Each component is validated, and the function exits early with a false result if a part is invalid.
-func verifyNumeric(data []byte, i int) (val int, ok bool) {
+func expectNumber(data []byte, i int) (newPos int, ok bool) {
 	// Check if i is within valid range
 	if i <= 0 || i >= len(data) {
 		return i, false
@@ -1265,7 +1265,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case '"':
 			return verifyString(data, i+1)
 		case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			return verifyNumeric(data, i+1)
+			return expectNumber(data, i+1)
 		case 't':
 			return expectTrue(data, i+1)
 		case 'f':

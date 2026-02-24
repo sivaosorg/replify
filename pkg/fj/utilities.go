@@ -1122,7 +1122,7 @@ func expectArray(data []byte, i int) (newPos int, ok bool) {
 		switch data[i] {
 		default:
 			for ; i < len(data); i++ {
-				if i, ok = verifyAny(data, i); !ok {
+				if i, ok = expectValue(data, i); !ok {
 					return i, false
 				}
 				if i, ok = expectCommaOrEnd(data, i, ']'); !ok {
@@ -1189,7 +1189,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 			if i, ok = expectColon(data, i); !ok {
 				return i, false
 			}
-			if i, ok = verifyAny(data, i); !ok {
+			if i, ok = expectValue(data, i); !ok {
 				return i, false
 			}
 			if i, ok = expectCommaOrEnd(data, i, '}'); !ok {
@@ -1215,7 +1215,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 	return i, false
 }
 
-// verifyAny attempts to validate the data starting at index i as one of the possible JSON value types.
+// expectValue attempts to validate the data starting at index i as one of the possible JSON value types.
 // It recognizes and validates the following JSON types:
 //   - Object: represented by curly braces `{}`
 //   - Array: represented by square brackets `[]`
@@ -1243,7 +1243,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 //
 //	data := []byte(`{"key1": 123, "key2": "value"}`)
 //	i := 0
-//	val, ok := verifyAny(data, i)
+//	val, ok := expectValue(data, i)
 //	// val: 28 (the index after the object)
 //	// ok: true (because the input is a valid JSON object)
 //
@@ -1251,7 +1251,7 @@ func verifyObject(data []byte, i int) (val int, ok bool) {
 //   - If the input data at index i is a valid JSON value (object, array, string, numeric, boolean, or null),
 //     the function will return the index immediately after the valid value and true.
 //   - If the data does not match a valid JSON value, it returns the current index and false.
-func verifyAny(data []byte, i int) (val int, ok bool) {
+func expectValue(data []byte, i int) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		switch data[i] {
 		default:
@@ -1319,7 +1319,7 @@ func verifyJSON(data []byte, i int) (val int, ok bool) {
 		switch data[i] {
 		default:
 			// If the character is unexpected, call verifyAny to validate the first valid JSON value.
-			i, ok = verifyAny(data, i)
+			i, ok = expectValue(data, i)
 			if !ok {
 				return i, false // Return false if the value is not valid.
 			}

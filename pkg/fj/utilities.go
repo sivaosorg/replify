@@ -1086,7 +1086,7 @@ func expectColon(data []byte, i int) (newPos int, ok bool) {
 	return i, false
 }
 
-// verifyArray validates whether the byte slice starting at index i represents a valid JSON array.
+// expectArray validates whether the byte slice starting at index i represents a valid JSON array.
 // It ensures that the array starts and ends with square brackets ('[' and ']') and contains valid JSON values.
 //
 // Parameters:
@@ -1108,7 +1108,7 @@ func expectColon(data []byte, i int) (newPos int, ok bool) {
 //
 //	data := []byte("[123, \"string\", false]")
 //	i := 0
-//	val, ok := verifyArray(data, i)
+//	val, ok := expectArray(data, i)
 //	// val: 21 (the index after the array)
 //	// ok: true (because the input is a valid JSON array)
 //
@@ -1117,7 +1117,7 @@ func expectColon(data []byte, i int) (newPos int, ok bool) {
 //   - Checks for an initial ']' to handle empty arrays.
 //   - Iteratively validates JSON values and ensures proper use of commas.
 //   - Returns false if an invalid character or structure is encountered.
-func verifyArray(data []byte, i int) (val int, ok bool) {
+func expectArray(data []byte, i int) (newPos int, ok bool) {
 	for ; i < len(data); i++ {
 		switch data[i] {
 		default:
@@ -1261,7 +1261,7 @@ func verifyAny(data []byte, i int) (val int, ok bool) {
 		case '{':
 			return verifyObject(data, i+1)
 		case '[':
-			return verifyArray(data, i+1)
+			return expectArray(data, i+1)
 		case '"':
 			return expectString(data, i+1)
 		case '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':

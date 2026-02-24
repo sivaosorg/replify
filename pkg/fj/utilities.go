@@ -360,40 +360,6 @@ func unsafeStringToBytes(s string) []byte {
 	}))
 }
 
-// unsafeBytesToString converts a byte slice into a string without allocating new memory for the data.
-// This function uses unsafe operations to directly reinterpret the byte slice's underlying data
-// structure as a string. This allows efficient conversion without copying the data.
-//
-// Parameters:
-//   - `b`: The input byte slice that needs to be converted to a string.
-//
-// Returns:
-//   - A string that shares the same underlying data as the input byte slice.
-//
-// Notes:
-//   - This function leverages Go's `unsafe` package to bypass the usual safety mechanisms
-//     of the Go runtime. It does this by directly converting the memory representation of
-//     the byte slice to that of a string.
-//   - The resulting string must be treated with care. Modifying the original byte slice
-//     after conversion will affect the string and can lead to undefined behavior.
-//
-// Safety Considerations:
-//   - Strings in Go are meant to be immutable, but this function creates a string that
-//     shares the same underlying data as the mutable byte slice. Any modifications to the
-//     byte slice will reflect in the string, violating immutability guarantees.
-//   - Use this function only in performance-critical scenarios where avoiding memory allocations
-//     is essential, and ensure the byte slice is not modified afterward.
-//
-// Example Usage:
-//
-//	b := []byte{'h', 'e', 'l', 'l', 'o'}
-//	s := unsafeBytesToString(b) // Efficiently converts the byte slice to a string
-//	fmt.Println(s) // Output: "hello"
-//	// WARNING: Modifying 'b' here will also modify 's', leading to unexpected behavior.
-func unsafeBytesToString(b []byte) string {
-	return *(*string)(unsafe.Pointer(&b))
-}
-
 // leadingLowercase extracts the initial contiguous sequence of lowercase alphabetic characters
 // ('a' to 'z') from the input string `json`. It stops when it encounters a character
 // outside this range and returns the substring up to that point.

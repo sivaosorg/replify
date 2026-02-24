@@ -394,7 +394,7 @@ func unsafeBytesToString(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// lowerPrefix extracts the initial contiguous sequence of lowercase alphabetic characters
+// leadingLowercase extracts the initial contiguous sequence of lowercase alphabetic characters
 // ('a' to 'z') from the input string `json`. It stops when it encounters a character
 // outside this range and returns the substring up to that point.
 //
@@ -415,13 +415,13 @@ func unsafeBytesToString(b []byte) string {
 //
 // Examples:
 //
-//	lowerPrefix(`{"name": "Alice"}`)     // → "name"
-//	lowerPrefix(`{"id": 42, "active": true}`)  // → "id"
-//	lowerPrefix(`{"UserID": 123}`)       // → "" (first letter is uppercase)
-//	lowerPrefix(`{`)                     // → ""
-//	lowerPrefix(`{""}`)                  // → ""
-//	lowerPrefix(`not json`)              // → ""
-func lowerPrefix(json string) (raw string) {
+//	leadingLowercase(`{"name": "Alice"}`)     // → "name"
+//	leadingLowercase(`{"id": 42, "active": true}`)  // → "id"
+//	leadingLowercase(`{"UserID": 123}`)       // → "" (first letter is uppercase)
+//	leadingLowercase(`{`)                     // → ""
+//	leadingLowercase(`{""}`)                  // → ""
+//	leadingLowercase(`not json`)              // → ""
+func leadingLowercase(json string) (raw string) {
 	for i := 1; i < len(json); i++ {
 		if json[i] < 'a' || json[i] > 'z' {
 			return json[:i]

@@ -73,14 +73,14 @@ func Parse(json string) Context {
 			} else {
 				// null
 				value.kind = Null
-				value.raw = lowerPrefix(json[i:])
+				value.raw = leadingLowercase(json[i:])
 			}
 		case 't':
 			value.kind = True
-			value.raw = lowerPrefix(json[i:])
+			value.raw = leadingLowercase(json[i:])
 		case 'f':
 			value.kind = False
-			value.raw = lowerPrefix(json[i:])
+			value.raw = leadingLowercase(json[i:])
 		case '"':
 			value.kind = String
 			value.raw, value.str = unescapeJSONEncoded(json[i:])

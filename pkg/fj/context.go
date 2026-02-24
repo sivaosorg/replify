@@ -1563,15 +1563,15 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result qCtx) {
 			value.str, value.num = "", 0
 		case 'n':
 			value.kind = Null
-			value.raw = lowerPrefix(json[i:])
+			value.raw = leadingLowercase(json[i:])
 			value.str, value.num = "", 0
 		case 't':
 			value.kind = True
-			value.raw = lowerPrefix(json[i:])
+			value.raw = leadingLowercase(json[i:])
 			value.str, value.num = "", 0
 		case 'f':
 			value.kind = False
-			value.raw = lowerPrefix(json[i:])
+			value.raw = leadingLowercase(json[i:])
 			value.str, value.num = "", 0
 		case '"':
 			value.kind = String

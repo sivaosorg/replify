@@ -3,6 +3,7 @@ package fj
 import (
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
 	"unsafe"
@@ -584,14 +585,14 @@ func unescape(json string) string {
 				if i+5 > len(json) {
 					return string(str)
 				}
-				r := hex2Rune(json[i+1:]) // Decode the Unicode code point (assuming `goRune` is a helper function).
+				r := hexToRune(json[i+1:]) // Decode the Unicode code point (assuming `goRune` is a helper function).
 				i += 5
 				if utf16.IsSurrogate(r) { // Check for surrogate pairs (used for characters outside the Basic Multilingual Plane).
 					// If a second surrogate is found, decode it into the correct rune.
 					if len(json[i:]) >= 6 && json[i] == '\\' &&
 						json[i+1] == 'u' {
 						// Decode the second part of the surrogate pair.
-						r = utf16.DecodeRune(r, hex2Rune(json[i+2:]))
+						r = utf16.DecodeRune(r, hexToRune(json[i+2:]))
 						i += 6
 					}
 				}
@@ -607,7 +608,7 @@ func unescape(json string) string {
 	return string(str)
 }
 
-// hex2Rune converts a hexadecimal Unicode escape sequence (represented as a string)
+// hexToRune converts a hexadecimal Unicode escape sequence (represented as a string)
 // into the corresponding Unicode code point (rune).
 //
 // This function expects a string containing a 4-digit hexadecimal number that represents
@@ -631,12 +632,18 @@ func unescape(json string) string {
 // Example Usage:
 //
 //		input := "0048" // Hexadecimal for Unicode character 'H'
-//		result := hex2Rune(input)
+//		result := hexToRune(input)
 //		// result: 'H' (rune corresponding to U+0048)
 //
 //	  Note: This function is specifically designed to handle only the first 4 characters of a Unicode escape sequence.
-func hex2Rune(json string) rune {
-	n, _ := strconv.ParseUint(json[:4], 16, 64)
+func hexToRune(s string) rune {
+	if strutil.IsEmpty(s) || len(s) < 4 {
+		return unicode.ReplacementChar
+	}
+	n, err := strconv.ParseUint(s[:4], 16, 32) // strconv.ParseUint(json[:4], 16, 64): Parse the first 4 characters of the input string as a 16-bit hexadecimal number.
+	if err != nil {
+		return unicode.ReplacementChar
+	}
 	return rune(n)
 }
 

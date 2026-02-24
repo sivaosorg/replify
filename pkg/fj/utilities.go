@@ -1556,7 +1556,7 @@ func parseStaticSegment(path string) (pathStatic, result string, ok bool) {
 		switch name[0] {
 		case '{', '[', '"', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7',
 			'8', '9':
-			_, result = parseJSONSquash(name, 0)
+			_, result = extractJSONValue(name, 0)
 			pathStatic = name[len(result):]
 			return pathStatic, result, true
 		}
@@ -2131,7 +2131,7 @@ func parseJSONLiteral(json string, i int) (int, string) {
 	return i, json[s:]
 }
 
-// parseJSONSquash processes a JSON string starting from a given index `i`, squashing (flattening) any nested JSON structures
+// extractJSONValue processes a JSON string starting from a given index `i`, squashing (flattening) any nested JSON structures
 // (such as arrays, objects, or even parentheses) into a single value. The function handles strings, nested objects,
 // arrays, and parentheses while ignoring the nested structures themselves, only returning the top-level JSON structure
 // from the starting point.
@@ -2150,7 +2150,7 @@ func parseJSONLiteral(json string, i int) (int, string) {
 // Example Usage:
 //
 //	json := "[{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }]"
-//	i, result := parseJSONSquash(json, 0)
+//	i, result := extractJSONValue(json, 0)
 //	// result: "{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }" (flattened to top-level content)
 //	// i: the index after the closing ']' of the outer array
 //
@@ -2162,7 +2162,7 @@ func parseJSONLiteral(json string, i int) (int, string) {
 //   - If a string is encountered (enclosed in double quotes), it processes the string contents carefully, respecting escape sequences.
 //   - The function ensures that nested structures (arrays, objects, or parentheses) are ignored, effectively "squashing" the
 //     content into the outermost structure, while the depth ensures that only the highest-level structure is returned.
-func parseJSONSquash(json string, i int) (int, string) {
+func extractJSONValue(json string, i int) (int, string) {
 	if strutil.IsEmpty(json) || i < 0 {
 		return i, json
 	}
@@ -2248,7 +2248,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 	var val string
 	for ; i < len(json); i++ {
 		if json[i] == '{' || json[i] == '[' {
-			i, val = parseJSONSquash(json, i)
+			i, val = extractJSONValue(json, i)
 			if hit {
 				ctx.raw = val
 				ctx.kind = JSON
@@ -2460,7 +2460,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 						return i, true
 					}
 				} else {
-					i, val = parseJSONSquash(c.json, i)
+					i, val = extractJSONValue(c.json, i)
 					if hit {
 						c.val.raw = val
 						c.val.kind = JSON
@@ -2474,7 +2474,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 						return i, true
 					}
 				} else {
-					i, val = parseJSONSquash(c.json, i)
+					i, val = extractJSONValue(c.json, i)
 					if hit {
 						c.val.raw = val
 						c.val.kind = JSON
@@ -2960,7 +2960,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 						return i, true
 					}
 				} else {
-					i, val = parseJSONSquash(c.json, i)
+					i, val = extractJSONValue(c.json, i)
 					if analysis.query.on {
 						if executeQuery(Context{raw: val, kind: JSON}) {
 							return i, true
@@ -2984,7 +2984,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 						return i, true
 					}
 				} else {
-					i, val = parseJSONSquash(c.json, i)
+					i, val = extractJSONValue(c.json, i)
 					if analysis.query.on {
 						if executeQuery(Context{raw: val, kind: JSON}) {
 							return i, true

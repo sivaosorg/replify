@@ -1575,7 +1575,7 @@ func (ctx Context) parseJSONElements(vc byte, valueSize bool) (result qCtx) {
 			value.str, value.num = "", 0
 		case '"':
 			value.kind = String
-			value.raw, value.str = unescapeJSONEncoded(json[i:])
+			value.raw, value.str = extractAndUnescapeJSONString(json[i:])
 			value.num = 0
 		}
 		value.idx = i + ctx.idx

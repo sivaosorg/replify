@@ -83,7 +83,7 @@ func Parse(json string) Context {
 			value.raw = leadingLowercase(json[i:])
 		case '"':
 			value.kind = String
-			value.raw, value.str = unescapeJSONEncoded(json[i:])
+			value.raw, value.str = extractAndUnescapeJSONString(json[i:])
 		default:
 			return Context{}
 		}

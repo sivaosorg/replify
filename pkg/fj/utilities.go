@@ -1580,7 +1580,7 @@ func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok b
 	return staticPrefix, literalValue, false
 }
 
-// unescapeJSONEncoded extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
+// extractAndUnescapeJSONString extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
 // The function processes the input string to handle escaped characters and returns a clean, unescaped version of the string
 // as well as the portion of the JSON string that includes the enclosing quotes.
 //
@@ -1595,12 +1595,12 @@ func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok b
 // Example Usage:
 //
 //	input := "\"Hello\\nWorld\""
-//	raw, str := unescapeJSONEncoded(input)
+//	raw, str := extractAndUnescapeJSONString(input)
 //	// raw: "\"Hello\\nWorld\"" (the full JSON string with quotes)
 //	// str: "Hello\nWorld" (the unescaped string content)
 //
 //	input := "\"This is a \\\"quoted\\\" word\""
-//	raw, str := unescapeJSONEncoded(input)
+//	raw, str := extractAndUnescapeJSONString(input)
 //	// raw: "\"This is a \\\"quoted\\\" word\""
 //	// str: "This is a \"quoted\" word" (the unescaped string content)
 //
@@ -1618,7 +1618,7 @@ func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok b
 //   - If the string is well-formed, the function returns the entire JSON string with quotes (`raw`) and the unescaped string (`str`).
 //
 //   - If an unescaped string is not found or the JSON string doesn't match expected formats, the function returns the string as is.
-func unescapeJSONEncoded(json string) (raw string, unescaped string) {
+func extractAndUnescapeJSONString(json string) (quoted string, unescaped string) {
 	for i := 1; i < len(json); i++ {
 		if json[i] > '\\' {
 			continue

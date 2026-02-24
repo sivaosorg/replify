@@ -1426,7 +1426,7 @@ func (ctx Context) Less(token Context, caseSensitive bool) bool {
 		if caseSensitive {
 			return ctx.str < token.str
 		}
-		return lessInsensitive(ctx.str, token.str)
+		return lessFold(ctx.str, token.str)
 	}
 	if ctx.kind == Number {
 		return ctx.num < token.num

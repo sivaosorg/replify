@@ -653,9 +653,20 @@ func hexToRune(s string) rune {
 	return rune(n)
 }
 
-// lessInsensitive compares two strings a and b in a case-insensitive manner.
-// It returns true if string a is lexicographically less than string b, ignoring case differences.
-// If both strings are equal in a case-insensitive comparison, it returns false.
+// lessFold reports whether a lexicographically precedes b under simple Unicode
+// case-folding (a case-insensitive comparison).
+//
+// It compares byte-by-byte, folding uppercase ASCII letters to lowercase on the fly
+// without allocation or full string conversion. Only ASCII letters are case-folded;
+// non-ASCII characters are compared as-is.
+//
+// This is a lightweight alternative to strings.Compare with case-insensitivity for
+// ASCII-heavy keys (e.g. HTTP headers, identifiers, simple sorting).
+//
+// It returns true if a < b (case-insensitive), false if a >= b.
+//
+// For full Unicode correctness prefer strings.EqualFold + custom less logic or
+// golang.org/x/text/collate when performance is not critical.
 //
 // Parameters:
 //   - `a`: The first string to compare.
@@ -673,12 +684,12 @@ func hexToRune(s string) rune {
 //
 // Example Usage:
 //
-//	result := lessInsensitive("apple", "Apple")
+//	result := lessFold("apple", "Apple")
 //	// result: false, because "apple" and "Apple" are considered equal when case is ignored
 //
-//	result := lessInsensitive("apple", "banana")
+//	result := lessFold("apple", "banana")
 //	// result: true, because "apple" is lexicographically smaller than "banana"
-func lessInsensitive(a, b string) bool {
+func lessFold(a, b string) bool {
 	for i := 0; i < len(a) && i < len(b); i++ {
 		if a[i] >= 'A' && a[i] <= 'Z' {
 			if b[i] >= 'A' && b[i] <= 'Z' {

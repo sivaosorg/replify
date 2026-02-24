@@ -176,9 +176,9 @@ func transformPretty(json, arg string) string {
 			}
 			return true
 		})
-		return strutil.SafeStr(encoding.PrettyOptions(unsafeStringToBytes(json), &opts))
+		return strutil.SafeStr(encoding.PrettyOptions(UnsafeBytes(json), &opts))
 	}
-	return strutil.SafeStr(encoding.Pretty(unsafeStringToBytes(json)))
+	return strutil.SafeStr(encoding.Pretty(UnsafeBytes(json)))
 }
 
 // transformMinify removes all whitespace characters from the input JSON string,
@@ -221,7 +221,7 @@ func transformPretty(json, arg string) string {
 //     whitespace from the JSON data.
 //   - This function is often used to reduce the size of JSON data for storage or transmission.
 func transformMinify(json, arg string) string {
-	return strutil.SafeStr(encoding.Ugly(unsafeStringToBytes(json)))
+	return strutil.SafeStr(encoding.Ugly(UnsafeBytes(json)))
 }
 
 // transformReverse reverses the order of elements in an array or the order of key-value

@@ -3182,6 +3182,29 @@ func SafeStr(b []byte) string {
 	return string(b)
 }
 
+// SafeBytes converts a string to a byte slice safely.
+//
+// Parameters:
+//   - s: The string to convert.
+//
+// Returns:
+//   - A byte slice representation of the string.
+//
+// Notes:
+//   - This function use safe operations to convert a string to a byte slice.
+//   - It is safer than UnsafeBytes because it does not use unsafe operations.
+//   - It is slower than UnsafeBytes because it copies the data.
+//
+// Example:
+//
+//	result := SafeBytes("hello") // result will be []byte("hello")
+func SafeBytes(s string) []byte {
+	if IsEmpty(s) {
+		return nil
+	}
+	return []byte(s)
+}
+
 // isDelimiter checks if a character is a delimiter.
 //
 // This helper function determines whether a given character `c` is a

@@ -11,6 +11,43 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
+// UnsafeBytes converts a string into a byte slice without allocating new memory for the data.
+// This function uses unsafe operations to directly reinterpret the string's underlying data
+// structure as a byte slice. This allows efficient access to the string's content as a mutable
+// byte slice, but it also comes with risks.
+//
+// Parameters:
+//   - `s`: The input string that needs to be converted to a byte slice.
+//
+// Returns:
+//   - A byte slice (`[]byte`) that shares the same underlying data as the input string.
+//
+// Notes:
+//   - This function leverages Go's `unsafe` package to bypass the usual safety mechanisms
+//     of the Go runtime. It does this by manipulating memory layouts using `unsafe.Pointer`.
+//   - The resulting byte slice must be treated with care. Modifying the byte slice can lead
+//     to undefined behavior since strings in Go are immutable by design.
+//   - Any operation that depends on the immutability of the original string should avoid using this function.
+//
+// Safety Considerations:
+//   - Since this function operates on unsafe pointers, it is not portable across different
+//     Go versions or architectures.
+//   - Direct modifications to the returned byte slice will violate Go's immutability guarantees
+//     for strings and may corrupt program state.
+//
+// Example Usage:
+//
+//	s := "immutable string"
+//	b := UnsafeBytes(s) // Efficiently converts the string to []byte
+//	// WARNING: Modifying 'b' here can lead to undefined behavior.
+func UnsafeBytes(s string) []byte {
+	return *(*[]byte)(unsafe.Pointer(&sliceHeader{
+		data: (*stringHeader)(unsafe.Pointer(&s)).data,
+		n:    len(s),
+		cap:  len(s),
+	}))
+}
+
 // tokenizeNumber scans json starting at position 0—assumed to be the beginning
 // of a numeric literal—and returns the raw numeric token and its float64 value.
 //
@@ -321,43 +358,6 @@ func computeIndex(json string, c *parser) {
 			c.val.idx = 0
 		}
 	}
-}
-
-// unsafeStringToBytes converts a string into a byte slice without allocating new memory for the data.
-// This function uses unsafe operations to directly reinterpret the string's underlying data
-// structure as a byte slice. This allows efficient access to the string's content as a mutable
-// byte slice, but it also comes with risks.
-//
-// Parameters:
-//   - `s`: The input string that needs to be converted to a byte slice.
-//
-// Returns:
-//   - A byte slice (`[]byte`) that shares the same underlying data as the input string.
-//
-// Notes:
-//   - This function leverages Go's `unsafe` package to bypass the usual safety mechanisms
-//     of the Go runtime. It does this by manipulating memory layouts using `unsafe.Pointer`.
-//   - The resulting byte slice must be treated with care. Modifying the byte slice can lead
-//     to undefined behavior since strings in Go are immutable by design.
-//   - Any operation that depends on the immutability of the original string should avoid using this function.
-//
-// Safety Considerations:
-//   - Since this function operates on unsafe pointers, it is not portable across different
-//     Go versions or architectures.
-//   - Direct modifications to the returned byte slice will violate Go's immutability guarantees
-//     for strings and may corrupt program state.
-//
-// Example Usage:
-//
-//	s := "immutable string"
-//	b := unsafeStringToBytes(s) // Efficiently converts the string to []byte
-//	// WARNING: Modifying 'b' here can lead to undefined behavior.
-func unsafeStringToBytes(s string) []byte {
-	return *(*[]byte)(unsafe.Pointer(&sliceHeader{
-		data: (*stringHeader)(unsafe.Pointer(&s)).data,
-		n:    len(s),
-		cap:  len(s),
-	}))
 }
 
 // leadingLowercase extracts the initial contiguous sequence of lowercase alphabetic characters

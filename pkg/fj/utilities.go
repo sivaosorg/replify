@@ -1501,7 +1501,7 @@ func parseUint64(s string) (n uint64, ok bool) {
 	return num, true
 }
 
-// parseStaticSegment parses a string path to find a static value, such as a boolean, null, or number.
+// splitStaticAndLiteral parses a string path to find a static value, such as a boolean, null, or number.
 // The function expects that the input path starts with a '!', indicating a static value. It identifies the static
 // value by looking for valid characters and structures that represent literal values in a path. If a valid static value
 // is found, it returns the remaining path, the static value, and a success flag. Otherwise, it returns false.
@@ -1521,13 +1521,13 @@ func parseUint64(s string) (n uint64, ok bool) {
 // Example Usage:
 //
 //	path := "!true.some.other.path"
-//	pathOut, result, ok := parseStaticSegment(path)
+//	pathOut, result, ok := splitStaticAndLiteral(path)
 //	// pathOut: ".some.other.path" (remaining path)
 //	// result: "true" (the static value found)
 //	// ok: true (successful identification of static value)
 //
 //	path = "!123.abc"
-//	pathOut, result, ok = parseStaticSegment(path)
+//	pathOut, result, ok = splitStaticAndLiteral(path)
 //	// pathOut: ".abc" (remaining path)
 //	// result: "123" (the static value found)
 //	// ok: true (successful identification of static value)
@@ -1550,34 +1550,34 @@ func parseUint64(s string) (n uint64, ok bool) {
 //   - The function assumes that the input path is well-formed and follows the expected format (starting with '!').
 //
 //   - The value can be a boolean, null, NaN, Inf, or a number in the path.
-func parseStaticSegment(path string) (pathStatic, result string, ok bool) {
+func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok bool) {
 	name := path[1:]
 	if len(name) > 0 {
 		switch name[0] {
 		case '{', '[', '"', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7',
 			'8', '9':
-			_, result = extractJSONValue(name, 0)
-			pathStatic = name[len(result):]
-			return pathStatic, result, true
+			_, literalValue = extractJSONValue(name, 0)
+			staticPrefix = name[len(literalValue):]
+			return staticPrefix, literalValue, true
 		}
 	}
 	for i := 1; i < len(path); i++ {
 		if path[i] == '|' {
-			pathStatic = path[i:]
+			staticPrefix = path[i:]
 			name = path[1:i]
 			break
 		}
 		if path[i] == '.' {
-			pathStatic = path[i:]
+			staticPrefix = path[i:]
 			name = path[1:i]
 			break
 		}
 	}
 	switch strings.ToLower(name) {
 	case "true", "false", "null", "nan", "inf":
-		return pathStatic, name, true
+		return staticPrefix, name, true
 	}
-	return pathStatic, result, false
+	return staticPrefix, literalValue, false
 }
 
 // unescapeJSONEncoded extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.

@@ -280,7 +280,7 @@ func Get(json, path string) Context {
 			if path[0] == '@' && !DisableTransformers {
 				cPath, cJson, ok = adjustTransformer(json, path)
 			} else if path[0] == '!' {
-				cPath, cJson, ok = parseStaticSegment(path)
+				cPath, cJson, ok = splitStaticAndLiteral(path)
 			}
 			if ok {
 				path = cPath

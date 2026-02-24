@@ -413,16 +413,14 @@ func unsafeBytesToString(b []byte) string {
 //   - The comparison checks (`json[i] < 'a' || json[i] > 'z'`) ensure that the character
 //     falls outside the range of lowercase alphabetic ASCII values.
 //
-// Example Usage:
+// Examples:
 //
-//	s := "abc123xyz"
-//	result := lowerPrefix(s) // result: "abc"
-//
-//	s = "123abc"
-//	result := lowerPrefix(s) // result: ""
-//
-//	s = "only.lowercase"
-//	result := lowerPrefix(s) // result: "only.lowercase"
+//	lowerPrefix(`{"name": "Alice"}`)     // → "name"
+//	lowerPrefix(`{"id": 42, "active": true}`)  // → "id"
+//	lowerPrefix(`{"UserID": 123}`)       // → "" (first letter is uppercase)
+//	lowerPrefix(`{`)                     // → ""
+//	lowerPrefix(`{""}`)                  // → ""
+//	lowerPrefix(`not json`)              // → ""
 func lowerPrefix(json string) (raw string) {
 	for i := 1; i < len(json); i++ {
 		if json[i] < 'a' || json[i] > 'z' {
@@ -432,39 +430,69 @@ func lowerPrefix(json string) (raw string) {
 	return json
 }
 
-// squash processes a JSON string and returns a version of it that "squashes" or reduces its
-// structure by removing nested objects and arrays, stopping at the top-level object or array.
-// It assumes that the input string starts with a valid JSON structure, i.e., a '[' (array),
-// '{' (object), '(' (another variant of object), or '"' (string). The function also ignores
-// escaped characters (like quotes within strings) to avoid premature termination of the string.
+// squash returns the shortest prefix of json that forms a complete top‑level
+// JSON token and discards the rest. If json starts with a double quote, the
+// token is treated as a JSON string literal; otherwise it is treated as a
+// delimited structure and scanned by nesting depth until the matching closing
+// brace/bracket/paren is found.
+//
+// The scanner is tolerant and lightweight: it does not perform full JSON
+// validation and only tracks enough structure to identify the end of the first
+// token. String literals are handled with proper recognition of escaped quotes
+// by counting backslashes. For structural tokens, nesting depth is incremented
+// on '{', '[', '(' and decremented on '}', ']', ')'.
 //
 // Parameters:
-//   - `json`: The input JSON string that needs to be squashed by ignoring all nested structures.
+//   - json: non-empty input whose first byte must be either '"' (for a string
+//     literal) or the beginning of a structured value such as '{' or '['.
+//     Parentheses are also recognized for depth tracking even though they are
+//     not part of standard JSON.
 //
 // Returns:
-//   - A string that contains the squashed JSON, stopping at the first level of nested objects/arrays.
-//     If no nested structures exist, it will return the original string.
+//   - string: a substring of the input containing exactly the first complete
+//     top-level token. If the input does not contain a matching closing
+//     delimiter (unterminated token), the original input is returned.
 //
-// Notes:
-//   - The function expects the input JSON string to begin with a valid starting character such as
-//     an opening quote ('"'), opening brace ('{'), opening bracket ('['), or opening parenthesis ('(').
-//     It processes the string to remove all nested objects or arrays, stopping when it reaches the
-//     corresponding closing brace, bracket, or parenthesis.
-//   - It tracks depth using the `depth` variable, which increments when encountering an opening
-//     brace, bracket, or parenthesis, and decrements when encountering the corresponding closing
-//     brace, bracket, or parenthesis.
-//   - If the function encounters a string enclosed in double quotes, it processes the string carefully,
-//     skipping over any escaped quotes to avoid breaking the structure prematurely.
-//   - Once the top-level structure (array, object, or string) is fully processed, it returns the squashed
-//     JSON as a string, effectively ignoring the contents of any nested arrays or objects.
+// Assumptions & Invariants:
+//   - The input must be non-empty; otherwise this function will panic due to
+//     indexing json[0].
+//   - Escaped quotes inside string literals are identified by counting
+//     consecutive backslashes immediately preceding a quote.
+//   - Only byte-level scanning is performed; it does not interpret Unicode
+//     escapes or validate numeric/boolean/null tokens.
 //
-// Example Usage:
+// Limitations & Nuances:
+//   - This is a heuristic tokenizer, not a complete JSON parser. It may accept
+//     some non-JSON delimiters (parentheses) purely for depth tracking.
+//   - It does not verify overall JSON correctness; it only finds the end of
+//     the first top-level token if present.
+//   - If no closing delimiter is found for structured input, the function
+//     returns the original string unchanged.
+//   - Only ASCII-relevant characters are examined for structure; other bytes
+//     are scanned transparently.
 //
-//	json := `{"key": [1, 2, {"nestedKey": "value"}]}`
-//	result := squash(json) // result: '{"key": [1, 2, {"nestedKey": "value"}]}'
+// Performance & Memory:
+//   - Runs in O(n) time over the input.
+//   - Zero allocations: the returned value is a substring that shares the
+//     original string’s backing storage; callers should copy it if long-term
+//     retention without holding the full input is required.
 //
-//	json := `{"key": {"innerKey": "value"}}`
-//	result := squash(json) // result: '{"key": {"innerKey": "value"}}'
+// Examples:
+//
+//	// Object token
+//	in := `{"a":1,"b":[2,3]} trailing`
+//	out := squash(in)
+//	// out == `{"a":1,"b":[2,3]}`
+//
+//	// String with escaped quote
+//	in = `"he said \"hi\"" extra`
+//	out = squash(in)
+//	// out == `"he said \"hi\""`
+//
+//	// Unterminated structure returns original
+//	in = `{"a":1`
+//	out = squash(in)
+//	// out == `{"a":1`
 func squash(json string) string {
 	var i, depth int
 	// If the first character is not a quote, initialize i and depth for the JSON object/array parsing.

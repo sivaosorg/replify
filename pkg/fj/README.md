@@ -181,7 +181,7 @@ fmt.Println(ctx.String()) // deep
 
 ### Working with Bytes (no-allocation)
 
-When JSON is already in a `[]byte` slice, use `GetBytes` to avoid converting to string. To further avoid converting `ctx.Unprocessed()` back to `[]byte`, use `ctx.Index()` as a zero-allocation sub-slice:
+When JSON is already in a `[]byte` slice, use `GetBytes` to avoid converting to string. To further avoid converting `ctx.Raw()` back to `[]byte`, use `ctx.Index()` as a zero-allocation sub-slice:
 
 ```go
 package main
@@ -199,9 +199,9 @@ func main() {
     // Zero-allocation sub-slice of the original []byte
     var raw []byte
     if ctx.Index() > 0 {
-        raw = data[ctx.Index() : ctx.Index()+len(ctx.Unprocessed())]
+        raw = data[ctx.Index() : ctx.Index()+len(ctx.Raw())]
     } else {
-        raw = []byte(ctx.Unprocessed())
+        raw = []byte(ctx.Raw())
     }
     fmt.Println(string(raw)) // ["Admin","Editor"]
 }

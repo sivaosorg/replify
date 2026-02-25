@@ -1342,6 +1342,85 @@ func expectJSON(data []byte, i int) (newPos int, ok bool) {
 	return i, false // Return false if the end of data is reached without a valid payload.
 }
 
+// extractJSONValue processes a JSON string starting from a given index `i`, squashing (flattening) any nested JSON structures
+// (such as arrays, objects, or even parentheses) into a single value. The function handles strings, nested objects,
+// arrays, and parentheses while ignoring the nested structures themselves, only returning the top-level JSON structure
+// from the starting point.
+//
+// Parameters:
+//   - `json`: A string representing the JSON data to be parsed. This string can include various JSON constructs like
+//     strings, objects, arrays, and nested structures within parentheses.
+//   - `i`: The index in the `json` string from which parsing should begin. The function assumes that the character
+//     at this index is the opening character of a JSON array ('['), object ('{'), or parentheses ('(').
+//
+// Returns:
+//   - `int`: The new index after the parsing of the JSON structure, which is after the closing bracket/parenthesis/brace.
+//   - `string`: A string containing the flattened JSON structure starting from the opening character and squashing all
+//     nested structures until the corresponding closing character is reached.
+//
+// Example Usage:
+//
+//	json := "[{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }]"
+//	i, result := extractJSONValue(json, 0)
+//	// result: "{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }" (flattened to top-level content)
+//	// i: the index after the closing ']' of the outer array
+//
+// Details:
+//   - The function expects that the character at index `i` is an opening character for an array, object, or parentheses,
+//     and it will proceed to skip over any nested structures of the same type (i.e., arrays, objects, or parentheses).
+//   - The depth of nesting is tracked, and whenever the function encounters a closing bracket (']'), brace ('}'), or parenthesis
+//     (')'), it checks if the depth has returned to 0 (indicating the end of the top-level structure).
+//   - If a string is encountered (enclosed in double quotes), it processes the string contents carefully, respecting escape sequences.
+//   - The function ensures that nested structures (arrays, objects, or parentheses) are ignored, effectively "squashing" the
+//     content into the outermost structure, while the depth ensures that only the highest-level structure is returned.
+func extractJSONValue(json string, i int) (newPos int, value string) {
+	if strutil.IsEmpty(json) || i < 0 {
+		return i, ""
+	}
+	s := i
+	i++
+	depth := 1
+	for ; i < len(json); i++ {
+		if json[i] >= '"' && json[i] <= '}' {
+			switch json[i] {
+			case '"':
+				i++
+				s2 := i
+				for ; i < len(json); i++ {
+					if json[i] > '\\' {
+						continue
+					}
+					if json[i] == '"' {
+						// look for an escaped slash
+						if json[i-1] == '\\' {
+							n := 0
+							for j := i - 2; j > s2-1; j-- {
+								if json[j] != '\\' {
+									break
+								}
+								n++
+							}
+							if n%2 == 0 {
+								continue
+							}
+						}
+						break
+					}
+				}
+			case '{', '[', '(':
+				depth++
+			case '}', ']', ')':
+				depth--
+				if depth == 0 {
+					i++
+					return i, json[s:i]
+				}
+			}
+		}
+	}
+	return i, json[s:]
+}
+
 // extractJSONString scans json starting at index i (immediately after an opening
 // double quote at json[i-1]) and returns the position just past the matching
 // closing quote, the quoted substring including both quotes, whether any escape
@@ -1502,6 +1581,71 @@ func extractJSONNumber(json string, i int) (newPos int, number string) {
 	for ; i < len(json); i++ {
 		if json[i] <= ' ' || json[i] == ',' || json[i] == ']' ||
 			json[i] == '}' {
+			return i, json[s:i]
+		}
+	}
+	return i, json[s:]
+}
+
+// extractJSONLowerLiteral scans json beginning at index i—expected to point to
+// the first byte of a lowercase JSON literal (such as true, false, or null in
+// lowercase form)—and returns the position just after the contiguous run of
+// lowercase ASCII letters along with the substring that forms that literal.
+//
+// The scan is purely lexical. It does not validate that the substring
+// corresponds to a valid JSON literal; it only consumes consecutive bytes in
+// the range 'a'–'z'. Callers must validate the returned literal if correctness
+// is required.
+//
+// Parameters:
+//   - json: the source text containing a JSON value or literal.
+//   - i: index of the first lowercase rune to scan. If json is empty or i < 0,
+//     the function returns i and json unchanged.
+//
+// Returns:
+//   - newPos: index immediately following the last consumed lowercase letter.
+//   - literal: the zero‑copy substring of json containing the scanned run.
+//     Copy it if you need to retain it independently.
+//
+// Assumptions & Invariants:
+//   - The caller positions i at the first character of the literal. If i does
+//     not point to a lowercase ASCII letter, the returned slice may be empty or
+//     unintended.
+//   - Only ASCII lowercase a–z are consumed; no attempt is made to interpret
+//     Unicode letters or validate against JSON’s allowed literal set.
+//
+// Limitations & Nuances:
+//   - This function does not confirm whether the extracted text is "true",
+//     "false", "null", or any other valid JSON literal.
+//   - No error value is returned; callers must rely on semantic validation
+//     after extraction.
+//   - If the end of json is reached with no delimiter encountered, literal
+//     extends to the end.
+//
+// Performance:
+//   - Runs in O(n) over the scanned suffix and performs no allocations.
+//
+// Examples:
+//
+//	// Basic literal
+//	pos, lit := extractJSONLowerLiteral("true,", 0)
+//	// pos == 4, lit == "true"
+//
+//	// Mixed characters: stops at non-lowercase
+//	pos, lit = extractJSONLowerLiteral("falseXrest", 0)
+//	// pos == 5, lit == "false"
+//
+//	// Input too short or invalid start index
+//	pos, lit = extractJSONLowerLiteral("", 0)
+//	// pos == 0, lit == ""
+func extractJSONLowerLiteral(json string, i int) (newPos int, literal string) {
+	if strutil.IsEmpty(json) || i < 0 {
+		return i, json
+	}
+	var s = i
+	i++
+	for ; i < len(json); i++ {
+		if json[i] < 'a' || json[i] > 'z' {
 			return i, json[s:i]
 		}
 	}
@@ -2160,132 +2304,6 @@ func splitPathSegment(path string) (r wildcard) {
 	return
 }
 
-// parseJSONLiteral parses a literal value (e.g., "true", "false", or "null") from a JSON-encoded input string,
-// starting from a given index `i` and extracting the literal value up to a non-alphabetic character or JSON delimiter.
-//
-// Parameters:
-//   - `json`: A JSON string that may contain literal values (such as "true", "false", or "null").
-//   - `i`: The index in the `json` string to begin parsing from. The function expects this to point to the first character of the literal.
-//
-// Returns:
-//   - `i`: The index immediately following the last character of the parsed literal value, or the point where parsing ends if no valid literal is found.
-//   - `raw`: The substring of `json` that represents the literal value (e.g., "true", "false", "null").
-//
-// Example Usage:
-//
-//	json := "true"
-//	i, raw := parseJSONLiteral(json, 0)
-//	// raw: "true" (the parsed literal value)
-//	// i: the index after the last character of the literal (4)
-//
-//	json = "false"
-//	i, raw = parseJSONLiteral(json, 0)
-//	// raw: "false" (the parsed literal value)
-//	// i: the index after the last character of the literal (5)
-//
-//	json = "null"
-//	i, raw = parseJSONLiteral(json, 0)
-//	// raw: "null" (the parsed literal value)
-//	// i: the index after the last character of the literal (4)
-//
-// Details:
-//   - The function begins parsing from the given index `i` and continues until it encounters a character that is not part of a valid literal (i.e., characters outside the range of 'a' to 'z').
-//   - It handles JSON literal values like "true", "false", and "null" by checking for consecutive alphabetic characters.
-//   - The function stops parsing as soon as it encounters a non-alphabetic character such as whitespace, a comma, or a closing JSON delimiter (`}` or `]`), which indicates the end of the literal value in the JSON structure.
-//   - The function returns the parsed literal string along with the index that follows the literal's last character.
-func parseJSONLiteral(json string, i int) (int, string) {
-	if strutil.IsEmpty(json) || i < 0 {
-		return i, json
-	}
-	var s = i
-	i++
-	for ; i < len(json); i++ {
-		if json[i] < 'a' || json[i] > 'z' {
-			return i, json[s:i]
-		}
-	}
-	return i, json[s:]
-}
-
-// extractJSONValue processes a JSON string starting from a given index `i`, squashing (flattening) any nested JSON structures
-// (such as arrays, objects, or even parentheses) into a single value. The function handles strings, nested objects,
-// arrays, and parentheses while ignoring the nested structures themselves, only returning the top-level JSON structure
-// from the starting point.
-//
-// Parameters:
-//   - `json`: A string representing the JSON data to be parsed. This string can include various JSON constructs like
-//     strings, objects, arrays, and nested structures within parentheses.
-//   - `i`: The index in the `json` string from which parsing should begin. The function assumes that the character
-//     at this index is the opening character of a JSON array ('['), object ('{'), or parentheses ('(').
-//
-// Returns:
-//   - `int`: The new index after the parsing of the JSON structure, which is after the closing bracket/parenthesis/brace.
-//   - `string`: A string containing the flattened JSON structure starting from the opening character and squashing all
-//     nested structures until the corresponding closing character is reached.
-//
-// Example Usage:
-//
-//	json := "[{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }]"
-//	i, result := extractJSONValue(json, 0)
-//	// result: "{ \"key\": \"value\" }, { \"nested\": [1, 2, 3] }" (flattened to top-level content)
-//	// i: the index after the closing ']' of the outer array
-//
-// Details:
-//   - The function expects that the character at index `i` is an opening character for an array, object, or parentheses,
-//     and it will proceed to skip over any nested structures of the same type (i.e., arrays, objects, or parentheses).
-//   - The depth of nesting is tracked, and whenever the function encounters a closing bracket (']'), brace ('}'), or parenthesis
-//     (')'), it checks if the depth has returned to 0 (indicating the end of the top-level structure).
-//   - If a string is encountered (enclosed in double quotes), it processes the string contents carefully, respecting escape sequences.
-//   - The function ensures that nested structures (arrays, objects, or parentheses) are ignored, effectively "squashing" the
-//     content into the outermost structure, while the depth ensures that only the highest-level structure is returned.
-func extractJSONValue(json string, i int) (int, string) {
-	if strutil.IsEmpty(json) || i < 0 {
-		return i, json
-	}
-	s := i
-	i++
-	depth := 1
-	for ; i < len(json); i++ {
-		if json[i] >= '"' && json[i] <= '}' {
-			switch json[i] {
-			case '"':
-				i++
-				s2 := i
-				for ; i < len(json); i++ {
-					if json[i] > '\\' {
-						continue
-					}
-					if json[i] == '"' {
-						// look for an escaped slash
-						if json[i-1] == '\\' {
-							n := 0
-							for j := i - 2; j > s2-1; j-- {
-								if json[j] != '\\' {
-									break
-								}
-								n++
-							}
-							if n%2 == 0 {
-								continue
-							}
-						}
-						break
-					}
-				}
-			case '{', '[', '(':
-				depth++
-			case '}', ']', ')':
-				depth--
-				if depth == 0 {
-					i++
-					return i, json[s:i]
-				}
-			}
-		}
-	}
-	return i, json[s:]
-}
-
 // parseJSONAny parses the next JSON value from a given JSON string starting at the specified index `i`.
 // The function identifies and processes a variety of JSON value types including objects, arrays, strings, literals (true, false, null),
 // and numeric values. The result of parsing is returned as a `Context` containing relevant information about the parsed value.
@@ -2365,7 +2383,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			fallthrough
 		case 't', 'f':
 			vc := json[i]
-			i, val = parseJSONLiteral(json, i)
+			i, val = extractJSONLowerLiteral(json, i)
 			if hit {
 				ctx.raw = val
 				switch vc {
@@ -2565,7 +2583,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				fallthrough
 			case 't', 'f':
 				vc := c.json[i]
-				i, val = parseJSONLiteral(c.json, i)
+				i, val = extractJSONLowerLiteral(c.json, i)
 				if hit {
 					c.val.raw = val
 					switch vc {
@@ -3082,7 +3100,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				fallthrough
 			case 't', 'f':
 				vc := c.json[i]
-				i, val = parseJSONLiteral(c.json, i)
+				i, val = extractJSONLowerLiteral(c.json, i)
 				if analysis.query.on {
 					var cVal Context
 					cVal.raw = val

@@ -1739,7 +1739,7 @@ func matchesGlob(str, pattern string) bool {
 	return matched
 }
 
-// splitPathPipe splits a given path into two parts around the first unescaped '|' character.
+// splitAtUnescapedPipe splits a given path into two parts around the first unescaped '|' character.
 // It also handles nested structures and ensures correct parsing even when special characters
 // (e.g., braces, brackets, or quotes) are present.
 //
@@ -1773,7 +1773,7 @@ func matchesGlob(str, pattern string) bool {
 //
 //	For Input: `path_without_pipe`
 //	   Returns: `left=""`, `right=""`, `ok=false`
-func splitPathPipe(path string) (left, right string, ok bool) {
+func splitAtUnescapedPipe(path string) (left, right string, ok bool) {
 	var possible bool
 	for i := 0; i < len(path); i++ {
 		if path[i] == '|' {
@@ -2868,7 +2868,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 		}
 		if matchesQueryConditions(&analysis, res) {
 			if analysis.more {
-				left, right, ok := splitPathPipe(analysis.path)
+				left, right, ok := splitAtUnescapedPipe(analysis.path)
 				if ok {
 					analysis.path = left
 					c.pipe = right
@@ -3038,7 +3038,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 			case ']':
 				if analysis.arch && analysis.part == "#" {
 					if analysis.logOk {
-						left, right, ok := splitPathPipe(analysis.logKey)
+						left, right, ok := splitAtUnescapedPipe(analysis.logKey)
 						if ok {
 							analysis.logKey = left
 							c.pipe = right

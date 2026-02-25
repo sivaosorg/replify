@@ -2958,7 +2958,7 @@ func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 			}
 			res = eVal
 		}
-		if matchesQueryConditions(&analysis, res) {
+		if matchesQueryCondition(&analysis, res) {
 			if analysis.more {
 				left, right, ok := splitAtUnescapedPipe(analysis.path)
 				if ok {
@@ -3549,7 +3549,7 @@ func isTruthy(t Context) bool {
 	}
 }
 
-// matchesQueryConditions determines whether a given `Context` value matches the conditions specified in the `meta` query.
+// matchesQueryCondition determines whether a given `Context` value matches the conditions specified in the `meta` query.
 //
 // This function evaluates a JSON path query against a specific `Context` value, checking for matching conditions such as
 // existence, equality, inequality, and other relational operations. It supports operations on strings, numbers, and booleans.
@@ -3582,7 +3582,7 @@ func isTruthy(t Context) bool {
 //
 //	dp := &meta{query: {opt: "=", val: "example"}}
 //	value := Context{kind: String, str: "example"}
-//	matches := matchesQueryConditions(dp, value)
+//	matches := matchesQueryCondition(dp, value)
 //	// matches: true
 //
 // Notes:
@@ -3593,7 +3593,7 @@ func isTruthy(t Context) bool {
 // Limitations:
 //   - String pattern matching (`%`, `!%`) relies on the `matchSafely` function, which is not defined here.
 //   - Unsupported types or operations return `false`.
-func matchesQueryConditions(dp *meta, value Context) bool {
+func matchesQueryCondition(dp *meta, value Context) bool {
 	mt := dp.query.val
 	if len(mt) > 0 {
 		if mt[0] == '~' {

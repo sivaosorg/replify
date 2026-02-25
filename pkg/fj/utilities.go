@@ -1342,165 +1342,6 @@ func expectJSON(data []byte, i int) (newPos int, ok bool) {
 	return i, false // Return false if the end of data is reached without a valid payload.
 }
 
-// lastSegment extracts the last part of a given path string, where the path segments are separated by
-// either a pipe ('|') or a dot ('.'). The function returns the substring after the last separator,
-// taking escape sequences (backslashes) into account. It ensures that any escaped separator is ignored.
-//
-// Parameters:
-//   - path: A string representing the full path, which may contain segments separated by '|' or '.'.
-//
-// Returns:
-//   - A string representing the last segment in the path after the last occurrence of either '|' or '.'.
-//     If no separator is found, it returns the entire input string.
-//
-// Notes:
-//   - The function handles escape sequences where separators are preceded by a backslash ('\').
-//   - If there is no valid separator in the string, the entire path is returned as-is.
-//   - The returned substring is the part after the last separator, which could be the last portion of the path.
-//
-// Example Usage:
-//
-//	path := "foo|bar.baz.qux"
-//	segment := lastSegment(path)
-//	// segment: "qux" (the last segment after the last dot or pipe)
-//
-// Details:
-//   - The function iterates from the end of the string towards the beginning, looking for the last
-//     occurrence of '|' or '.' that is not preceded by a backslash.
-//   - It handles edge cases where the separator is escaped or there are no separators at all.
-func lastSegment(path string) string {
-	for i := len(path) - 1; i >= 0; i-- {
-		if path[i] == '|' || path[i] == '.' {
-			if i > 0 {
-				if path[i-1] == '\\' {
-					continue
-				}
-			}
-			return path[i+1:]
-		}
-	}
-	return path
-}
-
-// isValidName checks if a given string component is a "simple name" according to specific rules.
-// A "simple name" is a string that does not contain any control characters or any of the following special characters:
-// '[' , ']' , '{' , '}' , '(' , ')' , '#' , '|' , '!'. The function returns true if the string meets these criteria.
-//
-// Parameters:
-//   - component: A string to be checked for validity as a simple name.
-//
-// Returns:
-//   - A boolean indicating whether the input string is a valid simple name.
-//   - Returns true if the string contains only printable characters and does not include any of the restricted special characters.
-//   - Returns false if the string contains any control characters or restricted special characters.
-//
-// Notes:
-//   - The function checks each character of the string to ensure it is printable and does not contain any of the restricted characters.
-//   - Control characters are defined as any character with a Unicode value less than a space (' ').
-//   - The function assumes that the string is not empty and contains at least one character.
-//
-// Example Usage:
-//
-//	component := "validName"
-//	isValid := isValidName(component)
-//	// isValid: true (the string contains only valid characters)
-//
-//	component = "invalid|name"
-//	isValid = isValidName(component)
-//	// isValid: false (the string contains an invalid character '|')
-//
-// Details:
-//   - The function iterates through each character of the string and checks whether it is a printable character and whether it
-//     is not one of the restricted special characters. If any invalid character is found, the function returns false immediately.
-func isValidName(component string) bool {
-	if strutil.IsEmpty(component) {
-		return false
-	}
-	if strutil.ContainsAny(component, " ") {
-		return false
-	}
-	for i := 0; i < len(component); i++ {
-		if component[i] < ' ' {
-			return false
-		}
-		switch component[i] {
-		case '[', ']', '{', '}', '(', ')', '#', '|', '!':
-			return false
-		}
-	}
-	return true
-}
-
-// appendHex appends the hexadecimal representation of a 16-bit unsigned integer (uint16)
-// to a byte slice. The integer is converted to a 4-character hexadecimal string, and each character
-// is appended to the input byte slice in sequence. The function uses a pre-defined set of hexadecimal
-// digits ('0'–'9' and 'a'–'f') for the conversion.
-//
-// Parameters:
-//   - bytes: A byte slice to which the hexadecimal characters will be appended.
-//   - x: A 16-bit unsigned integer to be converted to hexadecimal and appended to the byte slice.
-//
-// Returns:
-//   - A new byte slice containing the original bytes with the appended hexadecimal digits
-//     representing the 16-bit integer.
-//
-// Example Usage:
-//
-//	var result []byte
-//	x := uint16(3055) // Decimal 3055 is 0x0BEF in hexadecimal
-//	result = appendHex(result, x)
-//	// result: []byte{'0', 'b', 'e', 'f'} (hexadecimal representation of 3055)
-//
-// Details:
-//   - The function shifts and masks the 16-bit integer to extract each of the four hexadecimal digits.
-//   - It uses the pre-defined `hexDigits` array to convert the integer's nibbles (4 bits) into their
-//     corresponding hexadecimal characters.
-func appendHex(bytes []byte, x uint16) []byte {
-	return append(bytes,
-		hexDigits[x>>12&0xF], hexDigits[x>>8&0xF],
-		hexDigits[x>>4&0xF], hexDigits[x>>0&0xF],
-	)
-}
-
-// parseUint64 parses a string as an unsigned integer (uint64).
-// It attempts to convert the given string to a numeric value, where each character in the string
-// must be a digit between '0' and '9'. If any non-digit character is encountered, the function
-// returns false, indicating the string does not represent a valid unsigned integer.
-//
-// Parameters:
-//   - s: A string representing the unsigned integer to be parsed.
-//
-// Returns:
-//   - n: The parsed unsigned integer value (of type uint64) if the string represents a valid number.
-//   - ok: A boolean indicating whether the parsing was successful. If true, the string was successfully
-//     parsed into an unsigned integer; if false, the string was invalid.
-//
-// Example Usage:
-//
-//	str := "12345"
-//	n, ok := parseUint64(str)
-//	// n: 12345 (the parsed unsigned integer)
-//	// ok: true (the string is a valid unsigned integer)
-//
-//	str = "12a45"
-//	n, ok = parseUint64(str)
-//	// n: 0 (parsing failed)
-//	// ok: false (the string contains invalid characters)
-//
-// Details:
-//   - The function iterates through each character of the string. If it encounters a digit ('0'–'9'),
-//     it accumulates the corresponding integer value into the result `n`. The result is multiplied by 10
-//     with each new digit to shift the previous digits left.
-//   - If any non-digit character is encountered, the function returns `0` and `false`.
-//   - The function assumes that the input string is non-empty and only contains valid ASCII digits if valid.
-func parseUint64(s string) (n uint64, ok bool) {
-	num, err := conv.Uint64(s)
-	if err != nil {
-		return 0, false
-	}
-	return num, true
-}
-
 // extractJSONString scans json starting at index i (immediately after an opening
 // double quote at json[i-1]) and returns the position just past the matching
 // closing quote, the quoted substring including both quotes, whether any escape
@@ -1681,60 +1522,163 @@ func extractAndUnescapeJSONString(json string) (quoted string, unescaped string)
 	return json, json[1:]
 }
 
-// looksLikeJSONOrTransformer checks whether the first character of the input string `s` is a special character
-// (such as '@', '[', or '{') that might indicate a transformer or a JSON structure in the context of processing.
-//
-// The function performs the following checks:
-//   - If the first character is '@', it further inspects if the following characters indicate a transformer.
-//   - If the first character is '[' or '{', it returns `true`, indicating a potential JSON array or object.
-//   - The function will return `false` for any other characters or if transformers are disabled.
+// lastSegment extracts the last part of a given path string, where the path segments are separated by
+// either a pipe ('|') or a dot ('.'). The function returns the substring after the last separator,
+// taking escape sequences (backslashes) into account. It ensures that any escaped separator is ignored.
 //
 // Parameters:
-//   - `s`: A string to be checked, which can be a part of a JSON structure or an identifier with a transformer.
+//   - path: A string representing the full path, which may contain segments separated by '|' or '.'.
 //
 // Returns:
-//   - `bool`: `true` if the first character is '@' followed by a transformer, or if the first character is '[' or '{'.
-//     `false` otherwise.
+//   - A string representing the last segment in the path after the last occurrence of either '|' or '.'.
+//     If no separator is found, it returns the entire input string.
+//
+// Notes:
+//   - The function handles escape sequences where separators are preceded by a backslash ('\').
+//   - If there is no valid separator in the string, the entire path is returned as-is.
+//   - The returned substring is the part after the last separator, which could be the last portion of the path.
 //
 // Example Usage:
 //
-//	s1 := "@transformer|value"
-//	looksLikeJSONOrTransformer(s1)
-//	// Returns: true (because it starts with '@' and is followed by a transformer)
-//
-//	s2 := "[1, 2, 3]"
-//	looksLikeJSONOrTransformer(s2)
-//	// Returns: true (because it starts with '[')
-//
-//	s3 := "{ \"key\": \"value\" }"
-//	looksLikeJSONOrTransformer(s3)
-//	// Returns: true (because it starts with '{')
-//
-//	s4 := "normalString"
-//	looksLikeJSONOrTransformer(s4)
-//	// Returns: false (no '@', '[', or '{')
+//	path := "foo|bar.baz.qux"
+//	segment := lastSegment(path)
+//	// segment: "qux" (the last segment after the last dot or pipe)
 //
 // Details:
-//   - The function first checks if transformers are disabled (by `DisableTransformers` flag). If they are, it returns `false` immediately.
-//   - If the string starts with '@', it scans for a potential transformer by checking if there is a '.' or '|' after it,
-//     and verifies whether the transformer exists in the `transformers` map.
-//   - If the string starts with '[' or '{', it immediately returns `true`, as those characters typically indicate the start of a JSON array or object.
-func looksLikeJSONOrTransformer(s string) bool {
-	if DisableTransformers {
+//   - The function iterates from the end of the string towards the beginning, looking for the last
+//     occurrence of '|' or '.' that is not preceded by a backslash.
+//   - It handles edge cases where the separator is escaped or there are no separators at all.
+func lastSegment(path string) string {
+	for i := len(path) - 1; i >= 0; i-- {
+		if path[i] == '|' || path[i] == '.' {
+			if i > 0 {
+				if path[i-1] == '\\' {
+					continue
+				}
+			}
+			return path[i+1:]
+		}
+	}
+	return path
+}
+
+// isValidName checks if a given string component is a "simple name" according to specific rules.
+// A "simple name" is a string that does not contain any control characters or any of the following special characters:
+// '[' , ']' , '{' , '}' , '(' , ')' , '#' , '|' , '!'. The function returns true if the string meets these criteria.
+//
+// Parameters:
+//   - component: A string to be checked for validity as a simple name.
+//
+// Returns:
+//   - A boolean indicating whether the input string is a valid simple name.
+//   - Returns true if the string contains only printable characters and does not include any of the restricted special characters.
+//   - Returns false if the string contains any control characters or restricted special characters.
+//
+// Notes:
+//   - The function checks each character of the string to ensure it is printable and does not contain any of the restricted characters.
+//   - Control characters are defined as any character with a Unicode value less than a space (' ').
+//   - The function assumes that the string is not empty and contains at least one character.
+//
+// Example Usage:
+//
+//	component := "validName"
+//	isValid := isValidName(component)
+//	// isValid: true (the string contains only valid characters)
+//
+//	component = "invalid|name"
+//	isValid = isValidName(component)
+//	// isValid: false (the string contains an invalid character '|')
+//
+// Details:
+//   - The function iterates through each character of the string and checks whether it is a printable character and whether it
+//     is not one of the restricted special characters. If any invalid character is found, the function returns false immediately.
+func isValidName(component string) bool {
+	if strutil.IsEmpty(component) {
 		return false
 	}
-	c := s[0]
-	if c == '@' {
-		i := 1
-		for ; i < len(s); i++ {
-			if s[i] == '.' || s[i] == '|' || s[i] == ':' {
-				break
-			}
-		}
-		ok := globalRegistry.IsRegistered(s[1:i])
-		return ok
+	if strutil.ContainsAny(component, " ") {
+		return false
 	}
-	return c == '[' || c == '{'
+	for i := 0; i < len(component); i++ {
+		if component[i] < ' ' {
+			return false
+		}
+		switch component[i] {
+		case '[', ']', '{', '}', '(', ')', '#', '|', '!':
+			return false
+		}
+	}
+	return true
+}
+
+// appendHex appends the hexadecimal representation of a 16-bit unsigned integer (uint16)
+// to a byte slice. The integer is converted to a 4-character hexadecimal string, and each character
+// is appended to the input byte slice in sequence. The function uses a pre-defined set of hexadecimal
+// digits ('0'–'9' and 'a'–'f') for the conversion.
+//
+// Parameters:
+//   - bytes: A byte slice to which the hexadecimal characters will be appended.
+//   - x: A 16-bit unsigned integer to be converted to hexadecimal and appended to the byte slice.
+//
+// Returns:
+//   - A new byte slice containing the original bytes with the appended hexadecimal digits
+//     representing the 16-bit integer.
+//
+// Example Usage:
+//
+//	var result []byte
+//	x := uint16(3055) // Decimal 3055 is 0x0BEF in hexadecimal
+//	result = appendHex(result, x)
+//	// result: []byte{'0', 'b', 'e', 'f'} (hexadecimal representation of 3055)
+//
+// Details:
+//   - The function shifts and masks the 16-bit integer to extract each of the four hexadecimal digits.
+//   - It uses the pre-defined `hexDigits` array to convert the integer's nibbles (4 bits) into their
+//     corresponding hexadecimal characters.
+func appendHex(bytes []byte, x uint16) []byte {
+	return append(bytes,
+		hexDigits[x>>12&0xF], hexDigits[x>>8&0xF],
+		hexDigits[x>>4&0xF], hexDigits[x>>0&0xF],
+	)
+}
+
+// parseUint64 parses a string as an unsigned integer (uint64).
+// It attempts to convert the given string to a numeric value, where each character in the string
+// must be a digit between '0' and '9'. If any non-digit character is encountered, the function
+// returns false, indicating the string does not represent a valid unsigned integer.
+//
+// Parameters:
+//   - s: A string representing the unsigned integer to be parsed.
+//
+// Returns:
+//   - n: The parsed unsigned integer value (of type uint64) if the string represents a valid number.
+//   - ok: A boolean indicating whether the parsing was successful. If true, the string was successfully
+//     parsed into an unsigned integer; if false, the string was invalid.
+//
+// Example Usage:
+//
+//	str := "12345"
+//	n, ok := parseUint64(str)
+//	// n: 12345 (the parsed unsigned integer)
+//	// ok: true (the string is a valid unsigned integer)
+//
+//	str = "12a45"
+//	n, ok = parseUint64(str)
+//	// n: 0 (parsing failed)
+//	// ok: false (the string contains invalid characters)
+//
+// Details:
+//   - The function iterates through each character of the string. If it encounters a digit ('0'–'9'),
+//     it accumulates the corresponding integer value into the result `n`. The result is multiplied by 10
+//     with each new digit to shift the previous digits left.
+//   - If any non-digit character is encountered, the function returns `0` and `false`.
+//   - The function assumes that the input string is non-empty and only contains valid ASCII digits if valid.
+func parseUint64(s string) (n uint64, ok bool) {
+	num, err := conv.Uint64(s)
+	if err != nil {
+		return 0, false
+	}
+	return num, true
 }
 
 // matchesGlob checks if a string matches a pattern with a complexity limit to
@@ -1977,6 +1921,62 @@ func splitAtUnescapedPipe(path string) (left, right string, ok bool) {
 		}
 	}
 	return
+}
+
+// looksLikeJSONOrTransformer checks whether the first character of the input string `s` is a special character
+// (such as '@', '[', or '{') that might indicate a transformer or a JSON structure in the context of processing.
+//
+// The function performs the following checks:
+//   - If the first character is '@', it further inspects if the following characters indicate a transformer.
+//   - If the first character is '[' or '{', it returns `true`, indicating a potential JSON array or object.
+//   - The function will return `false` for any other characters or if transformers are disabled.
+//
+// Parameters:
+//   - `s`: A string to be checked, which can be a part of a JSON structure or an identifier with a transformer.
+//
+// Returns:
+//   - `bool`: `true` if the first character is '@' followed by a transformer, or if the first character is '[' or '{'.
+//     `false` otherwise.
+//
+// Example Usage:
+//
+//	s1 := "@transformer|value"
+//	looksLikeJSONOrTransformer(s1)
+//	// Returns: true (because it starts with '@' and is followed by a transformer)
+//
+//	s2 := "[1, 2, 3]"
+//	looksLikeJSONOrTransformer(s2)
+//	// Returns: true (because it starts with '[')
+//
+//	s3 := "{ \"key\": \"value\" }"
+//	looksLikeJSONOrTransformer(s3)
+//	// Returns: true (because it starts with '{')
+//
+//	s4 := "normalString"
+//	looksLikeJSONOrTransformer(s4)
+//	// Returns: false (no '@', '[', or '{')
+//
+// Details:
+//   - The function first checks if transformers are disabled (by `DisableTransformers` flag). If they are, it returns `false` immediately.
+//   - If the string starts with '@', it scans for a potential transformer by checking if there is a '.' or '|' after it,
+//     and verifies whether the transformer exists in the `transformers` map.
+//   - If the string starts with '[' or '{', it immediately returns `true`, as those characters typically indicate the start of a JSON array or object.
+func looksLikeJSONOrTransformer(s string) bool {
+	if DisableTransformers {
+		return false
+	}
+	c := s[0]
+	if c == '@' {
+		i := 1
+		for ; i < len(s); i++ {
+			if s[i] == '.' || s[i] == '|' || s[i] == ':' {
+				break
+			}
+		}
+		ok := globalRegistry.IsRegistered(s[1:i])
+		return ok
+	}
+	return c == '[' || c == '{'
 }
 
 // parseNumeric parses a numeric value (integer or floating-point) from a JSON-encoded input string,

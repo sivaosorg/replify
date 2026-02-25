@@ -1054,7 +1054,7 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 				continue
 			}
 			s := i
-			i, str, _esc, ok = parseString(json, i+1)
+			i, str, _esc, ok = extractJSONString(json, i+1)
 			if !ok {
 				return
 			}

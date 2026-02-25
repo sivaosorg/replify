@@ -1501,6 +1501,105 @@ func parseUint64(s string) (n uint64, ok bool) {
 	return num, true
 }
 
+// extractJSONString scans json starting at index i (immediately after an opening
+// double quote at json[i-1]) and returns the position just past the matching
+// closing quote, the quoted substring including both quotes, whether any escape
+// sequences were encountered, and whether a complete closing quote was found.
+//
+// This helper performs lightweight, byte-wise scanning suitable for JSON-style
+// string literals. It recognizes escaped quotes by counting preceding backslashes
+// so that \" inside the string does not terminate it. The function does not
+// perform full JSON validation or unescaping; it merely locates the terminating
+// quote boundary.
+//
+// Parameters:
+//   - json: the source text containing a JSON string literal.
+//   - i: starting index, which must point to the first byte *after* the opening
+//     quote (i.e., json[i-1] == '"'). If json is empty or i < 0, the function
+//     returns i, json, false, false.
+//
+// Returns:
+//   - newPos: index of the first byte after the closing quote when complete is true;
+//     otherwise the index where scanning stopped (typically len(json)).
+//   - quoted: the slice of json that spans the string literal including its
+//     surrounding quotes. On incomplete input, this is json[s-1:] (the remainder
+//     starting at the opening quote).
+//   - hadEscape: true if an escape sequence was observed while scanning.
+//   - complete: true if a matching, unescaped closing quote was found.
+//
+// Assumptions & Invariants:
+//   - The caller is responsible for providing i such that i > 0 and json[i-1] == '"';
+//     otherwise results may be meaningless.
+//   - Escaped quotes are detected by counting consecutive backslashes immediately
+//     preceding a quote; an even count means the quote is escaped and scanning continues.
+//   - Scanning is byte-oriented (ASCII for structure). It does not interpret Unicode
+//     escapes, surrogate pairs, or other JSON token types.
+//
+// Limitations & Nuances:
+//   - This is a structural scanner, not a full JSON parser or unescaper.
+//   - On incomplete input (no closing quote), complete is false and quoted contains
+//     the remainder of json from the opening quote to the end.
+//   - No errors are returned; callers should inspect complete to determine success.
+//   - Substrings share the backing array with json (zero-copy). Copy if you need
+//     to retain quoted independently of json.
+//
+// Performance:
+//   - Runs in O(n) time over the scanned region and performs no allocations.
+//
+// Examples:
+//
+//	// Typical well-formed JSON string
+//	pos, quoted, hadEsc, ok := extractJSONString(`"hello" trailing`, 1)
+//	// pos == 7, quoted == `"hello"`, hadEsc == false, ok == true
+//
+//	// String containing an escaped quote
+//	pos, quoted, hadEsc, ok = extractJSONString(`"he said \"hi\"" rest`, 1)
+//	// pos == 16, quoted == `"he said \"hi\""`, hadEsc == true, ok == true
+//
+//	// Unterminated string: no closing quote found
+//	pos, quoted, hadEsc, ok = extractJSONString(`"unterminated`, 1)
+//	// ok == false, quoted == `"unterminated`, pos == len(`"unterminated`)
+func extractJSONString(json string, i int) (newPos int, quoted string, hadEscape bool, complete bool) {
+	if strutil.IsEmpty(json) || i < 0 {
+		return i, json, false, false
+	}
+	var s = i
+	for ; i < len(json); i++ {
+		if json[i] > '\\' {
+			continue
+		}
+		if json[i] == '"' {
+			return i + 1, json[s-1 : i+1], false, true
+		}
+		if json[i] == '\\' {
+			i++
+			for ; i < len(json); i++ {
+				if json[i] > '\\' {
+					continue
+				}
+				if json[i] == '"' {
+					// look for an escaped slash
+					if json[i-1] == '\\' {
+						n := 0
+						for j := i - 2; j > 0; j-- {
+							if json[j] != '\\' {
+								break
+							}
+							n++
+						}
+						if n%2 == 0 {
+							continue
+						}
+					}
+					return i + 1, json[s-1 : i+1], true, true
+				}
+			}
+			break
+		}
+	}
+	return i, json[s-1:], false, false
+}
+
 // extractAndUnescapeJSONString extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
 // The function processes the input string to handle escaped characters and returns a clean, unescaped version of the string
 // as well as the portion of the JSON string that includes the enclosing quotes.
@@ -1880,85 +1979,6 @@ func splitAtUnescapedPipe(path string) (left, right string, ok bool) {
 	return
 }
 
-// parseString parses a string enclosed in double quotes from a JSON-encoded input string, handling escape sequences.
-// It starts from a given index `i` and extracts the next JSON string, taking care of any escape sequences like `\"`, `\\`, etc.
-//
-// Parameters:
-//   - `json`: A JSON string that may contain one or more strings enclosed in double quotes, possibly with escape sequences.
-//   - `i`: The index in the `json` string to begin parsing from. The function expects this to point to the starting quote of the string.
-//
-// Returns:
-//   - `i`: The index immediately following the closing quote of the string, or the point where parsing ends if no valid string is found.
-//   - `raw`: The substring of `json` that includes the entire quoted string, including the surrounding quotes.
-//   - `escaped`: A boolean flag indicating whether escape sequences were found and processed in the string.
-//   - `valid`: A boolean flag indicating whether the string was correctly parsed and closed with a quote.
-//
-// Example Usage:
-//
-//	json := "\"Hello\\nWorld\""
-//	i, raw, escaped, valid := parseString(json, 1)
-//	// raw: "\"Hello\\nWorld\"" (the full quoted string)
-//	// escaped: true (escape sequences processed)
-//	// valid: true (valid string enclosed with quotes)
-//
-//	json = "\"NoEscapeHere\""
-//	i, raw, escaped, valid = parseString(json, 1)
-//	// raw: "\"NoEscapeHere\"" (the full quoted string)
-//	// escaped: false (no escape sequences)
-//	// valid: true (valid string enclosed with quotes)
-//
-//	json = "\"Hello\\\"Quoted\\\"String\""
-//	i, raw, escaped, valid = parseString(json, 1)
-//	// raw: "\"Hello\\\"Quoted\\\"String\""
-//	// escaped: true
-//	// valid: true
-//
-// Details:
-//   - The function starts at the given index `i` and looks for the next double quote (`"`) to indicate the end of the string.
-//   - It processes escape sequences inside the string, such as escaped quotes (`\"`) and backslashes (`\\`).
-//   - If a valid string is found, the function returns the index after the closing quote, the full quoted string, and flags indicating if escape sequences were processed and if the string was properly closed.
-//   - If the string is not correctly closed or contains invalid escape sequences, the function will stop processing and return the current state.
-func parseString(json string, i int) (int, string, bool, bool) {
-	if strutil.IsEmpty(json) || i < 0 {
-		return i, json, false, false
-	}
-	var s = i
-	for ; i < len(json); i++ {
-		if json[i] > '\\' {
-			continue
-		}
-		if json[i] == '"' {
-			return i + 1, json[s-1 : i+1], false, true
-		}
-		if json[i] == '\\' {
-			i++
-			for ; i < len(json); i++ {
-				if json[i] > '\\' {
-					continue
-				}
-				if json[i] == '"' {
-					// look for an escaped slash
-					if json[i-1] == '\\' {
-						n := 0
-						for j := i - 2; j > 0; j-- {
-							if json[j] != '\\' {
-								break
-							}
-							n++
-						}
-						if n%2 == 0 {
-							continue
-						}
-					}
-					return i + 1, json[s-1 : i+1], true, true
-				}
-			}
-			break
-		}
-	}
-	return i, json[s-1:], false, false
-}
-
 // parseNumeric parses a numeric value (integer or floating-point) from a JSON-encoded input string,
 // starting from a given index `i` and extracting the numeric value up to a non-numeric character or JSON delimiter.
 //
@@ -2299,7 +2319,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			i++
 			var escVal bool
 			var ok bool
-			i, val, escVal, ok = parseString(json, i)
+			i, val, escVal, ok = extractJSONString(json, i)
 			if !ok {
 				return i, ctx, false
 			}
@@ -2471,7 +2491,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				continue
 			case '"':
 				i++
-				i, val, escVal, ok = parseString(c.json, i)
+				i, val, escVal, ok = extractJSONString(c.json, i)
 				if !ok {
 					return i, false
 				}
@@ -2953,7 +2973,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				continue
 			case '"':
 				i++
-				i, val, escVal, ok = parseString(c.json, i)
+				i, val, escVal, ok = extractJSONString(c.json, i)
 				if !ok {
 					return i, false
 				}

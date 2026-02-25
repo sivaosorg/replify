@@ -4461,7 +4461,7 @@ func sortField(item Context, keyField string) Context {
 	return item.Get(keyField)
 }
 
-// sortComp returns true when a should come before b in ascending sort order.
+// sortOrdered returns true when a should come before b in ascending sort order.
 // Numeric values are compared as float64 via conv.Float64.
 // All other values fall back to string comparison via conv.String.
 //
@@ -4497,7 +4497,7 @@ func sortField(item Context, keyField string) Context {
 //     perform recursive descent for each of them.
 //   - The search is performed on the values of the JSON elements using `node.String()`.
 //   - The `value` is checked for equality using `node.String() == value`.
-func sortComp(a, b Context) bool {
+func sortOrdered(a, b Context) bool {
 	if a.kind == Number || b.kind == Number {
 		fa, errA := conv.Float64(a.Value())
 		fb, errB := conv.Float64(b.Value())

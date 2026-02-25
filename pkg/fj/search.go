@@ -583,7 +583,7 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	sort.SliceStable(items, func(i, j int) bool {
 		vi := sortField(items[i], keyField)
 		vj := sortField(items[j], keyField)
-		less := sortComp(vi, vj)
+		less := sortOrdered(vi, vj)
 		if ascending {
 			return less
 		}

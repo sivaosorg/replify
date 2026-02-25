@@ -3690,7 +3690,7 @@ func matchesQueryCondition(dp *meta, value Context) bool {
 	return false
 }
 
-// appendJSON converts a given string into a valid JSON string format
+// appendJSONString converts a given string into a valid JSON string format
 // and appends it to the provided byte slice `dst`.
 //
 // This function escapes special characters in the input string `s` to ensure
@@ -3725,7 +3725,7 @@ func matchesQueryCondition(dp *meta, value Context) bool {
 //
 //	dst := []byte("Current JSON: ")
 //	s := "Hello \"world\"\nLine break!"
-//	result := appendJSON(dst, s)
+//	result := appendJSONString(dst, s)
 //	// result: []byte(`Current JSON: "Hello \"world\"\nLine break!"`)
 //
 // Notes:
@@ -3734,7 +3734,7 @@ func matchesQueryCondition(dp *meta, value Context) bool {
 //   - It ensures that the resulting JSON string is safe and adheres to
 //     encoding rules for use in various contexts such as web APIs or
 //     configuration files.
-func appendJSON(target []byte, s string) []byte {
+func appendJSONString(target []byte, s string) []byte {
 	target = append(target, make([]byte, len(s)+2)...)
 	target = append(target[:len(target)-len(s)-2], '"')
 	for i := 0; i < len(s); i++ {

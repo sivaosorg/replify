@@ -722,7 +722,7 @@ func transformToJSON(json, arg string) string {
 //   - The `arg` parameter is included for consistency with other transformation functions
 //     that may require it, though it does not affect the behavior of this specific function.
 func transformToString(str, arg string) string {
-	return string(appendJSON(nil, str))
+	return string(appendJSONString(nil, str))
 }
 
 // transformGroup processes a JSON string containing objects and arrays, and groups the

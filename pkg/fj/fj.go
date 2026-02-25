@@ -314,14 +314,14 @@ func Get(json, path string) Context {
 									if sub.name[0] == '"' && IsValidJSON(sub.name) {
 										b = append(b, sub.name...)
 									} else {
-										b = appendJSON(b, sub.name)
+										b = appendJSONString(b, sub.name)
 									}
 								} else {
 									last := lastSegment(sub.path)
 									if isValidName(last) {
-										b = appendJSON(b, last)
+										b = appendJSONString(b, last)
 									} else {
-										b = appendJSON(b, "_")
+										b = appendJSONString(b, "_")
 									}
 								}
 								b = append(b, ':')

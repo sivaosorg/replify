@@ -2737,7 +2737,7 @@ func parseFilterQuery(query string) (path, op, value, remain string, endPos int,
 	return path, op, value, remain, endPos + 1, valueEsc, true
 }
 
-// analyzePath parses a string path into its structural components, breaking it into meaningful parts
+// classifyPathSegment parses a string path into its structural components, breaking it into meaningful parts
 // such as the main path, pipe (if present), query parameters, and nested paths. This function is particularly
 // useful for processing JSON-like paths or other hierarchical data representations.
 //
@@ -2813,7 +2813,7 @@ func parseFilterQuery(query string) (path, op, value, remain string, endPos int,
 // Edge Cases:
 //   - If no special characters are found, the entire input is stored in `Part`.
 //   - If the path contains an incomplete or invalid query, the function skips the query parsing gracefully.
-func analyzePath(path string) (r meta) {
+func classifyPathSegment(path string) (r meta) {
 	for i := 0; i < len(path); i++ {
 		if path[i] == '|' {
 			r.part = path[:i]
@@ -2925,7 +2925,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 	var partIdx int
 	var multics []byte
 	var queryIndexes []int
-	analysis := analyzePath(path)
+	analysis := classifyPathSegment(path)
 	if !analysis.arch {
 		n, ok := parseUint64(analysis.part)
 		if !ok {

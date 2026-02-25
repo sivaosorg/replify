@@ -2412,7 +2412,7 @@ func splitPathSegment(path string) (r wildcard) {
 	return
 }
 
-// parseJSONObject parses a JSON object structure from a given JSON string, extracting key-value pairs based on a specified path.
+// matchJSONObjectAt parses a JSON object structure from a given JSON string, extracting key-value pairs based on a specified path.
 //
 // The function processes a JSON object (denoted by curly braces '{' and '}') and looks for matching keys. It handles both
 // simple key-value pairs and nested structures (objects or arrays) within the object. If the path to a key contains wildcards
@@ -2434,7 +2434,7 @@ func splitPathSegment(path string) (r wildcard) {
 // Example Usage:
 //
 //	json := `{"name": "John", "age": 30, "address": {"city": "New York"}}`
-//	i, found := parseJSONObject(c, 0, "name")
+//	i, found := matchJSONObjectAt(c, 0, "name")
 //	// found: true (if the "name" key was found in the JSON object)
 //
 // Details:
@@ -2453,12 +2453,12 @@ func splitPathSegment(path string) (r wildcard) {
 // Key functions used:
 //   - `parsePathWithtransformers`: Extracts and processes the path to identify the key and transformers.
 //   - `matchSafely`: Performs the safe matching of the key using a wildcard pattern, avoiding excessive complexity.
-func parseJSONObject(c *parser, i int, path string) (int, bool) {
+func matchJSONObjectAt(c *parser, i int, path string) (newPos int, found bool) {
 	var _match, keyEsc, escVal, ok, hit bool
 	var key, val string
-	pathtransformers := splitPathSegment(path)
-	if !pathtransformers.more && pathtransformers.piped {
-		c.pipe = pathtransformers.pipe
+	spseg := splitPathSegment(path)
+	if !spseg.more && spseg.piped {
+		c.pipe = spseg.pipe
 		c.piped = true
 	}
 	for i < len(c.json) {
@@ -2512,20 +2512,20 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 		if !ok {
 			return i, false
 		}
-		if pathtransformers.wild {
+		if spseg.wild {
 			if keyEsc {
-				_match = matchesGlob(unescape(key), pathtransformers.part)
+				_match = matchesGlob(unescape(key), spseg.part)
 			} else {
-				_match = matchesGlob(key, pathtransformers.part)
+				_match = matchesGlob(key, spseg.part)
 			}
 		} else {
 			if keyEsc {
-				_match = pathtransformers.part == unescape(key)
+				_match = spseg.part == unescape(key)
 			} else {
-				_match = pathtransformers.part == key
+				_match = spseg.part == key
 			}
 		}
-		hit = _match && !pathtransformers.more
+		hit = _match && !spseg.more
 		for ; i < len(c.json); i++ {
 			var num bool
 			switch c.json[i] {
@@ -2549,7 +2549,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				}
 			case '{':
 				if _match && !hit {
-					i, hit = parseJSONObject(c, i+1, pathtransformers.path)
+					i, hit = matchJSONObjectAt(c, i+1, spseg.path)
 					if hit {
 						return i, true
 					}
@@ -2563,7 +2563,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				}
 			case '[':
 				if _match && !hit {
-					i, hit = analyzeArray(c, i+1, pathtransformers.path)
+					i, hit = analyzeArray(c, i+1, spseg.path)
 					if hit {
 						return i, true
 					}
@@ -3046,7 +3046,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				}
 			case '{':
 				if _match && !hit {
-					i, hit = parseJSONObject(c, i+1, analysis.path)
+					i, hit = matchJSONObjectAt(c, i+1, analysis.path)
 					if hit {
 						if analysis.logOk {
 							break

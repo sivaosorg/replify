@@ -361,7 +361,7 @@ func Get(json, path string) Context {
 		for ; i < len(c.json); i++ {
 			if c.json[i] == '{' {
 				i++
-				parseJSONObject(c, i, path)
+				matchJSONObjectAt(c, i, path)
 				break
 			}
 			if c.json[i] == '[' {

@@ -2046,7 +2046,7 @@ func looksLikeJSONOrTransformer(s string) bool {
 	return c == '[' || c == '{'
 }
 
-// parsePathWithTransformers parses a given path string, extracting different components such as parts, pipes, paths, and wildcards.
+// splitPathSegment parses a given path string, extracting different components such as parts, pipes, paths, and wildcards.
 // It identifies special characters ('.', '|', '*', '?', '\\') in the path and processes them accordingly. The function
 // breaks the string into a part and further splits it into pipes or paths, marking certain flags when necessary.
 // It also handles escaped characters by stripping escape sequences and processing them correctly.
@@ -2067,20 +2067,20 @@ func looksLikeJSONOrTransformer(s string) bool {
 // Example Usage:
 //
 //	path1 := "field.subfield|anotherField"
-//	result := parsePathWithTransformers(path1)
+//	result := splitPathSegment(path1)
 //	// result.part: "field"
 //	// result.path: "subfield"
 //	// result.pipe: "anotherField"
 //	// result.piped: true
 //
 //	path2 := "object.field"
-//	result = parsePathWithTransformers(path2)
+//	result = splitPathSegment(path2)
 //	// result.part: "object"
 //	// result.path: "field"
 //	// result.more: true
 //
 //	path3 := "path\\.*.field"
-//	result = parsePathWithTransformers(path3)
+//	result = splitPathSegment(path3)
 //	// result.part: "path.*"
 //	// result.wild: true
 //
@@ -2093,7 +2093,7 @@ func looksLikeJSONOrTransformer(s string) bool {
 //   - Wildcard characters ('*' or '?') are detected, and the `Wild` flag is set.
 //   - Escape sequences (indicated by '\\') are processed by appending the escaped character(s) and stripping the escape character.
 //   - If no special characters are found, the entire path is assigned to `Part`, and the function returns the parsed result.
-func parsePathWithTransformers(path string) (r wildcard) {
+func splitPathSegment(path string) (r wildcard) {
 	for i := 0; i < len(path); i++ {
 		if path[i] == '|' {
 			r.part = path[:i]
@@ -2438,7 +2438,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 func parseJSONObject(c *parser, i int, path string) (int, bool) {
 	var _match, keyEsc, escVal, ok, hit bool
 	var key, val string
-	pathtransformers := parsePathWithTransformers(path)
+	pathtransformers := splitPathSegment(path)
 	if !pathtransformers.more && pathtransformers.piped {
 		c.pipe = pathtransformers.pipe
 		c.piped = true

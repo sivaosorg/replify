@@ -2613,7 +2613,7 @@ func matchJSONObjectAt(c *parser, i int, path string) (newPos int, found bool) {
 	return i, false
 }
 
-// analyzeQuery parses a query string into its constituent parts and identifies its structure.
+// parseFilterQuery parses a query string into its constituent parts and identifies its structure.
 // It is designed to handle queries that involve filtering or accessing nested structures,
 // particularly in JSON-like or similar data representations.
 //
@@ -2660,52 +2660,50 @@ func matchJSONObjectAt(c *parser, i int, path string) (newPos int, found bool) {
 // Edge Cases:
 //   - Handles nested queries with multiple levels of depth.
 //   - Ensures proper handling of invalid or malformed queries by returning appropriate values.
-func analyzeQuery(query string) (
-	path, op, value, remain string, i int, _vEsc, ok bool,
-) {
+func parseFilterQuery(query string) (path, op, value, remain string, endPos int, valueEsc bool, ok bool) {
 	if len(query) < 2 || query[0] != '#' ||
 		(query[1] != '(' && query[1] != '[') {
-		return "", "", "", "", i, false, false
+		return "", "", "", "", endPos, false, false
 	}
-	i = 2
+	endPos = 2
 	j := 0
 	depth := 1
-	for ; i < len(query); i++ {
+	for ; endPos < len(query); endPos++ {
 		if depth == 1 && j == 0 {
-			switch query[i] {
+			switch query[endPos] {
 			case '!', '=', '<', '>', '%':
-				j = i
+				j = endPos
 				continue
 			}
 		}
-		if query[i] == '\\' {
-			i++
-		} else if query[i] == '[' || query[i] == '(' {
+		if query[endPos] == '\\' {
+			endPos++
+		} else if query[endPos] == '[' || query[endPos] == '(' {
 			depth++
-		} else if query[i] == ']' || query[i] == ')' {
+		} else if query[endPos] == ']' || query[endPos] == ')' {
 			depth--
 			if depth == 0 {
 				break
 			}
-		} else if query[i] == '"' {
-			i++
-			for ; i < len(query); i++ {
-				if query[i] == '\\' {
-					_vEsc = true
-					i++
-				} else if query[i] == '"' {
+		} else if query[endPos] == '"' {
+			endPos++
+			for ; endPos < len(query); endPos++ {
+				if query[endPos] == '\\' {
+					valueEsc = true
+					endPos++
+				} else if query[endPos] == '"' {
 					break
 				}
 			}
 		}
 	}
 	if depth > 0 {
-		return "", "", "", "", i, false, false
+		return "", "", "", "", endPos, false, false
 	}
 	if j > 0 {
 		path = strutil.Trim(query[2:j])
-		value = strutil.Trim(query[j:i])
-		remain = query[i+1:]
+		value = strutil.Trim(query[j:endPos])
+		remain = query[endPos+1:]
 		var trail int
 		switch {
 		case len(value) == 1:
@@ -2733,10 +2731,10 @@ func analyzeQuery(query string) (
 		op = value[:trail]
 		value = strutil.Trim(value[trail:])
 	} else {
-		path = strutil.Trim(query[2:i])
-		remain = query[i+1:]
+		path = strutil.Trim(query[2:endPos])
+		remain = query[endPos+1:]
 	}
-	return path, op, value, remain, i + 1, _vEsc, true
+	return path, op, value, remain, endPos + 1, valueEsc, true
 }
 
 // analyzePath parses a string path into its structural components, breaking it into meaningful parts
@@ -2845,7 +2843,7 @@ func analyzePath(path string) (r meta) {
 					// query
 					r.query.on = true
 					queryPath, op, value, _, fi, escVal, ok :=
-						analyzeQuery(path[i:])
+						parseFilterQuery(path[i:])
 					if !ok {
 						break
 					}

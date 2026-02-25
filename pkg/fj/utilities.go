@@ -4212,6 +4212,75 @@ func scanPath(node Context, value, prefix string) (string, bool) {
 	return "", false
 }
 
+// scanPathMatch is the depth-first worker for FindPathMatch.
+//
+// Parameters:
+//   - `node`: The current Context node to search.
+//   - `pattern`: The wildcard pattern to match against.
+//   - `prefix`: The prefix to prepend to the path.
+//
+// Returns:
+//   - The first matching path and a boolean indicating whether it was found.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	path, found := scanPathMatch(parent, "*.title", "")
+//
+//	// `path` will be "book.0.title"
+//	// `found` will be true
+//	// The function searches for the "Harry Potter" value in the store and returns the first path found.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanPathMatch(node Context, pattern, prefix string) (string, bool) {
+	if node.IsObject() {
+		var found string
+		var ok bool
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				found, ok = scanPathMatch(child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				found, ok = p, true
+			}
+			return !ok
+		})
+		return found, ok
+	}
+	if node.IsArray() {
+		var found string
+		var ok bool
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				found, ok = scanPathMatch(child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				found, ok = p, true
+			}
+			idx++
+			return !ok
+		})
+		return found, ok
+	}
+	return "", false
+}
+
 // scanPaths is the depth-first worker for FindPaths.
 //
 // Parameters:

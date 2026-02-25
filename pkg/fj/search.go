@@ -564,41 +564,6 @@ func FindPathsMatch(json, valuePattern string) []string {
 	return scanPathsMatch(nil, Parse(json), valuePattern, "")
 }
 
-// scanPathMatch is the depth-first worker for FindPathMatch.
-func scanPathMatch(node Context, pattern, prefix string) (string, bool) {
-	if node.IsObject() {
-		var found string
-		var ok bool
-		node.Foreach(func(key, child Context) bool {
-			p := joinPath(prefix, key.String())
-			if child.IsObject() || child.IsArray() {
-				found, ok = scanPathMatch(child, pattern, p)
-			} else if child.Exists() && match.Match(child.String(), pattern) {
-				found, ok = p, true
-			}
-			return !ok
-		})
-		return found, ok
-	}
-	if node.IsArray() {
-		var found string
-		var ok bool
-		idx := 0
-		node.Foreach(func(_, child Context) bool {
-			p := joinPath(prefix, itoa(idx))
-			if child.IsObject() || child.IsArray() {
-				found, ok = scanPathMatch(child, pattern, p)
-			} else if child.Exists() && match.Match(child.String(), pattern) {
-				found, ok = p, true
-			}
-			idx++
-			return !ok
-		})
-		return found, ok
-	}
-	return "", false
-}
-
 // scanPathsMatch is the depth-first worker for FindPathsMatch.
 func scanPathsMatch(all []string, node Context, pattern, prefix string) []string {
 	if node.IsObject() {

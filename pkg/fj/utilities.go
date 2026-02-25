@@ -4054,3 +4054,152 @@ func scanByKey(all []Context, node Context, keySet map[string]struct{}) []Contex
 	}
 	return all
 }
+
+// scanPath is the depth-first worker for FindPath.
+// Returns the first matching path and a bool indicating whether it was found.
+//
+// Parameters:
+//   - `node`: The `Context` representing the current JSON element being processed.
+//     It acts as the starting point for the search in this recursive descent.
+//   - `value`: The value to search for within the JSON structure.
+//   - `prefix`: The prefix to use for the path.
+//
+// Returns:
+//   - A string representing the path to the first matching value.
+//   - A boolean indicating whether a matching value was found.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ],
+//	    "music": [
+//	      { "artist": "The Beatles", "album": "Abbey Road" },
+//	      { "artist": "Pink Floyd", "album": "The Wall" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	path, found := scanPath(parent, "Harry Potter", "")
+//
+//	// `path` will be "book.0.title"
+//	// `found` will be true
+//	// The function searches for the "Harry Potter" value in the store and returns the first path found.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanPath(node Context, value, prefix string) (string, bool) {
+	if node.IsObject() {
+		var found string
+		var ok bool
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				found, ok = scanPath(child, value, p)
+			} else if child.Exists() && child.String() == value {
+				found, ok = p, true
+			}
+			return !ok
+		})
+		return found, ok
+	}
+	if node.IsArray() {
+		var found string
+		var ok bool
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				found, ok = scanPath(child, value, p)
+			} else if child.Exists() && child.String() == value {
+				found, ok = p, true
+			}
+			idx++
+			return !ok
+		})
+		return found, ok
+	}
+	return "", false
+}
+
+// scanPaths is the depth-first worker for FindPaths.
+//
+// Parameters:
+//   - `all`: A slice of `string` that accumulates the results. It is initially empty
+//     and is populated with matching `string` representations of paths found during the traversal.
+//   - `node`: The `Context` representing the current JSON element being processed.
+//     It acts as the starting point for the search in this recursive descent.
+//   - `value`: The value to search for within the JSON structure.
+//   - `prefix`: The prefix to use for the path.
+//
+// Returns:
+//   - A slice of `string` containing all the paths that match the specified value.
+//     The slice is accumulated during the recursive descent, and all matches, including
+//     those found in nested objects and arrays, are added to the result.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ],
+//	    "music": [
+//	      { "artist": "The Beatles", "album": "Abbey Road" },
+//	      { "artist": "Pink Floyd", "album": "The Wall" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	paths := scanPaths(nil, parent, "Harry Potter", "")
+//
+//	// `paths` will contain:
+//	// ["book.0.title"]
+//	// The function searches for the "Harry Potter" value in the store and collects all paths found.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanPaths(all []string, node Context, value, prefix string) []string {
+	if node.IsObject() {
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				all = scanPaths(all, child, value, p)
+			} else if child.Exists() && child.String() == value {
+				all = append(all, p)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				all = scanPaths(all, child, value, p)
+			} else if child.Exists() && child.String() == value {
+				all = append(all, p)
+			}
+			idx++
+			return true
+		})
+	}
+	return all
+}

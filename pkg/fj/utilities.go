@@ -1441,6 +1441,73 @@ func extractJSONString(json string, i int) (newPos int, quoted string, hadEscape
 	return i, json[s-1:], false, false
 }
 
+// extractJSONNumber scans json starting at index i (which should point to the
+// first byte of a JSON number) and returns the index just past the number along
+// with the substring that forms that number.
+//
+// The scan proceeds byte-by-byte and stops at the first structural or
+// terminating delimiter: whitespace, ',', ']', or '}'. It does not perform full
+// JSON validation (e.g., it does not enforce RFC 7159 number grammar, handle
+// leading '+' signs, or normalize exponents); it simply slices out the maximal
+// run that appears to be a number until a delimiter is reached.
+//
+// Parameters:
+//   - json: the source text containing a JSON value.
+//   - i: the starting index; callers are expected to position i at the first
+//     byte of the numeric token. If json is empty or i < 0, the function
+//     returns i and json unchanged.
+//
+// Returns:
+//   - newPos: the index of the first byte after the parsed number (or the point
+//     where scanning stopped).
+//   - number: a substring of json that shares the original backing array
+//     (zero-copy). Copy it if you need to retain it independently.
+//
+// Assumptions & Invariants:
+//   - Scanning is ASCII/byte-oriented and heuristic; it does not validate that
+//     the substring is a well-formed JSON number.
+//   - The caller is responsible for ensuring i is within [0, len(json)) and
+//     points to the beginning of a number. If not, results may be unintended.
+//
+// Limitations & Nuances:
+//   - No error is reported; callers should validate the returned substring if
+//     strict number conformance is required.
+//   - The function does not skip leading whitespace; callers should advance i to
+//     the first non-space if necessary.
+//   - If the end of json is reached without encountering a delimiter, number
+//     extends to the end.
+//
+// Performance:
+//   - O(n) over the scanned suffix; no allocations in the common case.
+//
+// Examples:
+//
+//	// Basic integer
+//	pos, num := extractJSONNumber("123, rest", 0)
+//	// pos == 3, num == "123"
+//
+//	// Decimal with exponent, followed by array delimiter
+//	pos, num = extractJSONNumber("-1.23e+10]tail", 0)
+//	// pos == len("-1.23e+10"), num == "-1.23e+10"
+//
+//	// Stops at whitespace
+//	pos, num = extractJSONNumber("42  ,next", 0)
+//	// pos == 2, num == "42"
+func extractJSONNumber(json string, i int) (newPos int, number string) {
+	if strutil.IsEmpty(json) || i < 0 {
+		return i, json
+	}
+	var s = i
+	i++
+	for ; i < len(json); i++ {
+		if json[i] <= ' ' || json[i] == ',' || json[i] == ']' ||
+			json[i] == '}' {
+			return i, json[s:i]
+		}
+	}
+	return i, json[s:]
+}
+
 // extractAndUnescapeJSONString extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
 // The function processes the input string to handle escaped characters and returns a clean, unescaped version of the string
 // as well as the portion of the JSON string that includes the enclosing quotes.
@@ -1977,49 +2044,6 @@ func looksLikeJSONOrTransformer(s string) bool {
 		return ok
 	}
 	return c == '[' || c == '{'
-}
-
-// extractJSONNumber parses a numeric value (integer or floating-point) from a JSON-encoded input string,
-// starting from a given index `i` and extracting the numeric value up to a non-numeric character or JSON delimiter.
-//
-// Parameters:
-//   - `json`: A JSON string that may contain numeric values (such as integers or floats).
-//   - `i`: The index in the `json` string to begin parsing from. The function expects this to point to the first digit or part of the number.
-//
-// Returns:
-//   - `newPos`: The index immediately following the last character of the parsed numeric value, or the point where parsing ends if no valid number is found.
-//   - `number`: The substring of `json` that represents the numeric value (e.g., "123", "45.67", "-123").
-//
-// Example Usage:
-//
-//	json := "12345"
-//	i, raw := extractJSONNumber(json, 0)
-//	// raw: "12345" (the parsed numeric value)
-//	// i: the index after the last character of the number (6)
-//
-//	json = "-3.14159"
-//	i, raw = extractJSONNumber(json, 0)
-//	// raw: "-3.14159" (the parsed numeric value)
-//	// i: the index after the last character of the number (8)
-//
-// Details:
-//   - The function begins parsing from the given index `i` and continues until it encounters a character that is not part of a number (e.g., a space, comma, or closing brace/bracket).
-//   - It handles both integers and floating-point numbers, as well as negative numbers (e.g., "-123" or "-45.67").
-//   - The function stops parsing as soon as it encounters a non-numeric character such as whitespace, a comma, or a closing JSON delimiter (`}` or `]`), which indicates the end of the numeric value in the JSON structure.
-//   - The function returns the parsed numeric string along with the index that follows the number's last character.
-func extractJSONNumber(json string, i int) (newPos int, number string) {
-	if strutil.IsEmpty(json) || i < 0 {
-		return i, json
-	}
-	var s = i
-	i++
-	for ; i < len(json); i++ {
-		if json[i] <= ' ' || json[i] == ',' || json[i] == ']' ||
-			json[i] == '}' {
-			return i, json[s:i]
-		}
-	}
-	return i, json[s:]
 }
 
 // parsePathWithTransformers parses a given path string, extracting different components such as parts, pipes, paths, and wildcards.

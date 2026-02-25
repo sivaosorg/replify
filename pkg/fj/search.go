@@ -66,30 +66,6 @@ func SearchByKey(json string, keys ...string) []Context {
 	return scanByKey(nil, Parse(json), keySet)
 }
 
-// scanByKey is the internal recursive worker for SearchByKey.
-func scanByKey(all []Context, node Context, keySet map[string]struct{}) []Context {
-	if node.IsObject() {
-		node.Foreach(func(key, val Context) bool {
-			if _, ok := keySet[key.String()]; ok {
-				all = append(all, val)
-			}
-			// Recurse into value regardless of whether the key matched.
-			if val.IsObject() || val.IsArray() {
-				all = scanByKey(all, val, keySet)
-			}
-			return true
-		})
-		return all
-	}
-	if node.IsArray() {
-		node.Foreach(func(_, child Context) bool {
-			all = scanByKey(all, child, keySet)
-			return true
-		})
-	}
-	return all
-}
-
 // Contains reports whether the result of querying json at path contains the given
 // target substring (case-sensitive). If the path does not exist, Contains returns
 // false.

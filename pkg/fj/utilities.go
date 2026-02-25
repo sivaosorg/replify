@@ -3986,3 +3986,71 @@ func scanLeaves(all []Context, node Context, keyword string) []Context {
 	}
 	return all
 }
+
+// scanByKey is the internal recursive worker for SearchByKey.
+//
+// Parameters:
+//   - `all`: A slice of `Context` that accumulates the results. It is initially empty
+//     and is populated with matching `Context` objects found during the traversal.
+//   - `node`: The `Context` representing the current JSON element being processed.
+//     It acts as the starting point for the search in this recursive descent.
+//   - `keySet`: A map of strings representing the keys to search for within the JSON structure.
+//
+// Returns:
+//   - A slice of `Context` containing all the results that match the specified keys.
+//     The slice is accumulated during the recursive descent, and all matches, including
+//     those found in nested objects and arrays, are added to the result.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ],
+//	    "music": [
+//	      { "artist": "The Beatles", "album": "Abbey Road" },
+//	      { "artist": "Pink Floyd", "album": "The Wall" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	keySet := map[string]struct{}{"author": {}, "album": {}}
+//	results := scanByKey(nil, parent, keySet)
+//
+//	// `results` will contain:
+//	// ["J.K. Rowling", "Stephen Hawking", "The Beatles", "Pink Floyd"]
+//	// The function searches for the "author" and "album" keys in the store and collects all matches
+//	// found within the nested book and music arrays in the store object.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the keys of the JSON elements using `key.String()`.
+//   - The `keySet` is checked for the presence of each key using `keySet[key.String()]`.
+func scanByKey(all []Context, node Context, keySet map[string]struct{}) []Context {
+	if node.IsObject() {
+		node.Foreach(func(key, val Context) bool {
+			if _, ok := keySet[key.String()]; ok {
+				all = append(all, val)
+			}
+			// Recurse into value regardless of whether the key matched.
+			if val.IsObject() || val.IsArray() {
+				all = scanByKey(all, val, keySet)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		node.Foreach(func(_, child Context) bool {
+			all = scanByKey(all, child, keySet)
+			return true
+		})
+	}
+	return all
+}

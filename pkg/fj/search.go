@@ -564,36 +564,6 @@ func FindPathsMatch(json, valuePattern string) []string {
 	return scanPathsMatch(nil, Parse(json), valuePattern, "")
 }
 
-// scanPathsMatch is the depth-first worker for FindPathsMatch.
-func scanPathsMatch(all []string, node Context, pattern, prefix string) []string {
-	if node.IsObject() {
-		node.Foreach(func(key, child Context) bool {
-			p := joinPath(prefix, key.String())
-			if child.IsObject() || child.IsArray() {
-				all = scanPathsMatch(all, child, pattern, p)
-			} else if child.Exists() && match.Match(child.String(), pattern) {
-				all = append(all, p)
-			}
-			return true
-		})
-		return all
-	}
-	if node.IsArray() {
-		idx := 0
-		node.Foreach(func(_, child Context) bool {
-			p := joinPath(prefix, itoa(idx))
-			if child.IsObject() || child.IsArray() {
-				all = scanPathsMatch(all, child, pattern, p)
-			} else if child.Exists() && match.Match(child.String(), pattern) {
-				all = append(all, p)
-			}
-			idx++
-			return true
-		})
-	}
-	return all
-}
-
 // CoerceTo converts the JSON value held in ctx into the Go variable pointed to by
 // into, using the conv.Infer conversion engine. into must be a non-nil pointer to
 // a supported type (bool, int*, uint*, float*, string, time.Time, slices, maps, or

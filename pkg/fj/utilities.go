@@ -4354,6 +4354,71 @@ func scanPaths(all []string, node Context, value, prefix string) []string {
 	return all
 }
 
+// scanPathsMatch is the depth-first worker for FindPathsMatch.
+//
+// Parameters:
+//   - `all`: The slice of paths to append matches to.
+//   - `node`: The current Context node to search.
+//   - `pattern`: The wildcard pattern to match against.
+//   - `prefix`: The prefix to prepend to the path.
+//
+// Returns:
+//   - A slice of strings representing the paths to the matching values.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	paths := scanPathsMatch(nil, parent, "*.title", "")
+//
+//	// `paths` will contain:
+//	// ["book.0.title"]
+//	// The function searches for the "Harry Potter" value in the store and collects all paths found.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanPathsMatch(all []string, node Context, pattern, prefix string) []string {
+	if node.IsObject() {
+		node.Foreach(func(key, child Context) bool {
+			p := joinPath(prefix, key.String())
+			if child.IsObject() || child.IsArray() {
+				all = scanPathsMatch(all, child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				all = append(all, p)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		idx := 0
+		node.Foreach(func(_, child Context) bool {
+			p := joinPath(prefix, itoa(idx))
+			if child.IsObject() || child.IsArray() {
+				all = scanPathsMatch(all, child, pattern, p)
+			} else if child.Exists() && match.Match(child.String(), pattern) {
+				all = append(all, p)
+			}
+			idx++
+			return true
+		})
+	}
+	return all
+}
+
 // joinPath concatenates a dot-notation prefix with a segment, inserting "." only
 // when the prefix is non-empty.
 //

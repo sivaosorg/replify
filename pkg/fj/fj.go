@@ -514,7 +514,7 @@ func Foreach(json string, iterator func(line Context) bool) {
 	var ctx Context
 	var i int
 	for {
-		i, ctx, _ = parseJSONAny(json, i, true)
+		i, ctx, _ = extractJSONValueAt(json, i, true)
 		if !ctx.Exists() {
 			break
 		}

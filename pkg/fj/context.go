@@ -1075,7 +1075,7 @@ func (ctx Context) Foreach(iterator func(key, value Context) bool) {
 			break
 		}
 		s := i
-		i, value, ok = parseJSONAny(json, i, true)
+		i, value, ok = extractJSONValueAt(json, i, true)
 		if !ok {
 			return
 		}

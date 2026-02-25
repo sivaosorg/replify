@@ -1652,6 +1652,114 @@ func extractJSONLowerLiteral(json string, i int) (newPos int, literal string) {
 	return i, json[s:]
 }
 
+// extractJSONValueAt parses the next JSON value from a given JSON string starting at the specified index `i`.
+// The function identifies and processes a variety of JSON value types including objects, arrays, strings, literals (true, false, null),
+// and numeric values. The result of parsing is returned as a `Context` containing relevant information about the parsed value.
+//
+// Parameters:
+//   - `json`: A string representing the JSON data to be parsed. This string can include objects, arrays, strings, literals, and numbers.
+//   - `i`: The starting index in the `json` string where parsing should begin. The function will parse the value starting at this index.
+//   - `hit`: A boolean flag indicating whether to capture the parsed result into the `Context` object. If true, the context will be populated with the parsed value.
+//
+// Returns:
+//   - `i`: The updated index after parsing the JSON value. This is the index immediately after the parsed value.
+//   - `ctx`: A `Context` object containing information about the parsed value, including the type (`kind`), the raw unprocessed string (`raw`),
+//     and for strings or numbers, the parsed value (e.g., `str` for strings, `num` for numbers).
+//   - `ok`: A boolean indicating whether the parsing was successful. If the function successfully identifies a JSON value, it returns true; otherwise, false.
+//
+// Example Usage:
+//
+//	json := `{"key": "value", "age": 25}`
+//	i := 0
+//	hit := true
+//	i, ctx, ok := extractJSONValueAt(json, i, hit)
+//	// i: the index after parsing the first JSON value (e.g., after the closing quote of "value").
+//	// ctx: contains the parsed context information (e.g., for strings, the kind would be String, unprocessed would be the raw value, etc.)
+//	// ok: true if the value was successfully parsed.
+//
+// Details:
+//   - The function processes various JSON types, including objects, arrays, strings, literals (true, false, null), and numeric values.
+//   - It recognizes objects (`{}`), arrays (`[]`), and string literals (`""`), and calls the appropriate helper functions for each type.
+//   - When parsing a string, it handles escape sequences, and when parsing numeric values, it checks for valid numbers (including integers, floats, and special numeric literals like `NaN`).
+//   - For literals like `true`, `false`, and `null`, the function parses the exact keywords and stores them in the `Context` object as `True`, `False`, or `Null` respectively.
+//
+// The function ensures flexibility by checking each character in the JSON string and delegating to specialized functions for handling different value types.
+// If no valid JSON value is found at the given position, it returns false.
+func extractJSONValueAt(json string, i int, hit bool) (newPos int, _ctx Context, _ok bool) {
+	var ctx Context
+	var val string
+	for ; i < len(json); i++ {
+		if json[i] == '{' || json[i] == '[' {
+			i, val = extractJSONValue(json, i)
+			if hit {
+				ctx.raw = val
+				ctx.kind = JSON
+			}
+			var tmp parser
+			tmp.val = ctx
+			computeOffset(json, &tmp)
+			return i, tmp.val, true
+		}
+		if json[i] <= ' ' {
+			continue
+		}
+		var num bool
+		switch json[i] {
+		case '"':
+			i++
+			var escVal bool
+			var ok bool
+			i, val, escVal, ok = extractJSONString(json, i)
+			if !ok {
+				return i, ctx, false
+			}
+			if hit {
+				ctx.kind = String
+				ctx.raw = val
+				if escVal {
+					ctx.str = unescape(val[1 : len(val)-1])
+				} else {
+					ctx.str = val[1 : len(val)-1]
+				}
+			}
+			return i, ctx, true
+		case 'n':
+			if i+1 < len(json) && json[i+1] != 'u' {
+				num = true
+				break
+			}
+			fallthrough
+		case 't', 'f':
+			vc := json[i]
+			i, val = extractJSONLowerLiteral(json, i)
+			if hit {
+				ctx.raw = val
+				switch vc {
+				case 't':
+					ctx.kind = True
+				case 'f':
+					ctx.kind = False
+				}
+				return i, ctx, true
+			}
+		case '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+			'i', 'I', 'N':
+			num = true
+		}
+		if num {
+			i, val = extractJSONNumber(json, i)
+			if hit {
+				ctx.raw = val
+				ctx.kind = Number
+				ctx.num, _ = strconv.ParseFloat(val, 64)
+			}
+			return i, ctx, true
+		}
+
+	}
+	return i, ctx, false
+}
+
 // extractAndUnescapeJSONString extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
 // The function processes the input string to handle escaped characters and returns a clean, unescaped version of the string
 // as well as the portion of the JSON string that includes the enclosing quotes.
@@ -2302,114 +2410,6 @@ func splitPathSegment(path string) (r wildcard) {
 	}
 	r.part = path
 	return
-}
-
-// parseJSONAny parses the next JSON value from a given JSON string starting at the specified index `i`.
-// The function identifies and processes a variety of JSON value types including objects, arrays, strings, literals (true, false, null),
-// and numeric values. The result of parsing is returned as a `Context` containing relevant information about the parsed value.
-//
-// Parameters:
-//   - `json`: A string representing the JSON data to be parsed. This string can include objects, arrays, strings, literals, and numbers.
-//   - `i`: The starting index in the `json` string where parsing should begin. The function will parse the value starting at this index.
-//   - `hit`: A boolean flag indicating whether to capture the parsed result into the `Context` object. If true, the context will be populated with the parsed value.
-//
-// Returns:
-//   - `i`: The updated index after parsing the JSON value. This is the index immediately after the parsed value.
-//   - `ctx`: A `Context` object containing information about the parsed value, including the type (`kind`), the raw unprocessed string (`raw`),
-//     and for strings or numbers, the parsed value (e.g., `str` for strings, `num` for numbers).
-//   - `ok`: A boolean indicating whether the parsing was successful. If the function successfully identifies a JSON value, it returns true; otherwise, false.
-//
-// Example Usage:
-//
-//	json := `{"key": "value", "age": 25}`
-//	i := 0
-//	hit := true
-//	i, ctx, ok := parseJSONAny(json, i, hit)
-//	// i: the index after parsing the first JSON value (e.g., after the closing quote of "value").
-//	// ctx: contains the parsed context information (e.g., for strings, the kind would be String, unprocessed would be the raw value, etc.)
-//	// ok: true if the value was successfully parsed.
-//
-// Details:
-//   - The function processes various JSON types, including objects, arrays, strings, literals (true, false, null), and numeric values.
-//   - It recognizes objects (`{}`), arrays (`[]`), and string literals (`""`), and calls the appropriate helper functions for each type.
-//   - When parsing a string, it handles escape sequences, and when parsing numeric values, it checks for valid numbers (including integers, floats, and special numeric literals like `NaN`).
-//   - For literals like `true`, `false`, and `null`, the function parses the exact keywords and stores them in the `Context` object as `True`, `False`, or `Null` respectively.
-//
-// The function ensures flexibility by checking each character in the JSON string and delegating to specialized functions for handling different value types.
-// If no valid JSON value is found at the given position, it returns false.
-func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
-	var ctx Context
-	var val string
-	for ; i < len(json); i++ {
-		if json[i] == '{' || json[i] == '[' {
-			i, val = extractJSONValue(json, i)
-			if hit {
-				ctx.raw = val
-				ctx.kind = JSON
-			}
-			var tmp parser
-			tmp.val = ctx
-			computeOffset(json, &tmp)
-			return i, tmp.val, true
-		}
-		if json[i] <= ' ' {
-			continue
-		}
-		var num bool
-		switch json[i] {
-		case '"':
-			i++
-			var escVal bool
-			var ok bool
-			i, val, escVal, ok = extractJSONString(json, i)
-			if !ok {
-				return i, ctx, false
-			}
-			if hit {
-				ctx.kind = String
-				ctx.raw = val
-				if escVal {
-					ctx.str = unescape(val[1 : len(val)-1])
-				} else {
-					ctx.str = val[1 : len(val)-1]
-				}
-			}
-			return i, ctx, true
-		case 'n':
-			if i+1 < len(json) && json[i+1] != 'u' {
-				num = true
-				break
-			}
-			fallthrough
-		case 't', 'f':
-			vc := json[i]
-			i, val = extractJSONLowerLiteral(json, i)
-			if hit {
-				ctx.raw = val
-				switch vc {
-				case 't':
-					ctx.kind = True
-				case 'f':
-					ctx.kind = False
-				}
-				return i, ctx, true
-			}
-		case '+', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-			'i', 'I', 'N':
-			num = true
-		}
-		if num {
-			i, val = extractJSONNumber(json, i)
-			if hit {
-				ctx.raw = val
-				ctx.kind = Number
-				ctx.num, _ = strconv.ParseFloat(val, 64)
-			}
-			return i, ctx, true
-		}
-
-	}
-	return i, ctx, false
 }
 
 // parseJSONObject parses a JSON object structure from a given JSON string, extracting key-value pairs based on a specified path.
@@ -3152,7 +3152,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 								break
 							}
 							if idx < len(c.json) && c.json[idx] != ']' {
-								_, res, ok := parseJSONAny(c.json, idx, true)
+								_, res, ok := extractJSONValueAt(c.json, idx, true)
 								if ok {
 									res := res.Get(analysis.logKey)
 									if res.Exists() {

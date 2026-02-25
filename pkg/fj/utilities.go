@@ -3987,6 +3987,44 @@ func scanLeaves(all []Context, node Context, keyword string) []Context {
 	return all
 }
 
+// scanLeavesMatch is the internal recursive worker for SearchMatch.
+//
+// Parameters:
+//   - `all`: The slice of Context values to append matches to.
+//   - `node`: The current Context node to search.
+//   - `pattern`: The wildcard pattern to match against.
+//
+// Returns:
+//   - A slice of `Context` containing all the matches found.
+//
+// Example Usage:
+//
+//	scanLeavesMatch(nil, node, "*.name")
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanLeavesMatch(all []Context, node Context, pattern string) []Context {
+	if node.IsArray() || node.IsObject() {
+		node.Foreach(func(_, child Context) bool {
+			all = scanLeavesMatch(all, child, pattern)
+			return true
+		})
+		return all
+	}
+	if !node.Exists() {
+		return all
+	}
+	if match.Match(node.String(), pattern) {
+		all = append(all, node)
+	}
+	return all
+}
+
 // scanByKey is the internal recursive worker for SearchByKey.
 //
 // Parameters:

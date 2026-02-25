@@ -470,24 +470,6 @@ func SearchMatch(json, pattern string) []Context {
 	return scanLeavesMatch(nil, Parse(json), pattern)
 }
 
-// scanLeavesMatch is the internal recursive worker for SearchMatch.
-func scanLeavesMatch(all []Context, node Context, pattern string) []Context {
-	if node.IsArray() || node.IsObject() {
-		node.Foreach(func(_, child Context) bool {
-			all = scanLeavesMatch(all, child, pattern)
-			return true
-		})
-		return all
-	}
-	if !node.Exists() {
-		return all
-	}
-	if match.Match(node.String(), pattern) {
-		all = append(all, node)
-	}
-	return all
-}
-
 // SearchByKeyPattern performs a full-tree scan of the JSON document and returns all
 // Context values whose immediate parent object key matches the given wildcard pattern.
 //

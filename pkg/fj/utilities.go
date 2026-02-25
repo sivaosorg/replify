@@ -3923,3 +3923,66 @@ func trimOuterBrackets(json string) string {
 	}
 	return json
 }
+
+// scanLeaves is the internal recursive worker for Search.
+// It appends to `all` every scalar leaf whose String() contains keyword.
+//
+// Parameters:
+//   - `all`: A slice of `Context` that accumulates the results. It is initially empty
+//     and is populated with matching `Context` objects found during the traversal.
+//   - `node`: The `Context` representing the current JSON element being processed.
+//     It acts as the starting point for the search in this recursive descent.
+//   - `keyword`: The keyword to search for within the string representation of each leaf node.
+//
+// Returns:
+//   - A slice of `Context` containing all the results that match the specified keyword.
+//     The slice is accumulated during the recursive descent, and all matches, including
+//     those found in nested objects and arrays, are added to the result.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ],
+//	    "music": [
+//	      { "artist": "The Beatles", "album": "Abbey Road" },
+//	      { "artist": "Pink Floyd", "album": "The Wall" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	results := scanLeaves(nil, parent, "Harry")
+//
+//	// `results` will contain:
+//	// ["Harry Potter"]
+//	// The function searches for the "Harry" keyword in the store and collects all matches
+//	// found within the nested book array in the store object.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the string representation of each leaf node using `node.String()`.
+//   - The `keyword` is checked for emptiness using `strutil.IsEmpty()`. If the keyword is empty,
+//     all leaf nodes will be considered matches and added to the result.
+func scanLeaves(all []Context, node Context, keyword string) []Context {
+	if node.IsArray() || node.IsObject() {
+		node.Foreach(func(_, child Context) bool {
+			all = scanLeaves(all, child, keyword)
+			return true
+		})
+		return all
+	}
+	if !node.Exists() {
+		return all
+	}
+	if strutil.IsEmpty(keyword) || strings.Contains(node.String(), keyword) {
+		all = append(all, node)
+	}
+	return all
+}

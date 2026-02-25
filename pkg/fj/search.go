@@ -7,7 +7,6 @@ import (
 
 	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/match"
-	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // Search performs a full-tree scan of the JSON document and returns all leaf values
@@ -34,25 +33,6 @@ import (
 //	// results[0].String() == "Alice"
 func Search(json, keyword string) []Context {
 	return scanLeaves(nil, Parse(json), keyword)
-}
-
-// scanLeaves is the internal recursive worker for Search.
-// It appends to `all` every scalar leaf whose String() contains keyword.
-func scanLeaves(all []Context, node Context, keyword string) []Context {
-	if node.IsArray() || node.IsObject() {
-		node.Foreach(func(_, child Context) bool {
-			all = scanLeaves(all, child, keyword)
-			return true
-		})
-		return all
-	}
-	if !node.Exists() {
-		return all
-	}
-	if strutil.IsEmpty(keyword) || strings.Contains(node.String(), keyword) {
-		all = append(all, node)
-	}
-	return all
 }
 
 // SearchByKey performs a full-tree scan of the JSON document and returns all Context

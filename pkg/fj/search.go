@@ -492,29 +492,6 @@ func SearchByKeyPattern(json, keyPattern string) []Context {
 	return scanByKeyPattern(nil, Parse(json), keyPattern)
 }
 
-// scanByKeyPattern is the internal recursive worker for SearchByKeyPattern.
-func scanByKeyPattern(all []Context, node Context, keyPattern string) []Context {
-	if node.IsObject() {
-		node.Foreach(func(key, val Context) bool {
-			if match.Match(key.String(), keyPattern) {
-				all = append(all, val)
-			}
-			if val.IsObject() || val.IsArray() {
-				all = scanByKeyPattern(all, val, keyPattern)
-			}
-			return true
-		})
-		return all
-	}
-	if node.IsArray() {
-		node.Foreach(func(_, child Context) bool {
-			all = scanByKeyPattern(all, child, keyPattern)
-			return true
-		})
-	}
-	return all
-}
-
 // ContainsMatch reports whether the value at path in json matches the given wildcard
 // pattern. If the path does not exist, ContainsMatch returns false.
 //

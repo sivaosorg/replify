@@ -4093,6 +4093,49 @@ func scanByKey(all []Context, node Context, keySet map[string]struct{}) []Contex
 	return all
 }
 
+// scanByKeyPattern is the internal recursive worker for SearchByKeyPattern.
+//
+// Parameters:
+//   - `all`: The slice of Context values to append matches to.
+//   - `node`: The current Context node to search.
+//   - `keyPattern`: The wildcard pattern to match against.
+//
+// Returns:
+//   - A slice of `Context` containing all the matches found.
+//
+// Example Usage:
+//
+//	scanByKeyPattern(nil, node, "*.name")
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanByKeyPattern(all []Context, node Context, keyPattern string) []Context {
+	if node.IsObject() {
+		node.Foreach(func(key, val Context) bool {
+			if match.Match(key.String(), keyPattern) {
+				all = append(all, val)
+			}
+			if val.IsObject() || val.IsArray() {
+				all = scanByKeyPattern(all, val, keyPattern)
+			}
+			return true
+		})
+		return all
+	}
+	if node.IsArray() {
+		node.Foreach(func(_, child Context) bool {
+			all = scanByKeyPattern(all, child, keyPattern)
+			return true
+		})
+	}
+	return all
+}
+
 // scanPath is the depth-first worker for FindPath.
 // Returns the first matching path and a bool indicating whether it was found.
 //

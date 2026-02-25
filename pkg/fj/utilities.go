@@ -3540,10 +3540,7 @@ func isTruthy(t Context) bool {
 	case True:
 		return true
 	case String:
-		b, err := strconv.ParseBool(strings.ToLower(t.str))
-		if err != nil {
-			return false
-		}
+		b := conv.BoolOrDefault(t.str, false)
 		return b
 	case Number:
 		return t.num != 0

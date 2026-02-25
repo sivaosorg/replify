@@ -3430,7 +3430,7 @@ func applyTransformerAt(json, path string) (remainingPath, result string, ok boo
 	return remainingPath, result, false
 }
 
-// isNullish checks whether a given `Context` represents a JSON null value.
+// isNull checks whether a given `Context` represents a JSON null value.
 //
 // Parameters:
 //   - t: A `Context` struct that contains information about a specific JSON value.
@@ -3442,17 +3442,17 @@ func applyTransformerAt(json, path string) (remainingPath, result string, ok boo
 // Example Usage:
 //
 //	ctx := Context{kind: Null}
-//	isNull := isNullish(ctx)
+//	isNull := isNull(ctx)
 //	// isNull: true
 //
 //	ctx = Context{kind: String, strings: "example"}
-//	isNull = isNullish(ctx)
+//	isNull = isNull(ctx)
 //	// isNull: false
 //
 // Notes:
 //   - This function provides a convenient way to check if a JSON value is null,
 //     allowing for easier handling of such cases in JSON processing.
-func isNullish(t Context) bool {
+func isNull(t Context) bool {
 	return t.kind == Null
 }
 
@@ -3609,7 +3609,7 @@ func matchesQueryConditions(dp *meta, value Context) bool {
 			case "*":
 				ish, ok = value.Exists(), true
 			case "null":
-				ish, ok = isNullish(value), true
+				ish, ok = isNull(value), true
 			case "true":
 				ish, ok = isTruthy(value), true
 			case "false":

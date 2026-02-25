@@ -3495,10 +3495,7 @@ func isFalsy(t Context) bool {
 	case False:
 		return true
 	case String:
-		b, err := strconv.ParseBool(strings.ToLower(t.str))
-		if err != nil {
-			return false
-		}
+		b := conv.BoolOrDefault(t.str, false)
 		return !b
 	case Number:
 		return t.num == 0

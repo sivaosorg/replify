@@ -95,6 +95,34 @@ func Parse(json string) Context {
 	return value
 }
 
+// ParseBytes parses a JSON byte slice and returns a Context representing the parsed value.
+//
+// This function is a wrapper around the `Parse` function, designed specifically for handling JSON data
+// in the form of a byte slice. It converts the byte slice into a string and then calls `Parse` to process
+// the JSON data. If you're working with raw JSON data as bytes, using this method is preferred over
+// manually converting the bytes to a string and passing it to `Parse`.
+//
+// Parameters:
+//   - `json`: A byte slice containing the JSON data to be parsed.
+//
+// Returns:
+//   - A `Context` representing the parsed JSON element, similar to the behavior of `Parse`. The `Context`
+//     contains information about the type, value, and position of the JSON element, including the raw and
+//     unprocessed string data.
+//
+// Example Usage:
+//
+//	json := []byte("{\"name\": \"Alice\", \"age\": 25}")
+//	ctx := ParseBytes(json)
+//	fmt.Println(ctx.kind) // Output: JSON (if the input is an object)
+//
+// Returns:
+//   - `Context`: The parsed result, representing the parsed JSON element, such as an object, array, string,
+//     number, boolean, or null.
+func ParseBytes(json []byte) Context {
+	return Parse(string(json))
+}
+
 // ParseReader reads a JSON string from an `io.Reader` and parses it into a Context.
 //
 // This function combines the reading and parsing operations. It first reads the JSON
@@ -190,34 +218,6 @@ func ParseJSONFile(filepath string) Context {
 	}
 	defer file.Close()
 	return ParseReader(file)
-}
-
-// ParseBytes parses a JSON byte slice and returns a Context representing the parsed value.
-//
-// This function is a wrapper around the `Parse` function, designed specifically for handling JSON data
-// in the form of a byte slice. It converts the byte slice into a string and then calls `Parse` to process
-// the JSON data. If you're working with raw JSON data as bytes, using this method is preferred over
-// manually converting the bytes to a string and passing it to `Parse`.
-//
-// Parameters:
-//   - `json`: A byte slice containing the JSON data to be parsed.
-//
-// Returns:
-//   - A `Context` representing the parsed JSON element, similar to the behavior of `Parse`. The `Context`
-//     contains information about the type, value, and position of the JSON element, including the raw and
-//     unprocessed string data.
-//
-// Example Usage:
-//
-//	json := []byte("{\"name\": \"Alice\", \"age\": 25}")
-//	ctx := ParseBytes(json)
-//	fmt.Println(ctx.kind) // Output: JSON (if the input is an object)
-//
-// Returns:
-//   - `Context`: The parsed result, representing the parsed JSON element, such as an object, array, string,
-//     number, boolean, or null.
-func ParseBytes(json []byte) Context {
-	return Parse(string(json))
 }
 
 // Get searches for a specified path within the provided JSON string and returns the corresponding value as a Context.

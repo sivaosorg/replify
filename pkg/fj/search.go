@@ -134,145 +134,6 @@ func FindPaths(json, value string) []string {
 	return scanPaths(nil, Parse(json), value, "")
 }
 
-// Count returns the number of elements returned by evaluating path against json.
-// For a path that produces a JSON array the count equals the array length. For a
-// path that produces a single scalar value, Count returns 1. For a missing or null
-// result, Count returns 0.
-//
-// Parameters:
-//   - json: A well-formed JSON string.
-//   - path: A fj dot-notation path.
-//
-// Returns:
-//   - The count of matching elements (≥ 0).
-//
-// Example:
-//
-//	json := `{"tags":["go","json","fast"]}`
-//	fj.Count(json, "tags")   // 3
-//	fj.Count(json, "tags.0") // 1
-//	fj.Count(json, "missing")// 0
-func Count(json, path string) int {
-	ctx := Get(json, path)
-	if !ctx.Exists() {
-		return 0
-	}
-	if ctx.IsArray() {
-		return len(ctx.Array())
-	}
-	return 1
-}
-
-// Sum returns the sum of all numeric values produced by evaluating path against
-// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
-// are found.
-//
-// Parameters:
-//   - json: A well-formed JSON string.
-//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
-//     (e.g. "scores") or a single number (e.g. "scores.0").
-//
-// Returns:
-//   - The sum as float64.
-//
-// Example:
-//
-//	json := `{"scores":[10,20,30]}`
-//	fj.Sum(json, "scores") // 60.0
-func Sum(json, path string) float64 {
-	var total float64
-	scanFloat64(json, path, func(n float64) { total += n })
-	return total
-}
-
-// Min returns the minimum numeric value among all results produced by evaluating
-// path against json. Non-numeric results are silently ignored.
-//
-// Parameters:
-//   - json: A well-formed JSON string.
-//   - path: A fj dot-notation path.
-//
-// Returns:
-//   - The minimum value and true when at least one number is found.
-//   - 0 and false when no numeric values are found.
-//
-// Example:
-//
-//	json := `{"scores":[10,20,5,30]}`
-//	v, ok := fj.Min(json, "scores") // 5.0, true
-func Min(json, path string) (float64, bool) {
-	min := math.MaxFloat64
-	found := false
-	scanFloat64(json, path, func(n float64) {
-		if n < min {
-			min = n
-		}
-		found = true
-	})
-	if !found {
-		return 0, false
-	}
-	return min, true
-}
-
-// Max returns the maximum numeric value among all results produced by evaluating
-// path against json. Non-numeric results are silently ignored.
-//
-// Parameters:
-//   - json: A well-formed JSON string.
-//   - path: A fj dot-notation path.
-//
-// Returns:
-//   - The maximum value and true when at least one number is found.
-//   - 0 and false when no numeric values are found.
-//
-// Example:
-//
-//	json := `{"scores":[10,20,5,30]}`
-//	v, ok := fj.Max(json, "scores") // 30.0, true
-func Max(json, path string) (float64, bool) {
-	max := -math.MaxFloat64
-	found := false
-	scanFloat64(json, path, func(n float64) {
-		if n > max {
-			max = n
-		}
-		found = true
-	})
-	if !found {
-		return 0, false
-	}
-	return max, true
-}
-
-// Avg returns the arithmetic mean of all numeric values produced by evaluating path
-// against json. Non-numeric results are silently ignored.
-//
-// Parameters:
-//   - json: A well-formed JSON string.
-//   - path: A fj dot-notation path.
-//
-// Returns:
-//   - The average value and true when at least one number is found.
-//   - 0 and false when no numeric values are found.
-//
-// Example:
-//
-//	json := `{"scores":[10,20,30]}`
-//	v, ok := fj.Avg(json, "scores") // 20.0, true
-func Avg(json, path string) (float64, bool) {
-	var total float64
-	var n int
-	scanFloat64(json, path, func(v float64) {
-		total += v
-		n++
-	})
-	if n == 0 {
-		return 0, false
-	}
-	return total / float64(n), true
-}
-
 // Filter evaluates path against json, treats the result as an array, and returns
 // only those elements for which fn returns true.
 //
@@ -722,7 +583,7 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	sort.SliceStable(items, func(i, j int) bool {
 		vi := sortField(items[i], keyField)
 		vj := sortField(items[j], keyField)
-		less := sortCmp(vi, vj)
+		less := sortComp(vi, vj)
 		if ascending {
 			return less
 		}
@@ -731,18 +592,141 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	return items
 }
 
-// sortCmp returns true when a should come before b in ascending sort order.
-// Numeric values are compared as float64 via conv.Float64.
-// All other values fall back to string comparison via conv.String.
-func sortCmp(a, b Context) bool {
-	if a.kind == Number || b.kind == Number {
-		fa, errA := conv.Float64(a.Value())
-		fb, errB := conv.Float64(b.Value())
-		if errA == nil && errB == nil {
-			return fa < fb
-		}
+// Count returns the number of elements returned by evaluating path against json.
+// For a path that produces a JSON array the count equals the array length. For a
+// path that produces a single scalar value, Count returns 1. For a missing or null
+// result, Count returns 0.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The count of matching elements (≥ 0).
+//
+// Example:
+//
+//	json := `{"tags":["go","json","fast"]}`
+//	fj.Count(json, "tags")   // 3
+//	fj.Count(json, "tags.0") // 1
+//	fj.Count(json, "missing")// 0
+func Count(json, path string) int {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return 0
 	}
-	sa, _ := conv.String(a.Value())
-	sb, _ := conv.String(b.Value())
-	return sa < sb
+	if ctx.IsArray() {
+		return len(ctx.Array())
+	}
+	return 1
+}
+
+// Sum returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as float64.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.Sum(json, "scores") // 60.0
+func Sum(json, path string) float64 {
+	var total float64
+	scanFloat64(json, path, func(n float64) { total += n })
+	return total
+}
+
+// Min returns the minimum numeric value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.Min(json, "scores") // 5.0, true
+func Min(json, path string) (float64, bool) {
+	min := math.MaxFloat64
+	found := false
+	scanFloat64(json, path, func(n float64) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// Max returns the maximum numeric value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.Max(json, "scores") // 30.0, true
+func Max(json, path string) (float64, bool) {
+	max := -math.MaxFloat64
+	found := false
+	scanFloat64(json, path, func(n float64) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// Avg returns the arithmetic mean of all numeric values produced by evaluating path
+// against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The average value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	v, ok := fj.Avg(json, "scores") // 20.0, true
+func Avg(json, path string) (float64, bool) {
+	var total float64
+	var n int
+	scanFloat64(json, path, func(v float64) {
+		total += v
+		n++
+	})
+	if n == 0 {
+		return 0, false
+	}
+	return total / float64(n), true
 }

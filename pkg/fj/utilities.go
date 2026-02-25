@@ -4461,6 +4461,55 @@ func sortField(item Context, keyField string) Context {
 	return item.Get(keyField)
 }
 
+// sortComp returns true when a should come before b in ascending sort order.
+// Numeric values are compared as float64 via conv.Float64.
+// All other values fall back to string comparison via conv.String.
+//
+// Parameters:
+//   - `a`: The first Context element to compare.
+//   - `b`: The second Context element to compare.
+//
+// Returns:
+//   - `true` if `a` should come before `b` in ascending sort order, `false` otherwise.
+//
+// Example Usage:
+//
+//	json := `{
+//	  "store": {
+//	    "book": [
+//	      { "category": "fiction", "author": "J.K. Rowling", "title": "Harry Potter" },
+//	      { "category": "science", "author": "Stephen Hawking", "title": "A Brief History of Time" }
+//	    ]
+//	  }
+//	}`
+//
+//	parent := fj.Get(json, "store")
+//	paths := scanPathsMatch(nil, parent, "*.title", "")
+//
+//	// `paths` will contain:
+//	// ["book.0.title"]
+//	// The function searches for the "Harry Potter" value in the store and collects all paths found.
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func sortComp(a, b Context) bool {
+	if a.kind == Number || b.kind == Number {
+		fa, errA := conv.Float64(a.Value())
+		fb, errB := conv.Float64(b.Value())
+		if errA == nil && errB == nil {
+			return fa < fb
+		}
+	}
+	sa, _ := conv.String(a.Value())
+	sb, _ := conv.String(b.Value())
+	return sa < sb
+}
+
 // joinPath concatenates a dot-notation prefix with a segment, inserting "." only
 // when the prefix is non-empty.
 //

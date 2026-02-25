@@ -4203,3 +4203,33 @@ func scanPaths(all []string, node Context, value, prefix string) []string {
 	}
 	return all
 }
+
+// joinPath concatenates a dot-notation prefix with a segment, inserting "." only
+// when the prefix is non-empty.
+//
+// Parameters:
+//   - `prefix`: The prefix to use for the path.
+//   - `segment`: The segment to append to the prefix.
+//
+// Returns:
+//   - A string representing the combined path.
+//
+// Example Usage:
+//
+//	path := joinPath("store.book", "0.title")
+//
+// `path` will be "store.book.0.title"
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func joinPath(prefix, segment string) string {
+	if strutil.IsEmpty(prefix) {
+		return segment
+	}
+	return prefix + "." + segment
+}

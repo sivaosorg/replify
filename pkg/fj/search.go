@@ -134,15 +134,6 @@ func FindPaths(json, value string) []string {
 	return scanPaths(nil, Parse(json), value, "")
 }
 
-// joinPath concatenates a dot-notation prefix with a segment, inserting "." only
-// when the prefix is non-empty.
-func joinPath(prefix, segment string) string {
-	if prefix == "" {
-		return segment
-	}
-	return prefix + "." + segment
-}
-
 // itoa converts a non-negative integer to its decimal string representation without
 // importing the strconv package.
 func itoa(n int) string {

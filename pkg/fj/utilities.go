@@ -3878,7 +3878,7 @@ func escapeUnsafeChars(component string) string {
 	return component
 }
 
-// removeOuterBraces removes the surrounding '[]' or '{}' characters from a JSON string.
+// trimOuterBrackets removes the surrounding '[]' or '{}' characters from a JSON string.
 // This function is useful when you want to extract the content inside a JSON array or object,
 // effectively unwrapping the outermost brackets or braces.
 //
@@ -3893,15 +3893,15 @@ func escapeUnsafeChars(component string) string {
 // Example Usage:
 //
 //	json := "[1, 2, 3]"
-//	unwrapped := removeOuterBraces(json)
+//	unwrapped := trimOuterBrackets(json)
 //	// unwrapped: "1, 2, 3" (the array removed)
 //
 //	json = "{ \"name\": \"John\" }"
-//	unwrapped = removeOuterBraces(json)
+//	unwrapped = trimOuterBrackets(json)
 //	// unwrapped: " \"name\": \"John\" " (the object removed)
 //
 //	str := "hello world"
-//	unwrapped = removeOuterBraces(str)
+//	unwrapped = trimOuterBrackets(str)
 //	// unwrapped: "hello world" (no change since no surrounding brackets or braces)
 //
 // Details:
@@ -3916,7 +3916,7 @@ func escapeUnsafeChars(component string) string {
 //   - If the string does not start and end with matching brackets or braces, the original string is returned unchanged.
 //
 //   - The function handles cases where the string may contain additional whitespace at the beginning or end by trimming it first.
-func removeOuterBraces(json string) string {
+func trimOuterBrackets(json string) string {
 	json = strutil.Trim(json)
 	if len(json) >= 2 && (json[0] == '[' || json[0] == '{') {
 		json = json[1 : len(json)-1]

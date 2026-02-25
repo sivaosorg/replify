@@ -381,9 +381,9 @@ func transformFlatten(json, arg string) string {
 		var raw string
 		if value.IsArray() {
 			if deep {
-				raw = removeOuterBraces(transformFlatten(value.raw, arg))
+				raw = trimOuterBrackets(transformFlatten(value.raw, arg))
 			} else {
-				raw = removeOuterBraces(value.raw)
+				raw = trimOuterBrackets(value.raw)
 			}
 		} else {
 			raw = value.raw
@@ -471,7 +471,7 @@ func transformJoin(json, arg string) string {
 			if idx > 0 {
 				target = append(target, ',')
 			}
-			target = append(target, removeOuterBraces(value.raw)...)
+			target = append(target, trimOuterBrackets(value.raw)...)
 			idx++
 			return true
 		})

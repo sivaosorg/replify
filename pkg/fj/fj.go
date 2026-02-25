@@ -297,7 +297,7 @@ func Get(json, path string) Context {
 			kind := path[0] // using a sub-selector path
 			var ok bool
 			var subs []sel
-			subs, path, ok = analyzeSubSelectors(path)
+			subs, path, ok = parseSubSelectors(path)
 			if ok {
 				if len(path) == 0 || (path[0] == '|' || path[0] == '.') {
 					var b []byte

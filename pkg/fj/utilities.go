@@ -3226,7 +3226,7 @@ func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 	return i, false
 }
 
-// analyzeSubSelectors parses a sub-selection string, which can either be in the form of
+// parseSubSelectors parses a sub-selection string, which can either be in the form of
 // '[path1,path2]' or '{"field1":path1,"field2":path2}' type structure. It returns the parsed
 // selectors from the given path, which includes the name and path of each selector within
 // the structure. The function assumes that the first character in the path is either '[' or '{',
@@ -3239,7 +3239,7 @@ func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 //
 // Returns:
 //   - selectors: A slice of `sel` structs containing the parsed selectors and their associated paths.
-//   - out: The remaining part of the path after parsing the selectors. This will be the part following the
+//   - remaining: The remaining part of the path after parsing the selectors. This will be the part following the
 //     closing bracket (']') or brace ('}') if applicable.
 //   - ok: A boolean indicating whether the parsing was successful. It returns true if the parsing was
 //     successful and the structure was valid, or false if there was an error during parsing.
@@ -3247,9 +3247,9 @@ func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 // Example Usage:
 //
 //	path := "[field1:subpath1,field2:subpath2]"
-//	selectors, out, ok := analyzeSubSelectors(path)
+//	selectors, remaining, ok := parseSubSelectors(path)
 //	// selectors: [{name: "field1", path: "subpath1"}, {name: "field2", path: "subpath2"}]
-//	// out: "" (no remaining part of the path)
+//	// remaining: "" (no remaining part of the path)
 //	// ok: true (parsing was successful)
 //
 // Details:
@@ -3272,7 +3272,7 @@ func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 //     nested structures).
 //   - If a valid selector is found, it is stored in the `selectors` slice.
 //   - The function returns the parsed selectors, the remaining path, and a success flag.
-func analyzeSubSelectors(path string) (selectors []sel, out string, ok bool) {
+func parseSubSelectors(path string) (selectors []sel, remaining string, ok bool) {
 	transformer := 0
 	depth := 1
 	colon := 0

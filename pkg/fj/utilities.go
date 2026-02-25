@@ -3779,7 +3779,7 @@ func appendJSONString(target []byte, s string) []byte {
 	return append(target, '"')
 }
 
-// deepSearchRecursively recursively traverses a JSON structure to find all matches
+// recurseCollectMatches recursively traverses a JSON structure to find all matches
 // for a specified path within nested objects or arrays.
 //
 // This function performs a depth-first traversal of the JSON structure starting from
@@ -3817,7 +3817,7 @@ func appendJSONString(target []byte, s string) []byte {
 //	}`
 //
 //	parent := fj.Get(json, "store")
-//	results := deepSearchRecursively(nil, parent, "book.title")
+//	results := recurseCollectMatches(nil, parent, "book.title")
 //
 //	// `results` will contain:
 //	// ["Harry Potter", "A Brief History of Time"]
@@ -3829,13 +3829,13 @@ func appendJSONString(target []byte, s string) []byte {
 //     ensuring that all levels of the structure are searched for matches.
 //   - If the `parent` element is an object or array, it will iterate over its elements and
 //     perform recursive descent for each of them.
-func deepSearchRecursively(all []Context, parent Context, path string) []Context {
+func recurseCollectMatches(all []Context, parent Context, path string) []Context {
 	if matched := parent.Get(path); matched.Exists() {
 		all = append(all, matched)
 	}
 	if parent.IsArray() || parent.IsObject() {
 		parent.Foreach(func(_, ctx Context) bool {
-			all = deepSearchRecursively(all, ctx, path)
+			all = recurseCollectMatches(all, ctx, path)
 			return true
 		})
 	}

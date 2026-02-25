@@ -859,7 +859,7 @@ func transformGroup(json, arg string) string {
 //   - The results are then appended to a byte slice (`seg`), which is later converted into a string.
 //   - The final output is a JSON array, even if no results are found.
 func transformSearch(json, arg string) string {
-	all := deepSearchRecursively(nil, Parse(json), arg)
+	all := recurseCollectMatches(nil, Parse(json), arg)
 	var seg []byte
 	seg = append(seg, '[')
 	for i, res := range all {

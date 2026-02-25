@@ -278,7 +278,7 @@ func Get(json, path string) Context {
 			var cPath string
 			var cJson string
 			if path[0] == '@' && !DisableTransformers {
-				cPath, cJson, ok = adjustTransformer(json, path)
+				cPath, cJson, ok = applyTransformerAt(json, path)
 			} else if path[0] == '!' {
 				cPath, cJson, ok = splitStaticAndLiteral(path)
 			}

@@ -3332,7 +3332,7 @@ func parseSubSelectors(path string) (selectors []sel, remaining string, ok bool)
 	return
 }
 
-// adjustTransformer parses a given path to identify a transformer function and its associated arguments,
+// applyTransformerAt parses a given path to identify a transformer function and its associated arguments,
 // then applies the transformer to the provided JSON string based on the parsed path. This function expects
 // that the path starts with a '@', indicating the presence of a transformer. It identifies the transformer's
 // name, extracts any potential arguments, and returns the modified result along with the remaining path
@@ -3344,7 +3344,7 @@ func parseSubSelectors(path string) (selectors []sel, remaining string, ok bool)
 //     contain an optional argument to be processed by the transformer.
 //
 // Returns:
-//   - pYield: The remaining portion of the path after parsing the transformer and its arguments.
+//   - remainingPath: The remaining portion of the path after parsing the transformer and its arguments.
 //   - result: The result obtained by applying the transformer to the JSON string, or an empty string
 //     if no valid transformer is found.
 //   - ok: A boolean indicating whether the transformer was successfully identified and applied. If true,
@@ -3354,8 +3354,8 @@ func parseSubSelectors(path string) (selectors []sel, remaining string, ok bool)
 //
 //	json := `{"key": "value"}`
 //	path := "@transformerName:argument"
-//	pYield, result, ok := adjustTransformer(json, path)
-//	// pYield: remaining path after the transformer
+//	remainingPath, result, ok := applyTransformerAt(json, path)
+//	// remainingPath: remaining path after the transformer
 //	// result: the modified JSON result based on the transformer applied
 //	// ok: true if the transformer was found and applied successfully
 //
@@ -3367,26 +3367,26 @@ func parseSubSelectors(path string) (selectors []sel, remaining string, ok bool)
 //   - If a valid transformer function is found in the `transformers` map, it applies the function to the JSON
 //     string and returns the result along with the remaining path. If no valid transformer is found, it
 //     returns the original path and an empty result.
-func adjustTransformer(json, path string) (pathYield, result string, ok bool) {
+func applyTransformerAt(json, path string) (remainingPath, result string, ok bool) {
 	name := path[1:] // remove the '@' character and initialize the name to the remaining path.
 	var hasArgs bool
 	// iterate over the path to find the transformer name and any arguments.
 	for i := 1; i < len(path); i++ {
 		// check for argument delimiter (':'), process if found.
 		if path[i] == ':' {
-			pathYield = path[i+1:]
+			remainingPath = path[i+1:]
 			name = path[1:i]
-			hasArgs = len(pathYield) > 0
+			hasArgs = len(remainingPath) > 0
 			break
 		}
 		// check for pipe ('|'), dot ('.'), or other delimiters to separate the transformer name and arguments.
 		if path[i] == '|' {
-			pathYield = path[i:]
+			remainingPath = path[i:]
 			name = path[1:i]
 			break
 		}
 		if path[i] == '.' {
-			pathYield = path[i:]
+			remainingPath = path[i:]
 			name = path[1:i]
 			break
 		}
@@ -3397,37 +3397,37 @@ func adjustTransformer(json, path string) (pathYield, result string, ok bool) {
 		if hasArgs { // if arguments are found, parse and handle them.
 			var parsedArgs bool
 			// process the arguments based on their type (e.g., JSON, string, etc.).
-			switch pathYield[0] {
+			switch remainingPath[0] {
 			case '{', '[', '"': // handle JSON-like arguments.
-				ctx := Parse(pathYield)
+				ctx := Parse(remainingPath)
 				if ctx.Exists() {
-					args = compactJSON(pathYield) // squash the JSON to remove nested structures.
-					pathYield = pathYield[len(args):]
+					args = compactJSON(remainingPath) // squash the JSON to remove nested structures.
+					remainingPath = remainingPath[len(args):]
 					parsedArgs = true
 				}
 			}
 			if !parsedArgs { // process arguments if not already parsed as JSON.
 				i := 0
 				// iterate through the arguments and process any nested structures or strings.
-				for ; i < len(pathYield); i++ {
-					if pathYield[i] == '|' {
+				for ; i < len(remainingPath); i++ {
+					if remainingPath[i] == '|' {
 						break
 					}
-					switch pathYield[i] {
+					switch remainingPath[i] {
 					case '{', '[', '"', '(': // handle nested structures like arrays or objects.
-						s := compactJSON(pathYield[i:])
+						s := compactJSON(remainingPath[i:])
 						i += len(s) - 1
 					}
 				}
-				args = pathYield[:i]      // extract the argument portion.
-				pathYield = pathYield[i:] // update the remaining path.
+				args = remainingPath[:i]          // extract the argument portion.
+				remainingPath = remainingPath[i:] // update the remaining path.
 			}
 		}
 		// apply the transformer function to the JSON data and return the result.
-		return pathYield, fn(json, args), true
+		return remainingPath, fn(json, args), true
 	}
 	// if no transformer is found, return the path and an empty result.
-	return pathYield, result, false
+	return remainingPath, result, false
 }
 
 // isNullish checks whether a given `Context` represents a JSON null value.

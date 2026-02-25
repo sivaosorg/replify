@@ -181,7 +181,7 @@ func Count(json, path string) int {
 //	fj.Sum(json, "scores") // 60.0
 func Sum(json, path string) float64 {
 	var total float64
-	scanNums(json, path, func(n float64) { total += n })
+	scanFloat64(json, path, func(n float64) { total += n })
 	return total
 }
 
@@ -203,7 +203,7 @@ func Sum(json, path string) float64 {
 func Min(json, path string) (float64, bool) {
 	min := math.MaxFloat64
 	found := false
-	scanNums(json, path, func(n float64) {
+	scanFloat64(json, path, func(n float64) {
 		if n < min {
 			min = n
 		}
@@ -233,7 +233,7 @@ func Min(json, path string) (float64, bool) {
 func Max(json, path string) (float64, bool) {
 	max := -math.MaxFloat64
 	found := false
-	scanNums(json, path, func(n float64) {
+	scanFloat64(json, path, func(n float64) {
 		if n > max {
 			max = n
 		}
@@ -263,7 +263,7 @@ func Max(json, path string) (float64, bool) {
 func Avg(json, path string) (float64, bool) {
 	var total float64
 	var n int
-	scanNums(json, path, func(v float64) {
+	scanFloat64(json, path, func(v float64) {
 		total += v
 		n++
 	})
@@ -271,28 +271,6 @@ func Avg(json, path string) (float64, bool) {
 		return 0, false
 	}
 	return total / float64(n), true
-}
-
-// scanNums is an internal helper shared by Sum, Min, Max, and Avg.
-// It visits every Context returned by path (treating a JSON array result as a
-// sequence of individual values) and calls fn for each numeric one.
-func scanNums(json, path string, fn func(float64)) {
-	ctx := Get(json, path)
-	if !ctx.Exists() {
-		return
-	}
-	if ctx.IsArray() {
-		ctx.Foreach(func(_, item Context) bool {
-			if item.kind == Number {
-				fn(item.Float64())
-			}
-			return true
-		})
-		return
-	}
-	if ctx.kind == Number {
-		fn(ctx.Float64())
-	}
 }
 
 // Filter evaluates path against json, treats the result as an array, and returns

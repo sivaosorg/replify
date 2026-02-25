@@ -4269,3 +4269,45 @@ func itoa(n int) string {
 	}
 	return string(buf[pos:])
 }
+
+// scanFloat64 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanFloat64(json, "scores", func(n float64) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanFloat64(json, path string, fn func(float64)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Float64())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Float64())
+	}
+}

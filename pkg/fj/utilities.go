@@ -2563,7 +2563,7 @@ func matchJSONObjectAt(c *parser, i int, path string) (newPos int, found bool) {
 				}
 			case '[':
 				if _match && !hit {
-					i, hit = analyzeArray(c, i+1, spseg.path)
+					i, hit = matchJSONArrayAt(c, i+1, spseg.path)
 					if hit {
 						return i, true
 					}
@@ -2872,7 +2872,7 @@ func classifyPathSegment(path string) (r meta) {
 	return
 }
 
-// analyzeArray processes and evaluates the path in the context of an array, checking
+// matchJSONArrayAt processes and evaluates the path in the context of an array, checking
 // for matches and executing queries on elements within the array. It is responsible
 // for handling nested structures and queries, as well as determining if the analysis
 // matches the current path and value in the context.
@@ -2917,7 +2917,7 @@ func classifyPathSegment(path string) (r meta) {
 //   - Handles situations where no array is found or the query fails to match any element.
 //   - Properly handles nested arrays or objects within the JSON data, maintaining structure.
 //   - Takes into account escaped characters and special syntax (e.g., queries, JSON objects).
-func analyzeArray(c *parser, i int, path string) (int, bool) {
+func matchJSONArrayAt(c *parser, i int, path string) (int, bool) {
 	var _match, escVal, ok, hit bool
 	var val string
 	var h int
@@ -3068,7 +3068,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				}
 			case '[':
 				if _match && !hit {
-					i, hit = analyzeArray(c, i+1, analysis.path)
+					i, hit = matchJSONArrayAt(c, i+1, analysis.path)
 					if hit {
 						if analysis.logOk {
 							break

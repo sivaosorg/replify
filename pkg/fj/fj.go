@@ -356,7 +356,7 @@ func Get(json, path string) Context {
 	var c = &parser{json: json}
 	if len(path) >= 2 && path[0] == '.' && path[1] == '.' {
 		c.lines = true
-		analyzeArray(c, 0, path[2:])
+		matchJSONArrayAt(c, 0, path[2:])
 	} else {
 		for ; i < len(c.json); i++ {
 			if c.json[i] == '{' {
@@ -366,7 +366,7 @@ func Get(json, path string) Context {
 			}
 			if c.json[i] == '[' {
 				i++
-				analyzeArray(c, i, path)
+				matchJSONArrayAt(c, i, path)
 				break
 			}
 		}

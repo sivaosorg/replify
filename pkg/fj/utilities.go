@@ -1979,7 +1979,7 @@ func looksLikeJSONOrTransformer(s string) bool {
 	return c == '[' || c == '{'
 }
 
-// parseNumeric parses a numeric value (integer or floating-point) from a JSON-encoded input string,
+// extractJSONNumber parses a numeric value (integer or floating-point) from a JSON-encoded input string,
 // starting from a given index `i` and extracting the numeric value up to a non-numeric character or JSON delimiter.
 //
 // Parameters:
@@ -1987,18 +1987,18 @@ func looksLikeJSONOrTransformer(s string) bool {
 //   - `i`: The index in the `json` string to begin parsing from. The function expects this to point to the first digit or part of the number.
 //
 // Returns:
-//   - `i`: The index immediately following the last character of the parsed numeric value, or the point where parsing ends if no valid number is found.
-//   - `raw`: The substring of `json` that represents the numeric value (e.g., "123", "45.67", "-123").
+//   - `newPos`: The index immediately following the last character of the parsed numeric value, or the point where parsing ends if no valid number is found.
+//   - `number`: The substring of `json` that represents the numeric value (e.g., "123", "45.67", "-123").
 //
 // Example Usage:
 //
 //	json := "12345"
-//	i, raw := parseNumeric(json, 0)
+//	i, raw := extractJSONNumber(json, 0)
 //	// raw: "12345" (the parsed numeric value)
 //	// i: the index after the last character of the number (6)
 //
 //	json = "-3.14159"
-//	i, raw = parseNumeric(json, 0)
+//	i, raw = extractJSONNumber(json, 0)
 //	// raw: "-3.14159" (the parsed numeric value)
 //	// i: the index after the last character of the number (8)
 //
@@ -2007,7 +2007,7 @@ func looksLikeJSONOrTransformer(s string) bool {
 //   - It handles both integers and floating-point numbers, as well as negative numbers (e.g., "-123" or "-45.67").
 //   - The function stops parsing as soon as it encounters a non-numeric character such as whitespace, a comma, or a closing JSON delimiter (`}` or `]`), which indicates the end of the numeric value in the JSON structure.
 //   - The function returns the parsed numeric string along with the index that follows the number's last character.
-func parseNumeric(json string, i int) (int, string) {
+func extractJSONNumber(json string, i int) (newPos int, number string) {
 	if strutil.IsEmpty(json) || i < 0 {
 		return i, json
 	}
@@ -2357,7 +2357,7 @@ func parseJSONAny(json string, i int, hit bool) (int, Context, bool) {
 			num = true
 		}
 		if num {
-			i, val = parseNumeric(json, i)
+			i, val = extractJSONNumber(json, i)
 			if hit {
 				ctx.raw = val
 				ctx.kind = Number
@@ -2557,7 +2557,7 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 				num = true
 			}
 			if num {
-				i, val = parseNumeric(c.json, i)
+				i, val = extractJSONNumber(c.json, i)
 				if hit {
 					c.val.raw = val
 					c.val.kind = Number
@@ -3161,7 +3161,7 @@ func analyzeArray(c *parser, i int, path string) (int, bool) {
 				return i + 1, false
 			}
 			if num {
-				i, val = parseNumeric(c.json, i)
+				i, val = extractJSONNumber(c.json, i)
 				if analysis.query.on {
 					var cVal Context
 					cVal.raw = val

@@ -4233,3 +4233,39 @@ func joinPath(prefix, segment string) string {
 	}
 	return prefix + "." + segment
 }
+
+// itoa converts a non-negative integer to its decimal string representation without
+// importing the strconv package.
+//
+// Parameters:
+//   - `n`: The non-negative integer to convert.
+//
+// Returns:
+//   - A string representation of the integer.
+//
+// Example Usage:
+//
+//	path := itoa(123)
+//
+// `path` will be "123"
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	buf := [20]byte{}
+	pos := len(buf)
+	for n > 0 {
+		pos--
+		buf[pos] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[pos:])
+}

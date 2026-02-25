@@ -134,22 +134,6 @@ func FindPaths(json, value string) []string {
 	return scanPaths(nil, Parse(json), value, "")
 }
 
-// itoa converts a non-negative integer to its decimal string representation without
-// importing the strconv package.
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	buf := [20]byte{}
-	pos := len(buf)
-	for n > 0 {
-		pos--
-		buf[pos] = byte('0' + n%10)
-		n /= 10
-	}
-	return string(buf[pos:])
-}
-
 // Count returns the number of elements returned by evaluating path against json.
 // For a path that produces a JSON array the count equals the array length. For a
 // path that produces a single scalar value, Count returns 1. For a missing or null

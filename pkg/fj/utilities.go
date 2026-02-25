@@ -1717,7 +1717,7 @@ func looksLikeJSONOrTransformer(s string) bool {
 	return c == '[' || c == '{'
 }
 
-// matchSafely checks if a string matches a pattern with a complexity limit to
+// matchesGlob checks if a string matches a pattern with a complexity limit to
 // avoid excessive computational cost, such as those from ReDos (Regular Expression Denial of Service) attacks.
 //
 // This function utilizes the `MatchLimit` function from `unify4g` to perform the matching, enforcing a maximum
@@ -1733,8 +1733,8 @@ func looksLikeJSONOrTransformer(s string) bool {
 //
 // Example:
 //
-//	result := matchSafely("hello", "h*o") // Returns `true` if the pattern matches the string within the complexity limit.
-func matchSafely(str, pattern string) bool {
+//	result := matchesGlob("hello", "h*o") // Returns `true` if the pattern matches the string within the complexity limit.
+func matchesGlob(str, pattern string) bool {
 	matched, _ := match.MatchLimit(str, pattern, 10000)
 	return matched
 }
@@ -2420,9 +2420,9 @@ func parseJSONObject(c *parser, i int, path string) (int, bool) {
 		}
 		if pathtransformers.wild {
 			if keyEsc {
-				_match = matchSafely(unescape(key), pathtransformers.part)
+				_match = matchesGlob(unescape(key), pathtransformers.part)
 			} else {
-				_match = matchSafely(key, pathtransformers.part)
+				_match = matchesGlob(key, pathtransformers.part)
 			}
 		} else {
 			if keyEsc {
@@ -3558,9 +3558,9 @@ func matchesQueryConditions(dp *meta, value Context) bool {
 		case ">=":
 			return value.str >= mt
 		case "%":
-			return matchSafely(value.str, mt)
+			return matchesGlob(value.str, mt)
 		case "!%":
-			return !matchSafely(value.str, mt)
+			return !matchesGlob(value.str, mt)
 		}
 	case Number:
 		_rightVal, _ := strconv.ParseFloat(mt, 64)

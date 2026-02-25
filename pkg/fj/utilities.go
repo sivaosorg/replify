@@ -1501,85 +1501,6 @@ func parseUint64(s string) (n uint64, ok bool) {
 	return num, true
 }
 
-// splitStaticAndLiteral parses a string path to find a static value, such as a boolean, null, or number.
-// The function expects that the input path starts with a '!', indicating a static value. It identifies the static
-// value by looking for valid characters and structures that represent literal values in a path. If a valid static value
-// is found, it returns the remaining path, the static value, and a success flag. Otherwise, it returns false.
-//
-// Parameters:
-//   - path: A string representing the path to parse. The path should start with a '!' to indicate a static value.
-//     The function processes the string following the '!' to find the static value.
-//
-// Returns:
-//   - pathOut: The remaining part of the path after the static value has been identified. This is the portion of the
-//     string that follows the literal value, such as any further path segments or operators.
-//   - result: The static value found in the path, which can be a boolean ("true" or "false"), null, NaN, or Inf, or
-//     a numeric value, or an empty string if no valid static value is found.
-//   - ok: A boolean indicating whether the function successfully identified a static value. Returns true if a valid
-//     static value is found, and false otherwise.
-//
-// Example Usage:
-//
-//	path := "!true.some.other.path"
-//	pathOut, result, ok := splitStaticAndLiteral(path)
-//	// pathOut: ".some.other.path" (remaining path)
-//	// result: "true" (the static value found)
-//	// ok: true (successful identification of static value)
-//
-//	path = "!123.abc"
-//	pathOut, result, ok = splitStaticAndLiteral(path)
-//	// pathOut: ".abc" (remaining path)
-//	// result: "123" (the static value found)
-//	// ok: true (successful identification of static value)
-//
-// Details:
-//
-//   - The function looks for the first character after the '!' to determine if the value starts with a valid static
-//     value, such as a number or a boolean literal ("true", "false"), null, NaN, or Inf.
-//
-//   - It processes the string to extract the static value, then identifies the rest of the path (if any) after the static
-//     value, which is returned as the remaining portion of the path.
-//
-//   - If the function encounters a delimiter like '.' or '|', it stops further parsing of the static value and returns
-//     the remaining path.
-//
-//   - If no static value is identified, the function returns false.
-//
-//     Notes:
-//
-//   - The function assumes that the input path is well-formed and follows the expected format (starting with '!').
-//
-//   - The value can be a boolean, null, NaN, Inf, or a number in the path.
-func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok bool) {
-	name := path[1:]
-	if len(name) > 0 {
-		switch name[0] {
-		case '{', '[', '"', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7',
-			'8', '9':
-			_, literalValue = extractJSONValue(name, 0)
-			staticPrefix = name[len(literalValue):]
-			return staticPrefix, literalValue, true
-		}
-	}
-	for i := 1; i < len(path); i++ {
-		if path[i] == '|' {
-			staticPrefix = path[i:]
-			name = path[1:i]
-			break
-		}
-		if path[i] == '.' {
-			staticPrefix = path[i:]
-			name = path[1:i]
-			break
-		}
-	}
-	switch strings.ToLower(name) {
-	case "true", "false", "null", "nan", "inf":
-		return staticPrefix, name, true
-	}
-	return staticPrefix, literalValue, false
-}
-
 // extractAndUnescapeJSONString extracts a JSON-encoded string and returns both the full JSON string (with quotes) and the unescaped string content.
 // The function processes the input string to handle escaped characters and returns a clean, unescaped version of the string
 // as well as the portion of the JSON string that includes the enclosing quotes.
@@ -1739,40 +1660,151 @@ func matchesGlob(str, pattern string) bool {
 	return matched
 }
 
-// splitAtUnescapedPipe splits a given path into two parts around the first unescaped '|' character.
-// It also handles nested structures and ensures correct parsing even when special characters
-// (e.g., braces, brackets, or quotes) are present.
+// splitStaticAndLiteral parses a string path to find a static value, such as a boolean, null, or number.
+// The function expects that the input path starts with a '!', indicating a static value. It identifies the static
+// value by looking for valid characters and structures that represent literal values in a path. If a valid static value
+// is found, it returns the remaining path, the static value, and a success flag. Otherwise, it returns false.
 //
 // Parameters:
-//   - `path`: A string representing the input path that may contain nested objects, arrays, or a pipe character.
+//   - path: A string representing the path to parse. The path should start with a '!' to indicate a static value.
+//     The function processes the string following the '!' to find the static value.
 //
 // Returns:
-//   - `left`: The part of the string before the first unescaped '|' character.
-//   - `right`: The part of the string after the first unescaped '|' character.
-//   - `ok`: A boolean indicating whether a valid split was found.
-//
-// Details:
-//   - If the path contains a '|' that is part of a nested structure or escaped, the function skips over it.
-//   - If the path starts with '{', the function uses the `squash` function to handle nested structures,
-//     ensuring correct splitting of the path while preserving JSON-like formats.
-//
-// Notes:
-//   - The function supports nested structures, including JSON-like objects and arrays (`{}`, `[]`), as well as
-//     selector expressions (e.g., `#[...]` or `#(...)`).
-//   - The function carefully skips escaped characters (e.g., `\|` or `\"`) and ensures that string literals
-//     enclosed in quotes are handled properly without premature termination.
-//   - It stops and splits the path at the first valid unescaped '|' encountered, returning the left and right parts.
+//   - pathOut: The remaining part of the path after the static value has been identified. This is the portion of the
+//     string that follows the literal value, such as any further path segments or operators.
+//   - result: The static value found in the path, which can be a boolean ("true" or "false"), null, NaN, or Inf, or
+//     a numeric value, or an empty string if no valid static value is found.
+//   - ok: A boolean indicating whether the function successfully identified a static value. Returns true if a valid
+//     static value is found, and false otherwise.
 //
 // Example Usage:
 //
-//	For Input: `path1|path2`
-//	   Returns: `left="path1"`, `right="path2"`, `ok=true`
+//	path := "!true.some.other.path"
+//	pathOut, result, ok := splitStaticAndLiteral(path)
+//	// pathOut: ".some.other.path" (remaining path)
+//	// result: "true" (the static value found)
+//	// ok: true (successful identification of static value)
 //
-//	For Input: `{nested|structure}|path2`
-//	   Returns: `left="{nested|structure}"`, `right="path2"`, `ok=true`
+//	path = "!123.abc"
+//	pathOut, result, ok = splitStaticAndLiteral(path)
+//	// pathOut: ".abc" (remaining path)
+//	// result: "123" (the static value found)
+//	// ok: true (successful identification of static value)
 //
-//	For Input: `path_without_pipe`
-//	   Returns: `left=""`, `right=""`, `ok=false`
+// Details:
+//
+//   - The function looks for the first character after the '!' to determine if the value starts with a valid static
+//     value, such as a number or a boolean literal ("true", "false"), null, NaN, or Inf.
+//
+//   - It processes the string to extract the static value, then identifies the rest of the path (if any) after the static
+//     value, which is returned as the remaining portion of the path.
+//
+//   - If the function encounters a delimiter like '.' or '|', it stops further parsing of the static value and returns
+//     the remaining path.
+//
+//   - If no static value is identified, the function returns false.
+//
+//     Notes:
+//
+//   - The function assumes that the input path is well-formed and follows the expected format (starting with '!').
+//
+//   - The value can be a boolean, null, NaN, Inf, or a number in the path.
+func splitStaticAndLiteral(path string) (staticPrefix, literalValue string, ok bool) {
+	name := path[1:]
+	if len(name) > 0 {
+		switch name[0] {
+		case '{', '[', '"', '+', '-', '0', '1', '2', '3', '4', '5', '6', '7',
+			'8', '9':
+			_, literalValue = extractJSONValue(name, 0)
+			staticPrefix = name[len(literalValue):]
+			return staticPrefix, literalValue, true
+		}
+	}
+	for i := 1; i < len(path); i++ {
+		if path[i] == '|' {
+			staticPrefix = path[i:]
+			name = path[1:i]
+			break
+		}
+		if path[i] == '.' {
+			staticPrefix = path[i:]
+			name = path[1:i]
+			break
+		}
+	}
+	switch strings.ToLower(name) {
+	case "true", "false", "null", "nan", "inf":
+		return staticPrefix, name, true
+	}
+	return staticPrefix, literalValue, false
+}
+
+// splitAtUnescapedPipe scans path and splits it at the first unescaped '|'
+// that is not inside a JSON object literal or a balanced selector. It returns
+// the left and right substrings around the pipe and a boolean indicating
+// whether such a split point was found.
+//
+// Behavior overview:
+//   - If path begins with '{', the function treats the leading bytes as a JSON
+//     object literal and skips it (using compact semantics). If the byte
+//     immediately following that object is '|', the split occurs there.
+//   - Otherwise, the function walks path byte-by-byte, honoring backslash
+//     escapes. It also recognizes selector segments starting with ".#[" or ".#("
+//     and balances the corresponding brackets/parentheses, including quoted
+//     strings within selectors, so a '|' inside a selector or inside quotes does
+//     not trigger a split.
+//   - An unescaped '|' found outside of those protected regions triggers a split.
+//
+// Parameters:
+//   - path: the input to scan. Backslashes escape the following byte. A leading
+//     '{' denotes a JSON object literal that will be skipped as a whole for the
+//     purpose of finding the split.
+//
+// Returns:
+//   - left, right: the substrings on each side of the first valid split point,
+//     excluding the '|' itself.
+//   - ok: true if a split point was found; otherwise left, right are empty and
+//     ok is false.
+//
+// Assumptions & Invariants:
+//   - The function performs byte-wise scanning; it assumes ASCII for structural
+//     characters ('\\', '|', '.', '#', '[', ']', '(', ')', '"', '{', '}').
+//   - A backslash escapes only the next byte; it does not implement full JSON
+//     or string unescaping semantics beyond skipping escaped delimiters.
+//   - When path starts with '{', only the leading JSON object is considered;
+//     malformed or incomplete objects result in no split.
+//   - No state is kept between calls; there are no side effects.
+//
+// Limitations & Nuances:
+//   - This is a structural/heuristic scanner, not a full parser. It balances
+//     only brackets/parentheses introduced by a ".#[" or ".#(" selector and
+//     double-quoted strings within that selector.
+//   - Pipes inside balanced selectors or inside the initial JSON object are
+//     ignored for splitting.
+//   - If no valid '|' is found, ok is false.
+//   - Substrings share the backing array with path (zero-copy). Copy if you need
+//     to retain them independently of the original string.
+//
+// Performance:
+//   - Runs in O(n) time over path with no allocations in the common case.
+//
+// Examples:
+//
+//	// Simple split on first unescaped pipe
+//	left, right, ok := splitAtUnescapedPipe(`foo|bar.baz`)
+//	// left == "foo", right == "bar.baz", ok == true
+//
+//	// Escaped pipe is ignored
+//	left, right, ok = splitAtUnescapedPipe(`foo\|bar|rest`)
+//	// left == `foo\|bar`, right == "rest", ok == true
+//
+//	// Pipe after a leading JSON object
+//	left, right, ok = splitAtUnescapedPipe(`{"a":[1,2,{"b":"x|y"}]}|tail`)
+//	// left == `{"a":[1,2,{"b":"x|y"}]}`, right == "tail", ok == true
+//
+//	// Pipe inside a balanced selector is ignored
+//	left, right, ok = splitAtUnescapedPipe(`root.#["a|b"](nested)|after`)
+//	// left == `root.#["a|b"](nested)`, right == "after", ok == true
 func splitAtUnescapedPipe(path string) (left, right string, ok bool) {
 	var possible bool
 	for i := 0; i < len(path); i++ {

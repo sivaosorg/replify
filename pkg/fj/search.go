@@ -731,15 +731,6 @@ func SortBy(json, path, keyField string, ascending bool) []Context {
 	return items
 }
 
-// sortField extracts the value used as sort key for a Context element.
-// If keyField is non-empty, it gets that sub-field; otherwise it uses the element itself.
-func sortField(item Context, keyField string) Context {
-	if keyField == "" {
-		return item
-	}
-	return item.Get(keyField)
-}
-
 // sortCmp returns true when a should come before b in ascending sort order.
 // Numeric values are compared as float64 via conv.Float64.
 // All other values fall back to string comparison via conv.String.

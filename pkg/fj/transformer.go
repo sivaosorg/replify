@@ -10,43 +10,77 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// TransformerFunc is the function signature for all transformer functions.
+// Transformer is the interface implemented by all transformer types.
 // A transformer receives the current JSON string and an optional argument string,
 // and returns a transformed JSON string. Transformers are applied via the @ syntax
 // in fj path expressions (e.g. "name.@uppercase").
+//
+// Implement this interface to provide custom, stateful, or composable transformer
+// logic that goes beyond plain function closures. For simple, stateless cases use
+// the TransformerFunc adapter, which satisfies this interface automatically.
+//
+// Example (struct-based):
+//
+//	type prefixTransformer struct{ prefix string }
+//
+//	func (t *prefixTransformer) Apply(json, arg string) string {
+//	    return t.prefix + json
+//	}
+//
+//	fj.AddTransformer("prefix", &prefixTransformer{prefix: "data:"})
+type Transformer interface {
+	Apply(json, arg string) string
+}
+
+// TransformerFunc is a function adapter that implements the Transformer interface.
+// It allows any plain function with the signature func(json, arg string) string to
+// satisfy Transformer without defining a named struct.
+//
+// This mirrors the http.HandlerFunc pattern from the standard library.
+//
+// Example:
+//
+//	fj.AddTransformer("upper", fj.TransformerFunc(func(json, arg string) string {
+//	    return strings.ToUpper(json)
+//	}))
 type TransformerFunc func(json, arg string) string
 
-// transformerRegistry holds the mapping from transformer name to TransformerFunc.
+// Apply calls f(json, arg), satisfying the Transformer interface.
+func (f TransformerFunc) Apply(json, arg string) string {
+	return f(json, arg)
+}
+
+// transformerRegistry holds the mapping from transformer name to Transformer.
 // It guards concurrent access with a sync.RWMutex so that AddTransformer and path
 // evaluation can be called safely from multiple goroutines.
 type transformerRegistry struct {
 	mu           sync.RWMutex
-	transformers map[string]TransformerFunc
+	transformers map[string]Transformer
 }
 
 // globalRegistry is the package-level singleton transformer registry.
 // All built-in transformers are registered via init(). Custom transformers can be
 // added at any time with AddTransformer.
 var globalRegistry = &transformerRegistry{
-	transformers: make(map[string]TransformerFunc),
+	transformers: make(map[string]Transformer),
 }
 
-// Register adds or replaces a transformer in the registry.
+// Register adds or replaces a Transformer in the registry under the given name.
 // It is safe for concurrent use by multiple goroutines.
-func (r *transformerRegistry) Register(name string, fn TransformerFunc) {
+func (r *transformerRegistry) Register(name string, t Transformer) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.transformers[name] = fn
+	r.transformers[name] = t
 }
 
-// Get retrieves a transformer function by name.
-// It returns (fn, true) if found or (nil, false) if not registered.
+// Get retrieves a Transformer by name.
+// It returns (t, true) if found or (nil, false) if not registered.
 // It is safe for concurrent use by multiple goroutines.
-func (r *transformerRegistry) Get(name string) (TransformerFunc, bool) {
+func (r *transformerRegistry) Get(name string) (Transformer, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	fn, ok := r.transformers[name]
-	return fn, ok
+	t, ok := r.transformers[name]
+	return t, ok
 }
 
 // IsRegistered reports whether a transformer with the given name has been registered.
@@ -58,17 +92,19 @@ func (r *transformerRegistry) IsRegistered(name string) bool {
 	return ok
 }
 
-// getTransformer retrieves a transformer function by name from the global registry.
-// Returns nil when no transformer with that name exists.
-func getTransformer(name string) TransformerFunc {
-	fn, ok := globalRegistry.Get(name)
+// resolveTransformer looks up and returns the Transformer registered under the given
+// name in the global registry. It returns nil when no transformer with that name has
+// been registered, acting as the central dispatch point for all named transformer
+// invocations.
+func resolveTransformer(name string) Transformer {
+	t, ok := globalRegistry.Get(name)
 	if !ok {
 		return nil
 	}
-	return fn
+	return t
 }
 
-// transformDefault is a fallback transformation that simply returns the input JSON string
+// applyIdentity is a fallback transformation that simply returns the input JSON string
 // without applying any modifications. This function is typically used as a default case
 // when no specific transformation is requested or supported.
 //
@@ -86,18 +122,18 @@ func getTransformer(name string) TransformerFunc {
 //	json := `{"name":"Alice","age":25}`
 //
 //	// No transformation applied, returns original JSON
-//	unchangedJSON := transformDefault(json, "")
+//	unchangedJSON := applyIdentity(json, "")
 //	fmt.Println(unchangedJSON)
 //	// Output: {"name":"Alice","age":25}
 //
 // Notes:
 //   - This function is used when no transformation is specified or when the transformation
 //     request is unsupported. It ensures that the input JSON is returned unmodified.
-func transformDefault(json, arg string) string {
+func applyIdentity(json, arg string) string {
 	return json
 }
 
-// transformPretty formats the input JSON string into a human-readable, indented format.
+// applyPrettyFormat formats the input JSON string into a human-readable, indented format.
 //
 // This function applies "pretty printing" to the provided JSON data, making it easier to read
 // and interpret. If additional formatting options are specified in the `arg` parameter, these
@@ -123,7 +159,7 @@ func transformDefault(json, arg string) string {
 //	json := `{"name":"Alice","age":25,"address":{"city":"New York","zip":"10001"}}`
 //
 //	// Format without additional options
-//	prettyJSON := transformPretty(json, "")
+//	prettyJSON := applyPrettyFormat(json, "")
 //	fmt.Println(prettyJSON)
 //	// Output:
 //	// {
@@ -137,7 +173,7 @@ func transformDefault(json, arg string) string {
 //
 //	// Format with additional options
 //	arg := `{"indent": "\t", "sort_keys": true}`
-//	prettyJSONWithOpts := transformPretty(json, arg)
+//	prettyJSONWithOpts := applyPrettyFormat(json, arg)
 //	fmt.Println(prettyJSONWithOpts)
 //	// Output:
 //	// {
@@ -160,7 +196,7 @@ func transformDefault(json, arg string) string {
 //     to configure the formatting options (`opts`).
 //   - The `strutil.StripNonWhitespace` function ensures only whitespace characters are used for `indent`
 //     and `prefix` settings to prevent formatting errors.
-func transformPretty(json, arg string) string {
+func applyPrettyFormat(json, arg string) string {
 	if len(arg) > 0 {
 		opts := *encoding.DefaultOptionsConfig
 		Parse(arg).Foreach(func(key, value Context) bool {
@@ -181,7 +217,7 @@ func transformPretty(json, arg string) string {
 	return strutil.SafeStr(encoding.Pretty(UnsafeBytes(json)))
 }
 
-// transformMinify removes all whitespace characters from the input JSON string,
+// applyMinify removes all whitespace characters from the input JSON string,
 // transforming it into a compact, single-line format.
 //
 // This function applies a "minified" transformation to the provided JSON data,
@@ -211,7 +247,7 @@ func transformPretty(json, arg string) string {
 //	}`
 //
 //	// Transform to minify (compact) JSON
-//	uglyJSON := transformMinify(json, "")
+//	uglyJSON := applyMinify(json, "")
 //	fmt.Println(uglyJSON)
 //	// Output: {"name":"Alice","age":25,"address":{"city":"New York","zip":"10001"}}
 //
@@ -220,11 +256,11 @@ func transformPretty(json, arg string) string {
 //   - The function uses `encoding.Ugly` for the actual transformation, which removes all
 //     whitespace from the JSON data.
 //   - This function is often used to reduce the size of JSON data for storage or transmission.
-func transformMinify(json, arg string) string {
+func applyMinify(json, arg string) string {
 	return strutil.SafeStr(encoding.Ugly(UnsafeBytes(json)))
 }
 
-// transformReverse reverses the order of elements in an array or the order of key-value
+// applyReverse reverses the order of elements in an array or the order of key-value
 // pairs in an object. This function processes the JSON input and applies the reversal
 // based on the type of JSON structure: array or object.
 //
@@ -246,7 +282,7 @@ func transformMinify(json, arg string) string {
 //	jsonArray := `[1, 2, 3]`
 //
 //	// Reverse array elements
-//	reversedJSON := transformReverse(jsonArray, "")
+//	reversedJSON := applyReverse(jsonArray, "")
 //	fmt.Println(reversedJSON)
 //	// Output: [3,2,1]
 //
@@ -254,7 +290,7 @@ func transformMinify(json, arg string) string {
 //	jsonObject := `{"name":"Alice","age":25}`
 //
 //	// Reverse key-value pairs
-//	reversedObject := transformReverse(jsonObject, "")
+//	reversedObject := applyReverse(jsonObject, "")
 //	fmt.Println(reversedObject)
 //	// Output: {"age":25,"name":"Alice"}
 //
@@ -262,7 +298,7 @@ func transformMinify(json, arg string) string {
 //   - If the input JSON is an array, the array elements are reversed.
 //   - If the input JSON is an object, the key-value pairs are reversed.
 //   - If the input JSON is neither an array nor an object, the original string is returned unchanged.
-func transformReverse(json, arg string) string {
+func applyReverse(json, arg string) string {
 	ctx := Parse(json)
 	if ctx.IsArray() {
 		var values []Context
@@ -303,7 +339,7 @@ func transformReverse(json, arg string) string {
 	return json
 }
 
-// transformFlatten flattens a JSON array by removing any nested arrays within it.
+// applyFlatten flattens a JSON array by removing any nested arrays within it.
 //
 // This function takes a JSON array (which may contain nested arrays) and flattens it
 // into a single array by extracting the elements of any child arrays. The function
@@ -327,13 +363,13 @@ func transformReverse(json, arg string) string {
 //
 //	// Input JSON (shallow flatten)
 //	json := "[1,[2],[3,4],[5,[6,7]]]"
-//	shallowFlattened := transformFlatten(json, "")
+//	shallowFlattened := applyFlatten(json, "")
 //	fmt.Println(shallowFlattened)
 //	// Output: [1,2,3,4,5,[6,7]]
 //
 //	// Input JSON (deep flatten)
 //	json := "[1,[2],[3,4],[5,[6,7]]]"
-//	deepFlattened := transformFlatten(json, "{\"deep\": true}")
+//	deepFlattened := applyFlatten(json, "{\"deep\": true}")
 //	fmt.Println(deepFlattened)
 //	// Output: [1,2,3,4,5,6,7]
 //
@@ -360,7 +396,7 @@ func transformReverse(json, arg string) string {
 //	[1,[2],[3,4],[5,[6,7]]] -> [1,2,3,4,5,6,7]
 //
 // The original json is returned when the json is not an array.
-func transformFlatten(json, arg string) string {
+func applyFlatten(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.IsArray() {
 		return json
@@ -381,7 +417,7 @@ func transformFlatten(json, arg string) string {
 		var raw string
 		if value.IsArray() {
 			if deep {
-				raw = trimOuterBrackets(transformFlatten(value.raw, arg))
+				raw = trimOuterBrackets(applyFlatten(value.raw, arg))
 			} else {
 				raw = trimOuterBrackets(value.raw)
 			}
@@ -402,7 +438,7 @@ func transformFlatten(json, arg string) string {
 	return strutil.SafeStr(out)
 }
 
-// transformJoin merges multiple JSON objects into a single object.
+// applyMerge merges multiple JSON objects into a single object.
 // If the input is an array of JSON objects, it combines their key-value pairs
 // into one object. Duplicate keys can be preserved or discarded based on the
 // configuration provided in the `arg` parameter.
@@ -422,13 +458,13 @@ func transformFlatten(json, arg string) string {
 //
 //	// Input JSON (merge objects with duplicate keys discarded)
 //	json := `[{"first":"Tom","age":37},{"age":41}]`
-//	mergedJSON := transformJoin(json, "")
+//	mergedJSON := applyMerge(json, "")
 //	fmt.Println(mergedJSON)
 //	// Output: {"first":"Tom","age":41}
 //
 //	// Input JSON (merge objects with duplicate keys preserved)
 //	json := `[{"first":"Tom","age":37},{"age":41}]`
-//	mergedJSONWithDupes := transformJoin(json, "{\"preserve\": true}")
+//	mergedJSONWithDupes := applyMerge(json, "{\"preserve\": true}")
 //	fmt.Println(mergedJSONWithDupes)
 //	// Output: {"first":"Tom","age":37,"age":41}
 //
@@ -446,7 +482,7 @@ func transformFlatten(json, arg string) string {
 //   - If `preserve` is `false`, the function will deduplicate keys by selecting the last
 //     value for each key across all objects in the array. The keys are also added in stable
 //     order based on their appearance in the input objects.
-func transformJoin(json, arg string) string {
+func applyMerge(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.IsArray() {
 		return json
@@ -505,7 +541,7 @@ func transformJoin(json, arg string) string {
 	return strutil.SafeStr(target)
 }
 
-// transformJSONValidity reports whether the input is valid JSON.
+// applyValidityCheck reports whether the input is valid JSON.
 // It returns the string "true" if valid, or "false" otherwise. Use this transformer
 // in a path expression such as `input.@valid` to gate subsequent processing.
 //
@@ -513,14 +549,14 @@ func transformJoin(json, arg string) string {
 //
 //	fj.Get(`{"a":1}`, `@valid`) → "true"
 //	fj.Get(`{bad}`,   `@valid`) → "false"
-func transformJSONValidity(json, arg string) string {
+func applyValidityCheck(json, arg string) string {
 	if !IsValidJSON(json) {
 		return "false"
 	}
 	return "true"
 }
 
-// transformKeys extracts the keys from a JSON object and returns them as a JSON array of strings.
+// applyKeys extracts the keys from a JSON object and returns them as a JSON array of strings.
 // The function processes the input JSON, identifies whether it is an object, and then generates
 // an array containing the keys of the object. If the input is not a valid JSON object, it returns
 // an empty array.
@@ -536,13 +572,13 @@ func transformJSONValidity(json, arg string) string {
 //
 //	// Input JSON (object)
 //	json := `{"first":"Tom","last":"Smith"}`
-//	keys := transformKeys(json, "")
+//	keys := applyKeys(json, "")
 //	fmt.Println(keys)
 //	// Output: ["first","last"]
 //
 //	// Input JSON (non-object)
 //	json := `"Tom"`
-//	keys := transformKeys(json, "")
+//	keys := applyKeys(json, "")
 //	fmt.Println(keys)
 //	// Output: []
 //
@@ -558,7 +594,7 @@ func transformJSONValidity(json, arg string) string {
 //   - The function first checks if the parsed JSON object exists. If it does, it iterates through the object and extracts
 //     the keys. Each key is added to a string builder, and the keys are wrapped in square brackets to form a valid JSON array.
 //   - If the JSON is not an object, the function immediately returns an empty array (`[]`).
-func transformKeys(json, arg string) string {
+func applyKeys(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.Exists() {
 		return "[]"
@@ -583,7 +619,7 @@ func transformKeys(json, arg string) string {
 	return builder.String()
 }
 
-// transformValues extracts the values from a JSON object and returns them as a JSON array of values.
+// applyValues extracts the values from a JSON object and returns them as a JSON array of values.
 //
 // This function parses the input JSON string, and if the JSON is an object, it extracts all the values
 // from the key-value pairs and returns them as a JSON array of values. If the input JSON is already an array,
@@ -606,21 +642,21 @@ func transformKeys(json, arg string) string {
 //	json := `{"first":"Aris","last":"Nguyen"}`
 //
 //	// Extract the values from the object
-//	values := transformValues(json, "")
+//	values := applyValues(json, "")
 //	fmt.Println(values) // Output: ["Aris","Nguyen"]
 //
 //	// Input JSON representing an array
 //	jsonArray := `["apple", "banana", "cherry"]`
 //
 //	// Return the array as-is
-//	values := transformValues(jsonArray, "")
+//	values := applyValues(jsonArray, "")
 //	fmt.Println(values) // Output: ["apple", "banana", "cherry"]
 //
 //	// Input JSON representing an invalid object
 //	invalidJson := `{"key":}` // Invalid JSON
 //
 //	// Return empty array for invalid JSON
-//	values := transformValues(invalidJson, "")
+//	values := applyValues(invalidJson, "")
 //	fmt.Println(values) // Output: []
 //
 // Details:
@@ -629,7 +665,7 @@ func transformKeys(json, arg string) string {
 //   - If the input is an object, the function iterates over its key-value pairs, extracting only the values,
 //     and then constructs a JSON array of these values.
 //   - If the input JSON does not exist or is invalid, the function returns an empty JSON array ("[]").
-func transformValues(json, arg string) string {
+func applyValues(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.Exists() {
 		return "[]"
@@ -652,7 +688,7 @@ func transformValues(json, arg string) string {
 	return builder.String()
 }
 
-// transformToJSON converts a string into a valid JSON representation.
+// applyToJSON converts a string into a valid JSON representation.
 //
 // This function ensures that the input string is a valid JSON before attempting to
 // parse and convert it into its corresponding JSON format. If the input string is
@@ -673,26 +709,26 @@ func transformValues(json, arg string) string {
 //	json := "{\"id\":1023,\"name\":\"alert\"}"
 //
 //	// Convert to valid JSON representation
-//	result := transformToJSON(json, "")
+//	result := applyToJSON(json, "")
 //	fmt.Println(result)  // Output: {"id":1023,"name":"alert"}
 //
 //	// Invalid input string
 //	invalidJson := "\"id\":1023,\"name\":\"alert\""
-//	result = transformToJSON(invalidJson, "")
+//	result = applyToJSON(invalidJson, "")
 //	fmt.Println(result)  // Output: ""
 //
 // Notes:
 //   - This function uses the `IsValidJSON` helper to check if the input string is a valid JSON format.
 //   - If the input string is valid JSON, the `Parse` function is used to parse and format it, ensuring it is returned in the proper JSON format.
 //   - If the input is invalid, an empty string is returned, indicating that the transformation failed.
-func transformToJSON(json, arg string) string {
+func applyToJSON(json, arg string) string {
 	if !IsValidJSON(json) {
 		return ""
 	}
 	return Parse(json).String()
 }
 
-// transformToString converts a regular string into a valid JSON string format.
+// applyToString converts a regular string into a valid JSON string format.
 //
 // This function takes an input string and converts it into a JSON-encoded string
 // by wrapping it in double quotes and escaping any necessary characters (such as
@@ -711,7 +747,7 @@ func transformToJSON(json, arg string) string {
 // Example Usage:
 //
 //	str := "Hello \"world\"\nLine break!"
-//	result := transformToString(str, "")
+//	result := applyToString(str, "")
 //	fmt.Println(result)
 //	// Output: "\"Hello \\\"world\\\"\nLine break!\""
 //
@@ -721,11 +757,11 @@ func transformToJSON(json, arg string) string {
 //     double quotes and newlines) to maintain valid JSON syntax.
 //   - The `arg` parameter is included for consistency with other transformation functions
 //     that may require it, though it does not affect the behavior of this specific function.
-func transformToString(str, arg string) string {
+func applyToString(str, arg string) string {
 	return string(appendJSONString(nil, str))
 }
 
-// transformGroup processes a JSON string containing objects and arrays, and groups the
+// applyGroup processes a JSON string containing objects and arrays, and groups the
 // elements of arrays within objects by their keys. It converts each array into a group of
 // key-value pairs, resulting in a new JSON structure where each object is grouped by its array values.
 //
@@ -747,7 +783,7 @@ func transformToString(str, arg string) string {
 // Example Usage:
 //
 //	json := `{"a": [1, 2, 3], "b": [4, 5]}`
-//	result := transformGroup(json, "")
+//	result := applyGroup(json, "")
 //	fmt.Println(result)
 //	// Output: `[
 //	//  {"a":1},
@@ -771,7 +807,7 @@ func transformToString(str, arg string) string {
 //     new objects where each array element is associated with the respective key.
 //   - The transformed groups of key-value pairs are collected into a new array format, where each array
 //     element corresponds to a new object created from the array values.
-func transformGroup(json, arg string) string {
+func applyGroup(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.IsObject() {
 		return ""
@@ -806,7 +842,7 @@ func transformGroup(json, arg string) string {
 	return string(data)
 }
 
-// transformSearch performs a value lookup on a JSON structure based on the specified path
+// applySearch performs a value lookup on a JSON structure based on the specified path
 // and returns a JSON-encoded string containing all matching values found at that path.
 //
 // This function searches recursively through the JSON structure to find all occurrences
@@ -840,7 +876,7 @@ func transformGroup(json, arg string) string {
 //	}`
 //
 //	arg := "book.author"
-//	result := transformSearch(json, arg)
+//	result := applySearch(json, arg)
 //
 //	// Output: `["J.K. Rowling", "Stephen Hawking"]`
 //	// The function will search for the "book.author" path and return all matching author names
@@ -858,7 +894,7 @@ func transformGroup(json, arg string) string {
 //     structure and collect all matching values along the specified path.
 //   - The results are then appended to a byte slice (`seg`), which is later converted into a string.
 //   - The final output is a JSON array, even if no results are found.
-func transformSearch(json, arg string) string {
+func applySearch(json, arg string) string {
 	all := recurseCollectMatches(nil, Parse(json), arg)
 	var seg []byte
 	seg = append(seg, '[')
@@ -872,7 +908,7 @@ func transformSearch(json, arg string) string {
 	return string(seg)
 }
 
-// transformUppercase converts the input JSON string to uppercase.
+// applyUppercase converts the input JSON string to uppercase.
 //
 // This function takes a JSON string as input and converts all of its characters
 // to uppercase. If the input string is empty, it returns the string unchanged.
@@ -889,20 +925,20 @@ func transformSearch(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"name\":\"Alice\",\"age\":25}"
-//	result := transformUppercase(json, "")
+//	result := applyUppercase(json, "")
 //	fmt.Println(result) // Output: "{\"NAME\":\"ALICE\",\"AGE\":25}"
 //
 // Notes:
 //   - This function uses the standard Go `strings.ToUpper` method to convert the string
 //     to uppercase, which applies the transformation to every character in the string.
-func transformUppercase(json, arg string) string {
+func applyUppercase(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
 	return strings.ToUpper(json)
 }
 
-// transformLowercase converts the input JSON string to lowercase.
+// applyLowercase converts the input JSON string to lowercase.
 //
 // This function takes a JSON string as input and converts all of its characters
 // to lowercase. If the input string is empty, it returns the string unchanged.
@@ -919,20 +955,20 @@ func transformUppercase(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"name\":\"Alice\",\"age\":25}"
-//	result := transformLowercase(json, "")
+//	result := applyLowercase(json, "")
 //	fmt.Println(result) // Output: "{\"name\":\"alice\",\"age\":25}"
 //
 // Notes:
 //   - This function uses the standard Go `strings.ToLower` method to convert the string
 //     to lowercase, which applies the transformation to every character in the string.
-func transformLowercase(json, arg string) string {
+func applyLowercase(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
 	return strings.ToLower(json)
 }
 
-// transformFlip reverses the input JSON string.
+// applyFlip reverses the input JSON string.
 //
 // This function takes the input string and reverses the order of its characters.
 // It returns the reversed string. If the input string is empty, it returns the
@@ -950,9 +986,9 @@ func transformLowercase(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"name\":\"Alice\",\"age\":25}"
-//	result := transformReverse(json, "")
+//	result := applyFlip(json, "")
 //	fmt.Println(result) // Output: "}52ega,\"ecilA\":\"emam{"
-func transformFlip(json, arg string) string {
+func applyFlip(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -963,7 +999,7 @@ func transformFlip(json, arg string) string {
 	return string(runes)
 }
 
-// transformTrim removes leading and trailing whitespace from the input JSON string.
+// applyTrim removes leading and trailing whitespace from the input JSON string.
 //
 // This function removes any whitespace characters at the beginning and end of the
 // input string. If there is no whitespace, the string remains unchanged.
@@ -980,16 +1016,16 @@ func transformFlip(json, arg string) string {
 // Example Usage:
 //
 //	json := "   {\"name\":\"Alice\"}   "
-//	result := transformTrim(json, "")
+//	result := applyTrim(json, "")
 //	fmt.Println(result) // Output: "{\"name\":\"Alice\"}"
 //
 // Notes:
 //   - This function uses Go's `strings.TrimSpace` method to remove whitespace characters.
-func transformTrim(json, arg string) string {
+func applyTrim(json, arg string) string {
 	return strutil.TrimWhitespace(strutil.Trim(json))
 }
 
-// transformSnakeCase converts the input string to snake_case format, which is typically used
+// applySnakeCase converts the input string to snake_case format, which is typically used
 // for variable names in many programming languages. The string is transformed to lowercase,
 // and spaces or other delimiters are replaced with underscores ('_').
 //
@@ -1003,9 +1039,9 @@ func transformTrim(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"First Name\":\"Alice\",\"Last Name\":\"Smith\"}"
-//	result := transformSnakeCase(json, "")
+//	result := applySnakeCase(json, "")
 //	fmt.Println(result) // Output: "{\"first_name\":\"alice\",\"last_name\":\"smith\"}"
-func transformSnakeCase(json, arg string) string {
+func applySnakeCase(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1014,7 +1050,7 @@ func transformSnakeCase(json, arg string) string {
 	return strings.ToLower(json)
 }
 
-// transformCamelCase converts the input string into camelCase, which is often used for
+// applyCamelCase converts the input string into camelCase, which is often used for
 // variable and function names in JavaScript and other programming languages. The string
 // is converted to lowercase with spaces removed, and the first letter of each word after
 // the first is capitalized.
@@ -1029,9 +1065,9 @@ func transformSnakeCase(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"first name\":\"alice\",\"last name\":\"smith\"}"
-//	result := transformCamelCase(json, "")
+//	result := applyCamelCase(json, "")
 //	fmt.Println(result) // Output: "{\"firstName\":\"alice\",\"lastName\":\"smith\"}"
-func transformCamelCase(json, arg string) string {
+func applyCamelCase(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1042,7 +1078,7 @@ func transformCamelCase(json, arg string) string {
 	return strings.Join(words, "")
 }
 
-// transformKebabCase converts the input string into kebab-case, often used for URL slugs.
+// applyKebabCase converts the input string into kebab-case, often used for URL slugs.
 // The string is transformed to lowercase, and spaces are replaced with hyphens ('-').
 //
 // Parameters:
@@ -1055,9 +1091,9 @@ func transformCamelCase(json, arg string) string {
 // Example Usage:
 //
 //	json := "{\"First Name\":\"Alice\",\"Last Name\":\"Smith\"}"
-//	result := transformKebabCase(json, "")
+//	result := applyKebabCase(json, "")
 //	fmt.Println(result) // Output: "{\"first-name\":\"alice\",\"last-name\":\"smith\"}"
-func transformKebabCase(json, arg string) string {
+func applyKebabCase(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1066,7 +1102,7 @@ func transformKebabCase(json, arg string) string {
 	return strings.ToLower(json)
 }
 
-// transformReplaceSubstring replaces a specific substring within the input string with another string.
+// applyReplace replaces a specific substring within the input string with another string.
 //
 // This function can be used to replace any substring in the input string with a given replacement.
 //
@@ -1082,9 +1118,9 @@ func transformKebabCase(json, arg string) string {
 //
 //	json := "I love apple pie"
 //	arg := "{\"target\":\"apple\",\"replacement\":\"orange\"}"
-//	result := transformReplaceSubstring(json, arg)
+//	result := applyReplace(json, arg)
 //	fmt.Println(result) // Output: "I love orange pie"
-func transformReplace(json, arg string) string {
+func applyReplace(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1101,7 +1137,7 @@ func transformReplace(json, arg string) string {
 	return strings.Replace(json, target, replacement, 1)
 }
 
-// transformReplaceAll replaces all occurrences of a target substring with a replacement string.
+// applyReplaceAll replaces all occurrences of a target substring with a replacement string.
 //
 // This function performs a global replacement in the input string, replacing every occurrence
 // of the target substring with the specified replacement.
@@ -1119,9 +1155,9 @@ func transformReplace(json, arg string) string {
 //
 //	json := "foo bar foo"
 //	arg := "{\"target\":\"foo\",\"replacement\":\"baz\"}"
-//	result := transformReplaceAll(json, arg)
+//	result := applyReplaceAll(json, arg)
 //	fmt.Println(result) // Output: "baz bar baz"
-func transformReplaceAll(json, arg string) string {
+func applyReplaceAll(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1138,7 +1174,7 @@ func transformReplaceAll(json, arg string) string {
 	return strings.ReplaceAll(json, target, replacement)
 }
 
-// transformToHex converts the string to its hexadecimal representation.
+// applyToHex converts the string to its hexadecimal representation.
 //
 // This function converts each character of the input string to its hexadecimal ASCII value.
 //
@@ -1152,9 +1188,9 @@ func transformReplaceAll(json, arg string) string {
 // Example Usage:
 //
 //	json := "hello"
-//	result := transformToHex(json, "")
+//	result := applyToHex(json, "")
 //	fmt.Println(result) // Output: "68656c6c6f"
-func transformToHex(json, arg string) string {
+func applyToHex(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1165,7 +1201,7 @@ func transformToHex(json, arg string) string {
 	return fmt.Sprintf("%x", json)
 }
 
-// transformToBinary converts the string to its binary representation.
+// applyToBinary converts the string to its binary representation.
 //
 // This function converts each character of the input string to its binary ASCII value.
 //
@@ -1179,9 +1215,9 @@ func transformToHex(json, arg string) string {
 // Example Usage:
 //
 //	json := "hello"
-//	result := transformToBinary(json, "")
+//	result := applyToBinary(json, "")
 //	fmt.Println(result) // Output: "11010001101101110110011011001101111"
-func transformToBinary(json, arg string) string {
+func applyToBinary(json, arg string) string {
 	ctx := Parse(json)
 	if !ctx.IsArray() && !ctx.IsObject() && common.IsScalarType(ctx.String()) {
 		var bin string
@@ -1197,7 +1233,7 @@ func transformToBinary(json, arg string) string {
 	return bin
 }
 
-// transformInsertAt inserts a specified string at a given index in the input string.
+// applyInsertAt inserts a specified string at a given index in the input string.
 //
 // This function allows you to insert a string at a particular position in the original string.
 //
@@ -1213,9 +1249,9 @@ func transformToBinary(json, arg string) string {
 //
 //	json := "HelloWorld"
 //	arg := "{\"index\":5,\"insert\":\"XYZ\"}"
-//	result := transformInsertAt(json, arg)
+//	result := applyInsertAt(json, arg)
 //	fmt.Println(result) // Output: "HelloXYZWorld"
-func transformInsertAt(json, arg string) string {
+func applyInsertAt(json, arg string) string {
 	if strutil.IsEmpty(json) {
 		return json
 	}
@@ -1236,7 +1272,7 @@ func transformInsertAt(json, arg string) string {
 	return json[:index] + insert + json[index:]
 }
 
-// transformCountWords counts the number of words in the input string.
+// applyCountWords counts the number of words in the input string.
 //
 // This function splits the string into words (by spaces) and returns the count of the words.
 //
@@ -1250,9 +1286,9 @@ func transformInsertAt(json, arg string) string {
 // Example Usage:
 //
 //	json := "Hello world"
-//	result := transformCountWords(json, "")
+//	result := applyCountWords(json, "")
 //	fmt.Println(result) // Output: 2
-func transformCountWords(json, arg string) string {
+func applyCountWords(json, arg string) string {
 	ctx := Parse(json)
 	json = strutil.TrimWhitespace(ctx.String())
 	if strutil.IsEmpty(json) || strutil.IsBlank(json) || strutil.IsWhitespace(json) {
@@ -1262,7 +1298,7 @@ func transformCountWords(json, arg string) string {
 	return fmt.Sprintf("%v", len(words))
 }
 
-// transformPadLeft pads the input string with a specified character on the left to a given length.
+// applyPadLeft pads the input string with a specified character on the left to a given length.
 //
 // This function adds padding to the left of the string until the string reaches the specified length.
 //
@@ -1277,9 +1313,9 @@ func transformCountWords(json, arg string) string {
 //
 //	json := "Hello"
 //	arg := "{\"padding\": \"*\", \"length\": 10}"
-//	result := transformPadLeft(json, arg)
+//	result := applyPadLeft(json, arg)
 //	fmt.Println(result) // Output: "*****Hello"
-func transformPadLeft(json, arg string) string {
+func applyPadLeft(json, arg string) string {
 	ctx := Parse(json)
 	value := ctx.String()
 	var padding string
@@ -1301,7 +1337,7 @@ func transformPadLeft(json, arg string) string {
 	return strings.Repeat(padding, length-len(t)) + t
 }
 
-// transformPadRight pads the input string with a specified character on the right to a given length.
+// applyPadRight pads the input string with a specified character on the right to a given length.
 //
 // This function adds padding to the right of the string until the string reaches the specified length.
 //
@@ -1316,9 +1352,9 @@ func transformPadLeft(json, arg string) string {
 //
 //	json := "Hello"
 //	arg := "{\"padding\": \"*\", \"length\": 10}"
-//	result := transformPadRight(json, arg)
+//	result := applyPadRight(json, arg)
 //	fmt.Println(result) // Output: "Hello*****"
-func transformPadRight(json, arg string) string {
+func applyPadRight(json, arg string) string {
 	ctx := Parse(json)
 	value := ctx.String()
 	var padding string
@@ -1344,45 +1380,45 @@ func transformPadRight(json, arg string) string {
 // Aliases allow shorter names for commonly used transformers.
 func init() {
 	// Core transformers
-	globalRegistry.Register("pretty", transformPretty)
-	globalRegistry.Register("minify", transformMinify)
-	globalRegistry.Register("ugly", transformMinify) // alias for minify
-	globalRegistry.Register("reverse", transformReverse)
-	globalRegistry.Register("flatten", transformFlatten)
-	globalRegistry.Register("join", transformJoin)
-	globalRegistry.Register("valid", transformJSONValidity)
-	globalRegistry.Register("keys", transformKeys)
-	globalRegistry.Register("values", transformValues)
-	globalRegistry.Register("json", transformToJSON)
-	globalRegistry.Register("string", transformToString)
-	globalRegistry.Register("group", transformGroup)
-	globalRegistry.Register("search", transformSearch)
-	globalRegistry.Register("this", transformDefault)
+	globalRegistry.Register("pretty", TransformerFunc(applyPrettyFormat))
+	globalRegistry.Register("minify", TransformerFunc(applyMinify))
+	globalRegistry.Register("ugly", TransformerFunc(applyMinify)) // alias for minify
+	globalRegistry.Register("reverse", TransformerFunc(applyReverse))
+	globalRegistry.Register("flatten", TransformerFunc(applyFlatten))
+	globalRegistry.Register("join", TransformerFunc(applyMerge))
+	globalRegistry.Register("valid", TransformerFunc(applyValidityCheck))
+	globalRegistry.Register("keys", TransformerFunc(applyKeys))
+	globalRegistry.Register("values", TransformerFunc(applyValues))
+	globalRegistry.Register("json", TransformerFunc(applyToJSON))
+	globalRegistry.Register("string", TransformerFunc(applyToString))
+	globalRegistry.Register("group", TransformerFunc(applyGroup))
+	globalRegistry.Register("search", TransformerFunc(applySearch))
+	globalRegistry.Register("this", TransformerFunc(applyIdentity))
 
 	// String case transformers
-	globalRegistry.Register("uppercase", transformUppercase)
-	globalRegistry.Register("upper", transformUppercase) // alias
-	globalRegistry.Register("lowercase", transformLowercase)
-	globalRegistry.Register("lower", transformLowercase) // alias
-	globalRegistry.Register("flip", transformFlip)
-	globalRegistry.Register("trim", transformTrim)
-	globalRegistry.Register("snakecase", transformSnakeCase)
-	globalRegistry.Register("snakeCase", transformSnakeCase) // legacy alias
-	globalRegistry.Register("snake", transformSnakeCase)     // short alias
-	globalRegistry.Register("camelcase", transformCamelCase)
-	globalRegistry.Register("camelCase", transformCamelCase) // legacy alias
-	globalRegistry.Register("camel", transformCamelCase)     // short alias
-	globalRegistry.Register("kebabcase", transformKebabCase)
-	globalRegistry.Register("kebabCase", transformKebabCase) // legacy alias
-	globalRegistry.Register("kebab", transformKebabCase)     // short alias
+	globalRegistry.Register("uppercase", TransformerFunc(applyUppercase))
+	globalRegistry.Register("upper", TransformerFunc(applyUppercase)) // alias
+	globalRegistry.Register("lowercase", TransformerFunc(applyLowercase))
+	globalRegistry.Register("lower", TransformerFunc(applyLowercase)) // alias
+	globalRegistry.Register("flip", TransformerFunc(applyFlip))
+	globalRegistry.Register("trim", TransformerFunc(applyTrim))
+	globalRegistry.Register("snakecase", TransformerFunc(applySnakeCase))
+	globalRegistry.Register("snakeCase", TransformerFunc(applySnakeCase)) // legacy alias
+	globalRegistry.Register("snake", TransformerFunc(applySnakeCase))     // short alias
+	globalRegistry.Register("camelcase", TransformerFunc(applyCamelCase))
+	globalRegistry.Register("camelCase", TransformerFunc(applyCamelCase)) // legacy alias
+	globalRegistry.Register("camel", TransformerFunc(applyCamelCase))     // short alias
+	globalRegistry.Register("kebabcase", TransformerFunc(applyKebabCase))
+	globalRegistry.Register("kebabCase", TransformerFunc(applyKebabCase)) // legacy alias
+	globalRegistry.Register("kebab", TransformerFunc(applyKebabCase))     // short alias
 
 	// Extra string transformers
-	globalRegistry.Register("replace", transformReplace)
-	globalRegistry.Register("replaceAll", transformReplaceAll)
-	globalRegistry.Register("hex", transformToHex)
-	globalRegistry.Register("bin", transformToBinary)
-	globalRegistry.Register("insertAt", transformInsertAt)
-	globalRegistry.Register("wc", transformCountWords)
-	globalRegistry.Register("padLeft", transformPadLeft)
-	globalRegistry.Register("padRight", transformPadRight)
+	globalRegistry.Register("replace", TransformerFunc(applyReplace))
+	globalRegistry.Register("replaceAll", TransformerFunc(applyReplaceAll))
+	globalRegistry.Register("hex", TransformerFunc(applyToHex))
+	globalRegistry.Register("bin", TransformerFunc(applyToBinary))
+	globalRegistry.Register("insertAt", TransformerFunc(applyInsertAt))
+	globalRegistry.Register("wc", TransformerFunc(applyCountWords))
+	globalRegistry.Register("padLeft", TransformerFunc(applyPadLeft))
+	globalRegistry.Register("padRight", TransformerFunc(applyPadRight))
 }

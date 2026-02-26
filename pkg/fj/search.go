@@ -915,6 +915,336 @@ func Min(json, path string) (float64, bool) {
 	return min, true
 }
 
+// MinFloat32 returns the minimum numeric value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinFloat32(json, "scores") // 5.0, true
+func MinFloat32(json, path string) (float32, bool) {
+	min := float32(math.MaxFloat32)
+	found := false
+	scanFloat32(json, path, func(n float32) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinInt returns the minimum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinInt(json, "scores") // 5, true
+func MinInt(json, path string) (int, bool) {
+	min := math.MaxInt
+	found := false
+	scanInt(json, path, func(n int) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinInt8 returns the minimum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinInt8(json, "scores") // 5, true
+func MinInt8(json, path string) (int8, bool) {
+	min := int8(math.MaxInt8)
+	found := false
+	scanInt8(json, path, func(n int8) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinInt16 returns the minimum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinInt16(json, "scores") // 5, true
+func MinInt16(json, path string) (int16, bool) {
+	min := int16(math.MaxInt16)
+	found := false
+	scanInt16(json, path, func(n int16) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinInt32 returns the minimum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinInt32(json, "scores") // 5, true
+func MinInt32(json, path string) (int32, bool) {
+	min := int32(math.MaxInt32)
+	found := false
+	scanInt32(json, path, func(n int32) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinInt64 returns the minimum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinInt64(json, "scores") // 5, true
+func MinInt64(json, path string) (int64, bool) {
+	min := int64(math.MaxInt64)
+	found := false
+	scanInt64(json, path, func(n int64) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinUint returns the minimum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinUint(json, "scores") // 5, true
+func MinUint(json, path string) (uint, bool) {
+	min := uint(math.MaxUint)
+	found := false
+	scanUint(json, path, func(n uint) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinUint8 returns the minimum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinUint8(json, "scores") // 5, true
+func MinUint8(json, path string) (uint8, bool) {
+	min := uint8(math.MaxUint8)
+	found := false
+	scanUint8(json, path, func(n uint8) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinUint16 returns the minimum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinUint16(json, "scores") // 5, true
+func MinUint16(json, path string) (uint16, bool) {
+	min := uint16(math.MaxUint16)
+	found := false
+	scanUint16(json, path, func(n uint16) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinUint32 returns the minimum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinUint32(json, "scores") // 5, true
+func MinUint32(json, path string) (uint32, bool) {
+	min := uint32(math.MaxUint32)
+	found := false
+	scanUint32(json, path, func(n uint32) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
+// MinUint64 returns the minimum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The minimum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MinUint64(json, "scores") // 5, true
+func MinUint64(json, path string) (uint64, bool) {
+	min := uint64(math.MaxUint64)
+	found := false
+	scanUint64(json, path, func(n uint64) {
+		if n < min {
+			min = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return min, true
+}
+
 // Max returns the maximum numeric value among all results produced by evaluating
 // path against json. Non-numeric results are silently ignored.
 //

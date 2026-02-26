@@ -907,37 +907,48 @@ res := fj.GetBytesMulti(rawBytes, "id", "status")
 The `wrapper` type exposes all `fj` operations without requiring you to import `pkg/fj` directly in most cases:
 
 ```go
-response := replify.New().
-    WithStatusCode(200).
-    WithBody(map[string]any{
-        "user": map[string]any{"name": "Alice", "role": "admin"},
-        "items": []map[string]any{
-            {"id": 1, "price": 9.99},
-            {"id": 2, "price": 4.50},
-        },
-    })
+	response := replify.New().
+		WithStatusCode(200).
+		WithBody(map[string]any{
+			"user": map[string]any{"name": "Alice", "role": "admin"},
+			"items": []map[string]any{
+				{"id": 1, "price": 9.99},
+				{"id": 2, "price": 4.50},
+			},
+		})
 
-// Single path query
-name := response.QueryJSONBody("user.name").String() // "Alice"
+	// Single path query
+	name := response.QueryJSONBody("user.name").String() // "Alice"
 
-// Multiple paths in one call (one JSON serialization)
-fields := response.QueryJSONBodyMulti("user.name", "user.role")
-fmt.Println(fields[0].String(), fields[1].String()) // Alice admin
+	// Multiple paths in one call (one JSON serialization)
+	fields := response.QueryJSONBodyMulti("user.name", "user.role")
+	fmt.Println(fields[0].String(), fields[1].String()) // Alice admin
 
-// Parse the body once and chain subsequent queries
-ctx := response.JSONBodyParser()
-fmt.Println(ctx.Get("user.name").String())
-fmt.Println(ctx.Get("items.#").Int()) // array length
+	// Parse the body once and chain subsequent queries
+	ctx := response.JSONBodyParser()
+	fmt.Println(ctx.Get("user.name").String())
+	fmt.Println(ctx.Get("items.#").Int()) // array length
 
-// Validate the body
-if !response.ValidJSONBody() {
-    log.Println("body is not valid JSON")
-}
+	// Validate the body
+	if !response.ValidJSONBody() {
+		log.Println("body is not valid JSON")
+		return
+	}
 
-// Aggregate helpers
-total := response.SumJSONBody("items.#.price")   // 14.49
-min, _ := response.MinJSONBody("items.#.price")  // 4.50
-max, _ := response.MaxJSONBody("items.#.price")  // 9.99
+	// Aggregate helpers
+	total := response.SumJSONBody("items.#.price")  // 14.49
+	min, _ := response.MinJSONBody("items.#.price") // 4.50
+	max, _ := response.MaxJSONBody("items.#.price") // 9.99
+	avg, _ := response.AvgJSONBody("items.#.price") // 7.245
+
+	fmt.Println(name)
+	fmt.Println(fields[0].String(), fields[1].String())
+	fmt.Println(ctx.Get("user.name").String())
+	fmt.Println(ctx.Get("items.#").Int())
+	fmt.Println(total)
+	fmt.Println(min)
+	fmt.Println(max)
+	fmt.Println(avg)
 ```
 
 > **Performance tip**: `QueryJSONBody` serializes the body on every call. For repeated queries on the same body, call `JSONBodyParser()` once and reuse the returned `fj.Context`.

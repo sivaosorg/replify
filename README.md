@@ -124,68 +124,47 @@ The library produces responses in this standardized format:
 {
   "status_code": 200,
   "message": "Resource retrieved successfully",
-  "path": "/api/v1/orders",
-  "data": [
+  "path": "/api/v1/users",
+  "data": [ // abstract data (can be array or object)
     {
-      "id": "ord_01HGP286X92B7XJS8K1M2N3P4Q",
-      "customer_id": "usr_992834",
-      "status": "fulfilled",
-      "currency": "USD",
-      "amount": 145.50,
-      "items": [
-        {
-          "sku": "PROD-A102",
-          "name": "Mechanical Keyboard K8",
-          "quantity": 1,
-          "price": 120.00
-        },
-        {
-          "sku": "ACC-B04",
-          "name": "USB-C Cable 2m",
-          "quantity": 1,
-          "price": 25.50
-        }
-      ],
-      "created_at": "2026-02-26T10:12:45Z"
+      "id": "user_01J6G7W9K2M4X7V5P8B3Q2Z1NS",
+      "username": "jdoe_dev",
+      "email": "j.doe@example.com",
+      "role": "administrator",
+      "status": "active",
+      "created_at": "2025-01-15T08:30:00Z",
+      "last_login": "2026-02-26T14:15:22Z"
     },
     {
-      "id": "ord_01HGP289Y33C8YKT9L2N3O4R5S",
-      "customer_id": "usr_445210",
-      "status": "pending",
-      "currency": "USD",
-      "amount": 42.00,
-      "items": [
-        {
-          "sku": "SOFT-D12",
-          "name": "Subscription - Monthly Pro",
-          "quantity": 1,
-          "price": 42.00
-        }
-      ],
-      "created_at": "2026-02-26T10:15:20Z"
+      "id": "user_01J6G7W9K2M4X7V5P8B3Q2Z1NT",
+      "username": "s_smith",
+      "email": "sarah.smith@example.com",
+      "role": "editor",
+      "status": "active",
+      "created_at": "2025-02-01T10:15:00Z",
+      "last_login": "2026-02-25T09:45:10Z"
     }
   ],
-  "total": 2,
   "pagination": {
     "page": 1,
     "per_page": 2,
-    "total_items": 1240,
-    "total_pages": 620,
+    "total_items": 120,
+    "total_pages": 60,
     "is_last": false
   },
   "meta": {
-    "request_id": "80eafc6a1655ec5a06595d155f1e6951",
-    "api_version": "1.4.2",
+    "request_id": "req_80eafc6a1655ec5a06595d155f1e6951",
+    "api_version": "v1.0.4",
     "locale": "en_US",
-    "requested_time": "2026-02-26T17:28:08.123Z",
-    "custom_fields": {
-      "execution_time_ms": 14,
-      "server_node": "us-east-1a"
+    "requested_time": "2026-02-26T17:30:28.983Z",
+    "custom_fields": { // custom fields
+      "trace_id": "80eafc6a1655ec5a06595d155f1e6951",
+      "origin_region": "us-east-1"
     }
   },
-  "debug": {
-    "trace_id": "4919e84fc26881e9fe790f5d07465db4",
-    "handler": "GetOrderList"
+  "debug": { // custom fields
+    "trace_session_id": "4919e84fc26881e9fe790f5d07465db4",
+    "execution_time_ms": 42
   }
 }
 ```

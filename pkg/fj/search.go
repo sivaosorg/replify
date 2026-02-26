@@ -1275,6 +1275,246 @@ func Max(json, path string) (float64, bool) {
 	return max, true
 }
 
+// MaxFloat32 returns the maximum numeric value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxFloat32(json, "scores") // 30.0, true
+func MaxFloat32(json, path string) (float32, bool) {
+	max := -float32(math.MaxFloat32)
+	found := false
+	scanFloat32(json, path, func(n float32) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxInt returns the maximum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxInt(json, "scores") // 30, true
+func MaxInt(json, path string) (int, bool) {
+	max := -math.MaxInt
+	found := false
+	scanInt(json, path, func(n int) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxInt8 returns the maximum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxInt8(json, "scores") // 30, true
+func MaxInt8(json, path string) (int8, bool) {
+	max := -int8(math.MaxInt8)
+	found := false
+	scanInt8(json, path, func(n int8) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxInt16 returns the maximum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxInt16(json, "scores") // 30, true
+func MaxInt16(json, path string) (int16, bool) {
+	max := -int16(math.MaxInt16)
+	found := false
+	scanInt16(json, path, func(n int16) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxInt32 returns the maximum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxInt32(json, "scores") // 30, true
+func MaxInt32(json, path string) (int32, bool) {
+	max := -int32(math.MaxInt32)
+	found := false
+	scanInt32(json, path, func(n int32) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxInt64 returns the maximum integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxInt64(json, "scores") // 30, true
+func MaxInt64(json, path string) (int64, bool) {
+	max := -int64(math.MaxInt64)
+	found := false
+	scanInt64(json, path, func(n int64) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxUint returns the maximum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxUint(json, "scores") // 30, true
+func MaxUint(json, path string) (uint, bool) {
+	max := uint(0)
+	found := false
+	scanUint(json, path, func(n uint) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
+// MaxUint8 returns the maximum unsigned integer value among all results produced by evaluating
+// path against json. Non-numeric results are silently ignored.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path.
+//
+// Returns:
+//   - The maximum value and true when at least one number is found.
+//   - 0 and false when no numeric values are found.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,5,30]}`
+//	v, ok := fj.MaxUint8(json, "scores") // 30, true
+func MaxUint8(json, path string) (uint8, bool) {
+	max := uint8(0)
+	found := false
+	scanUint8(json, path, func(n uint8) {
+		if n > max {
+			max = n
+		}
+		found = true
+	})
+	if !found {
+		return 0, false
+	}
+	return max, true
+}
+
 // Avg returns the arithmetic mean of all numeric values produced by evaluating path
 // against json. Non-numeric results are silently ignored.
 //

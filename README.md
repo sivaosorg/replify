@@ -806,6 +806,321 @@ The `R` type is a high-level abstraction providing a simplified interface for ha
 - **Internal Services** - Where custom formats are required
 - **High-Performance** - Direct JSON encoding may be faster
 
+## fj Usage Guide
+
+`fj` (_Fast JSON_) is the JSON path-extraction engine embedded in **replify**. It lets you read, query, and transform values from a JSON document **without unmarshalling the entire structure** into Go types. It lives in `pkg/fj` and is exposed through the `wrapper` type in `parser.go`.
+
+### Purpose in the replify Architecture
+
+When a `wrapper` carries a JSON body, `fj` powers every field-level query on that body. Instead of decoding the whole payload into a `map[string]any` or a concrete struct, `fj` walks the raw string just far enough to locate the requested path. This keeps allocations low and throughput high on hot request paths.
+
+```
+HTTP Request → wrapper.WithBody(data) → wrapper.QueryJSONBody("user.name")
+                                                 ↓
+                                    fj.Get(jsonString, "user.name")
+                                                 ↓
+                                          fj.Context  ← single value, no full decode
+```
+
+### When to Use fj Instead of encoding/json
+
+| Scenario | Recommended approach |
+|---|---|
+| Extract one or a few fields from a large response body | `fj` / `QueryJSONBody` |
+| Validate that the body is well-formed JSON | `fj.IsValidJSON` / `ValidJSONBody` |
+| Search leaf values or keys across an unknown schema | `fj.Search` / `SearchJSONBody*` |
+| Apply streaming transforms (pretty-print, minify, etc.) | `fj` transformers |
+| Bind the full payload into a typed struct | `encoding/json` or `json-iterator` |
+| Write or modify JSON | `encoding/json` |
+| JSON schema validation | a dedicated schema library |
+
+### Path Syntax Quick Reference
+
+```
+user.name              field access
+roles.0                array index
+roles.#                array length
+roles.#.name           collect field from every element
+roles.#(role=="admin") first element where role == "admin"
+roles.#(role=="admin")# all elements where role == "admin"
+{id,name}              multi-selector → new object
+[id,name]              multi-selector → new array
+name.@uppercase        built-in transformer
+name.@word:upper       transformer with argument
+..title                recursive descent (JSON Lines / deep scan)
+```
+
+Dots and wildcards in key names can be escaped with a backslash (`\`).
+
+### Core API
+
+#### Direct fj usage
+
+```go
+import "github.com/sivaosorg/replify/pkg/fj"
+
+json := `{
+    "user": {"name": "Alice", "age": 30, "active": true},
+    "roles": ["admin", "editor"],
+    "scores": [95, 87, 92]
+}`
+
+// Single path
+name := fj.Get(json, "user.name").String()    // "Alice"
+age  := fj.Get(json, "user.age").Int64()      // 30
+ok   := fj.Get(json, "user.active").Bool()    // true
+n    := fj.Get(json, "roles.#").Int()         // 2 (array length)
+
+// Multiple paths in one pass
+results := fj.GetMulti(json, "user.name", "user.age", "roles.#")
+// results[0].String() == "Alice", results[1].Int64() == 30, results[2].Int() == 2
+
+// Check presence before use
+if ctx := fj.Get(json, "user.email"); ctx.Exists() {
+    fmt.Println(ctx.String())
+}
+
+// Parse a document once, query multiple times (avoids re-parsing)
+doc := fj.Parse(json)
+fmt.Println(doc.Get("user.name").String())
+fmt.Println(doc.Get("roles.0").String())
+```
+
+#### Zero-copy byte-slice access
+
+`GetBytes` is preferred when you already hold a `[]byte`. It uses `unsafe` pointer operations internally to avoid an extra string allocation:
+
+```go
+rawBytes := []byte(`{"id":42,"status":"active"}`)
+
+id     := fj.GetBytes(rawBytes, "id").Int()        // 42
+status := fj.GetBytes(rawBytes, "status").String() // "active"
+
+// Multiple paths from bytes
+res := fj.GetBytesMulti(rawBytes, "id", "status")
+```
+
+> **Memory note**: `fj.Context.Raw()` returns a substring view of the original string without copying. Do not hold a reference to the `Context` after the source string has been released; the backing memory will be reclaimed.
+
+### Wrapper Integration (parser.go)
+
+The `wrapper` type exposes all `fj` operations without requiring you to import `pkg/fj` directly in most cases:
+
+```go
+response := replify.New().
+    WithStatusCode(200).
+    WithBody(map[string]any{
+        "user": map[string]any{"name": "Alice", "role": "admin"},
+        "items": []map[string]any{
+            {"id": 1, "price": 9.99},
+            {"id": 2, "price": 4.50},
+        },
+    })
+
+// Single path query
+name := response.QueryJSONBody("user.name").String() // "Alice"
+
+// Multiple paths in one call (one JSON serialization)
+fields := response.QueryJSONBodyMulti("user.name", "user.role")
+fmt.Println(fields[0].String(), fields[1].String()) // Alice admin
+
+// Parse the body once and chain subsequent queries
+ctx := response.JSONBodyParser()
+fmt.Println(ctx.Get("user.name").String())
+fmt.Println(ctx.Get("items.#").Int()) // array length
+
+// Validate the body
+if !response.ValidJSONBody() {
+    log.Println("body is not valid JSON")
+}
+
+// Aggregate helpers
+total := response.SumJSONBody("items.#.price")   // 14.49
+min, _ := response.MinJSONBody("items.#.price")  // 4.50
+max, _ := response.MaxJSONBody("items.#.price")  // 9.99
+```
+
+> **Performance tip**: `QueryJSONBody` serializes the body on every call. For repeated queries on the same body, call `JSONBodyParser()` once and reuse the returned `fj.Context`.
+
+### Context Value Extraction
+
+A `fj.Context` is returned by every query. Always call `.Exists()` before using the value if the path might be absent.
+
+```go
+ctx := fj.Get(json, "optional.field")
+
+ctx.Exists()   // false when path is missing
+ctx.Kind()     // fj.Null | fj.String | fj.Number | fj.True | fj.False | fj.JSON
+ctx.String()   // string representation
+ctx.Bool()     // bool
+ctx.Int()      // int
+ctx.Int64()    // int64
+ctx.Float64()  // float64
+ctx.Raw()      // raw JSON token (no allocation)
+ctx.IsArray()  // true when kind == JSON and raw starts with '['
+ctx.IsObject() // true when kind == JSON and raw starts with '{'
+ctx.IsError()  // true if parsing produced an error
+ctx.Cause()    // error string, or "" if no error
+
+// Iterate array values
+ctx.Foreach(func(key, val fj.Context) bool {
+    fmt.Println(val.String())
+    return true // return false to stop
+})
+```
+
+### Transformers
+
+Built-in transformers are applied with the `@` prefix in a path:
+
+```go
+fj.Get(json, "user.name.@uppercase").String()     // "ALICE"
+fj.Get(json, "user.name.@reverse").String()       // "ecilA"
+fj.Get(json, "@pretty").String()                  // indented JSON
+fj.Get(json, "@minify").String()                  // compact JSON
+fj.Get(json, "roles.@flatten").String()           // flatten nested arrays
+fj.Get(json, "roles.@join").String()              // join array into object
+fj.Get(json, "user.name.@word:upper").String()    // transformer with argument
+```
+
+Register custom transformers once at startup:
+
+```go
+func init() {
+    fj.AddTransformer("redact", func(json, arg string) string {
+        return `"[REDACTED]"`
+    })
+}
+
+// Usage in path
+fj.Get(json, "user.password.@redact").String() // "[REDACTED]"
+```
+
+Transformers can be disabled globally with `fj.DisableTransformers = true`.
+
+### Search and Scan Helpers
+
+```go
+// Full-tree substring search across all leaf values
+hits := response.SearchJSONBody("admin")
+
+// Wildcard scan of leaf values
+hits = response.SearchJSONBodyMatch("err*")
+
+// Find all values stored under specific key names
+emails := response.SearchJSONBodyByKey("email")
+
+// Find all values under keys matching a wildcard
+hits = response.SearchJSONBodyByKeyPattern("user*")
+
+// Substring / wildcard check at a specific path
+response.JSONBodyContains("user.role", "admin")
+response.JSONBodyContainsMatch("user.email", "*@example.com")
+
+// Return the dot-notation path where a value first appears
+path := response.FindJSONBodyPath("alice@example.com")
+
+// All paths where value matches a pattern
+paths := response.FindJSONBodyPathsMatch("err*")
+```
+
+### Data Manipulation Helpers
+
+```go
+import "github.com/sivaosorg/replify/pkg/fj"
+
+// Count elements at a path
+n := response.CountJSONBody("items")
+
+// Filter array elements by predicate
+active := response.FilterJSONBody("users", func(ctx fj.Context) bool {
+    return ctx.Get("active").Bool()
+})
+
+// First match
+admin := response.FirstJSONBody("users", func(ctx fj.Context) bool {
+    return ctx.Get("role").String() == "admin"
+})
+
+// Deduplicate (first-occurrence order preserved)
+tags := response.DistinctJSONBody("tags")
+
+// Project fields from an array of objects
+rows := response.PluckJSONBody("users", "id", "email")
+
+// Group by a key field
+byRole := response.GroupByJSONBody("users", "role")
+
+// Sort array by a field (numeric or string comparison)
+sorted := response.SortJSONBody("products", "price", true)
+```
+
+### Limitations
+
+- **Read-only**: `fj` cannot write or modify JSON. Use `encoding/json` for serialization.
+- **No schema validation**: For strict schema enforcement use a dedicated library.
+- **No struct binding**: `fj` returns `Context` values, not typed Go structs. Use `encoding/json` when binding is required.
+- **`Raw()` lifetime**: The raw string returned by `Context.Raw()` is a zero-copy view into the source JSON string. It must not outlive the original string.
+- **`UnsafeBytes`**: The byte slice returned by `fj.UnsafeBytes` shares memory with the source string. Never mutate it, as this violates Go's string immutability guarantees and can cause undefined behavior.
+- **Malformed input**: `fj` does not validate JSON before parsing. Pass untrusted input through `fj.IsValidJSON` or `ValidJSONBody()` first.
+- **Transformers are global**: `AddTransformer` writes to a package-level registry. Register all transformers during program initialization (e.g., in `init()` functions) before concurrent access begins to avoid data races.
+
+### Best Practices
+
+1. **Check existence before use**
+
+   ```go
+   if ctx := response.QueryJSONBody("optional.key"); ctx.Exists() {
+       process(ctx.String())
+   }
+   ```
+
+2. **Parse once, query many times**
+
+   ```go
+   doc := response.JSONBodyParser()
+   id    := doc.Get("user.id").String()
+   email := doc.Get("user.email").String()
+   role  := doc.Get("user.role").String()
+   ```
+
+3. **Prefer `GetBytes` for byte-slice payloads**
+
+   ```go
+   // ✅ avoids string conversion allocation
+   ctx := fj.GetBytes(rawBytes, "user.name")
+
+   // ❌ unnecessary allocation
+   ctx = fj.Get(string(rawBytes), "user.name")
+   ```
+
+4. **Validate untrusted input first**
+
+   ```go
+   if !response.ValidJSONBody() {
+       return errors.New("invalid JSON body")
+   }
+   ```
+
+5. **Register custom transformers in `init()`**
+
+   ```go
+   func init() {
+       fj.AddTransformer("mask", func(json, arg string) string {
+           return `"***"`
+       })
+   }
+   ```
+
+6. **Never mutate `UnsafeBytes` output**
+
+   ```go
+   b := fj.UnsafeBytes(someString)
+   // ✅ read-only access
+   _ = b[0]
+   // ❌ mutating b corrupts the original string
+   ```
+
 ## Contributing
 
 To contribute to this project, follow these steps:

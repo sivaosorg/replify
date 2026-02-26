@@ -3392,7 +3392,7 @@ func applyTransformerAt(json, path string) (remainingPath, result string, ok boo
 		}
 	}
 	// check if the transformer exists in the global registry and apply it if found.
-	if fn := resolveTransformer(name); fn != nil {
+	if t := resolveTransformer(name); t != nil {
 		var args string
 		if hasArgs { // if arguments are found, parse and handle them.
 			var parsedArgs bool
@@ -3423,8 +3423,8 @@ func applyTransformerAt(json, path string) (remainingPath, result string, ok boo
 				remainingPath = remainingPath[i:] // update the remaining path.
 			}
 		}
-		// apply the transformer function to the JSON data and return the result.
-		return remainingPath, fn(json, args), true
+		// dispatch to the transformer and return the result.
+		return remainingPath, t.Apply(json, args), true
 	}
 	// if no transformer is found, return the path and an empty result.
 	return remainingPath, result, false

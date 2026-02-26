@@ -10,43 +10,77 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// TransformerFunc is the function signature for all transformer functions.
+// Transformer is the interface implemented by all transformer types.
 // A transformer receives the current JSON string and an optional argument string,
 // and returns a transformed JSON string. Transformers are applied via the @ syntax
 // in fj path expressions (e.g. "name.@uppercase").
+//
+// Implement this interface to provide custom, stateful, or composable transformer
+// logic that goes beyond plain function closures. For simple, stateless cases use
+// the TransformerFunc adapter, which satisfies this interface automatically.
+//
+// Example (struct-based):
+//
+//	type prefixTransformer struct{ prefix string }
+//
+//	func (t *prefixTransformer) Apply(json, arg string) string {
+//	    return t.prefix + json
+//	}
+//
+//	fj.AddTransformer("prefix", &prefixTransformer{prefix: "data:"})
+type Transformer interface {
+	Apply(json, arg string) string
+}
+
+// TransformerFunc is a function adapter that implements the Transformer interface.
+// It allows any plain function with the signature func(json, arg string) string to
+// satisfy Transformer without defining a named struct.
+//
+// This mirrors the http.HandlerFunc pattern from the standard library.
+//
+// Example:
+//
+//	fj.AddTransformer("upper", fj.TransformerFunc(func(json, arg string) string {
+//	    return strings.ToUpper(json)
+//	}))
 type TransformerFunc func(json, arg string) string
 
-// transformerRegistry holds the mapping from transformer name to TransformerFunc.
+// Apply calls f(json, arg), satisfying the Transformer interface.
+func (f TransformerFunc) Apply(json, arg string) string {
+	return f(json, arg)
+}
+
+// transformerRegistry holds the mapping from transformer name to Transformer.
 // It guards concurrent access with a sync.RWMutex so that AddTransformer and path
 // evaluation can be called safely from multiple goroutines.
 type transformerRegistry struct {
 	mu           sync.RWMutex
-	transformers map[string]TransformerFunc
+	transformers map[string]Transformer
 }
 
 // globalRegistry is the package-level singleton transformer registry.
 // All built-in transformers are registered via init(). Custom transformers can be
 // added at any time with AddTransformer.
 var globalRegistry = &transformerRegistry{
-	transformers: make(map[string]TransformerFunc),
+	transformers: make(map[string]Transformer),
 }
 
-// Register adds or replaces a transformer in the registry.
+// Register adds or replaces a Transformer in the registry under the given name.
 // It is safe for concurrent use by multiple goroutines.
-func (r *transformerRegistry) Register(name string, fn TransformerFunc) {
+func (r *transformerRegistry) Register(name string, t Transformer) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.transformers[name] = fn
+	r.transformers[name] = t
 }
 
-// Get retrieves a transformer function by name.
-// It returns (fn, true) if found or (nil, false) if not registered.
+// Get retrieves a Transformer by name.
+// It returns (t, true) if found or (nil, false) if not registered.
 // It is safe for concurrent use by multiple goroutines.
-func (r *transformerRegistry) Get(name string) (TransformerFunc, bool) {
+func (r *transformerRegistry) Get(name string) (Transformer, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	fn, ok := r.transformers[name]
-	return fn, ok
+	t, ok := r.transformers[name]
+	return t, ok
 }
 
 // IsRegistered reports whether a transformer with the given name has been registered.
@@ -58,16 +92,16 @@ func (r *transformerRegistry) IsRegistered(name string) bool {
 	return ok
 }
 
-// resolveTransformer looks up and returns the TransformerFunc registered under
-// the given name in the global registry. It returns nil when no transformer with
-// that name has been registered, acting as the central dispatch point for all
-// named transformer invocations.
-func resolveTransformer(name string) TransformerFunc {
-	fn, ok := globalRegistry.Get(name)
+// resolveTransformer looks up and returns the Transformer registered under the given
+// name in the global registry. It returns nil when no transformer with that name has
+// been registered, acting as the central dispatch point for all named transformer
+// invocations.
+func resolveTransformer(name string) Transformer {
+	t, ok := globalRegistry.Get(name)
 	if !ok {
 		return nil
 	}
-	return fn
+	return t
 }
 
 // applyIdentity is a fallback transformation that simply returns the input JSON string
@@ -1346,45 +1380,45 @@ func applyPadRight(json, arg string) string {
 // Aliases allow shorter names for commonly used transformers.
 func init() {
 	// Core transformers
-	globalRegistry.Register("pretty", applyPrettyFormat)
-	globalRegistry.Register("minify", applyMinify)
-	globalRegistry.Register("ugly", applyMinify) // alias for minify
-	globalRegistry.Register("reverse", applyReverse)
-	globalRegistry.Register("flatten", applyFlatten)
-	globalRegistry.Register("join", applyMerge)
-	globalRegistry.Register("valid", applyValidityCheck)
-	globalRegistry.Register("keys", applyKeys)
-	globalRegistry.Register("values", applyValues)
-	globalRegistry.Register("json", applyToJSON)
-	globalRegistry.Register("string", applyToString)
-	globalRegistry.Register("group", applyGroup)
-	globalRegistry.Register("search", applySearch)
-	globalRegistry.Register("this", applyIdentity)
+	globalRegistry.Register("pretty", TransformerFunc(applyPrettyFormat))
+	globalRegistry.Register("minify", TransformerFunc(applyMinify))
+	globalRegistry.Register("ugly", TransformerFunc(applyMinify)) // alias for minify
+	globalRegistry.Register("reverse", TransformerFunc(applyReverse))
+	globalRegistry.Register("flatten", TransformerFunc(applyFlatten))
+	globalRegistry.Register("join", TransformerFunc(applyMerge))
+	globalRegistry.Register("valid", TransformerFunc(applyValidityCheck))
+	globalRegistry.Register("keys", TransformerFunc(applyKeys))
+	globalRegistry.Register("values", TransformerFunc(applyValues))
+	globalRegistry.Register("json", TransformerFunc(applyToJSON))
+	globalRegistry.Register("string", TransformerFunc(applyToString))
+	globalRegistry.Register("group", TransformerFunc(applyGroup))
+	globalRegistry.Register("search", TransformerFunc(applySearch))
+	globalRegistry.Register("this", TransformerFunc(applyIdentity))
 
 	// String case transformers
-	globalRegistry.Register("uppercase", applyUppercase)
-	globalRegistry.Register("upper", applyUppercase) // alias
-	globalRegistry.Register("lowercase", applyLowercase)
-	globalRegistry.Register("lower", applyLowercase) // alias
-	globalRegistry.Register("flip", applyFlip)
-	globalRegistry.Register("trim", applyTrim)
-	globalRegistry.Register("snakecase", applySnakeCase)
-	globalRegistry.Register("snakeCase", applySnakeCase) // legacy alias
-	globalRegistry.Register("snake", applySnakeCase)     // short alias
-	globalRegistry.Register("camelcase", applyCamelCase)
-	globalRegistry.Register("camelCase", applyCamelCase) // legacy alias
-	globalRegistry.Register("camel", applyCamelCase)     // short alias
-	globalRegistry.Register("kebabcase", applyKebabCase)
-	globalRegistry.Register("kebabCase", applyKebabCase) // legacy alias
-	globalRegistry.Register("kebab", applyKebabCase)     // short alias
+	globalRegistry.Register("uppercase", TransformerFunc(applyUppercase))
+	globalRegistry.Register("upper", TransformerFunc(applyUppercase)) // alias
+	globalRegistry.Register("lowercase", TransformerFunc(applyLowercase))
+	globalRegistry.Register("lower", TransformerFunc(applyLowercase)) // alias
+	globalRegistry.Register("flip", TransformerFunc(applyFlip))
+	globalRegistry.Register("trim", TransformerFunc(applyTrim))
+	globalRegistry.Register("snakecase", TransformerFunc(applySnakeCase))
+	globalRegistry.Register("snakeCase", TransformerFunc(applySnakeCase)) // legacy alias
+	globalRegistry.Register("snake", TransformerFunc(applySnakeCase))     // short alias
+	globalRegistry.Register("camelcase", TransformerFunc(applyCamelCase))
+	globalRegistry.Register("camelCase", TransformerFunc(applyCamelCase)) // legacy alias
+	globalRegistry.Register("camel", TransformerFunc(applyCamelCase))     // short alias
+	globalRegistry.Register("kebabcase", TransformerFunc(applyKebabCase))
+	globalRegistry.Register("kebabCase", TransformerFunc(applyKebabCase)) // legacy alias
+	globalRegistry.Register("kebab", TransformerFunc(applyKebabCase))     // short alias
 
 	// Extra string transformers
-	globalRegistry.Register("replace", applyReplace)
-	globalRegistry.Register("replaceAll", applyReplaceAll)
-	globalRegistry.Register("hex", applyToHex)
-	globalRegistry.Register("bin", applyToBinary)
-	globalRegistry.Register("insertAt", applyInsertAt)
-	globalRegistry.Register("wc", applyCountWords)
-	globalRegistry.Register("padLeft", applyPadLeft)
-	globalRegistry.Register("padRight", applyPadRight)
+	globalRegistry.Register("replace", TransformerFunc(applyReplace))
+	globalRegistry.Register("replaceAll", TransformerFunc(applyReplaceAll))
+	globalRegistry.Register("hex", TransformerFunc(applyToHex))
+	globalRegistry.Register("bin", TransformerFunc(applyToBinary))
+	globalRegistry.Register("insertAt", TransformerFunc(applyInsertAt))
+	globalRegistry.Register("wc", TransformerFunc(applyCountWords))
+	globalRegistry.Register("padLeft", TransformerFunc(applyPadLeft))
+	globalRegistry.Register("padRight", TransformerFunc(applyPadRight))
 }

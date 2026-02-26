@@ -595,18 +595,28 @@ func IsValidJSONBytes(json []byte) bool {
 	return ok
 }
 
-// AddTransformer registers a custom TransformerFunc under the given name.
+// AddTransformer registers a Transformer implementation under the given name in the
+// global registry. Registering with an existing name overwrites the previous entry.
+// This function is safe for concurrent use.
 //
-// The name must be unique within the registry; registering with an existing name
-// overwrites the previous transformer. This function is safe for concurrent use.
+// To register a plain function, wrap it with TransformerFunc:
 //
-// Example:
-//
-//	fj.AddTransformer("upper", func(json, arg string) string {
+//	fj.AddTransformer("upper", fj.TransformerFunc(func(json, arg string) string {
 //	    return strings.ToUpper(json)
-//	})
-func AddTransformer(name string, fn TransformerFunc) {
-	globalRegistry.Register(name, fn)
+//	}))
+//
+// To register a struct-based implementation, pass a value that satisfies the
+// Transformer interface:
+//
+//	type myTransformer struct{ prefix string }
+//
+//	func (t *myTransformer) Apply(json, arg string) string {
+//	    return t.prefix + json
+//	}
+//
+//	fj.AddTransformer("prefixed", &myTransformer{prefix: "data:"})
+func AddTransformer(name string, t Transformer) {
+	globalRegistry.Register(name, t)
 }
 
 // IsTransformerRegistered reports whether a transformer with the given name has been

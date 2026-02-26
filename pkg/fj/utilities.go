@@ -4576,6 +4576,426 @@ func itoa(n int) string {
 	return string(buf[pos:])
 }
 
+// scanInt is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanInt(json, "scores", func(n int) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanInt(json, path string, fn func(int)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Int())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Int())
+	}
+}
+
+// scanInt8 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanInt8(json, "scores", func(n int8) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanInt8(json, path string, fn func(int8)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Int8())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Int8())
+	}
+}
+
+// scanInt16 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanInt16(json, "scores", func(n int16) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanInt16(json, path string, fn func(int16)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Int16())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Int16())
+	}
+}
+
+// scanInt32 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanInt32(json, "scores", func(n int32) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanInt32(json, path string, fn func(int32)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Int32())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Int32())
+	}
+}
+
+// scanInt64 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanInt64(json, "scores", func(n int64) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanInt64(json, path string, fn func(int64)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Int64())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Int64())
+	}
+}
+
+// scanUint is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanUint(json, "scores", func(n uint) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanUint(json, path string, fn func(uint)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Uint())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Uint())
+	}
+}
+
+// scanUint8 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanUint8(json, "scores", func(n uint8) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanUint8(json, path string, fn func(uint8)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Uint8())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Uint8())
+	}
+}
+
+// scanUint16 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanUint16(json, "scores", func(n uint16) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanUint16(json, path string, fn func(uint16)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Uint16())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Uint16())
+	}
+}
+
+// scanUint32 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanUint32(json, "scores", func(n uint32) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanUint32(json, path string, fn func(uint32)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Uint32())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Uint32())
+	}
+}
+
+// scanUint64 is an internal helper shared by Sum, Min, Max, and Avg.
+// It visits every Context returned by path (treating a JSON array result as a
+// sequence of individual values) and calls fn for each numeric one.
+//
+// Parameters:
+//   - `json`: The JSON string to parse.
+//   - `path`: The path to evaluate against the JSON.
+//   - `fn`: The function to call for each numeric value found.
+//
+// Returns:
+//   - None
+//
+// Example Usage:
+//
+//	scanUint64(json, "scores", func(n uint64) { total += n })
+//
+// Notes:
+//   - The function leverages recursive descent to explore nested JSON objects and arrays,
+//     ensuring that all levels of the structure are searched for matches.
+//   - If the `parent` element is an object or array, it will iterate over its elements and
+//     perform recursive descent for each of them.
+//   - The search is performed on the values of the JSON elements using `node.String()`.
+//   - The `value` is checked for equality using `node.String() == value`.
+func scanUint64(json, path string, fn func(uint64)) {
+	ctx := Get(json, path)
+	if !ctx.Exists() {
+		return
+	}
+	if ctx.IsArray() {
+		ctx.Foreach(func(_, item Context) bool {
+			if item.kind == Number {
+				fn(item.Uint64())
+			}
+			return true
+		})
+		return
+	}
+	if ctx.kind == Number {
+		fn(ctx.Uint64())
+	}
+}
+
 // scanFloat32 is an internal helper shared by Sum, Min, Max, and Avg.
 // It visits every Context returned by path (treating a JSON array result as a
 // sequence of individual values) and calls fn for each numeric one.

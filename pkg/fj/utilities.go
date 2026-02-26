@@ -3392,7 +3392,7 @@ func applyTransformerAt(json, path string) (remainingPath, result string, ok boo
 		}
 	}
 	// check if the transformer exists in the global registry and apply it if found.
-	if fn := getTransformer(name); fn != nil {
+	if fn := resolveTransformer(name); fn != nil {
 		var args string
 		if hasArgs { // if arguments are found, parse and handle them.
 			var parsedArgs bool

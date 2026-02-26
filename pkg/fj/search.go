@@ -643,6 +643,248 @@ func Sum(json, path string) float64 {
 	return total
 }
 
+// SumFloat32 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as float32.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumFloat32(json, "scores") // 60.0
+func SumFloat32(json, path string) float32 {
+	var total float32
+	scanFloat32(json, path, func(n float32) { total += n })
+	return total
+}
+
+// SumInt returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as int.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumInt(json, "scores") // 60
+func SumInt(json, path string) int {
+	var total int
+	scanInt(json, path, func(n int) { total += n })
+	return total
+}
+
+// SumInt8 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as int8.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumInt8(json, "scores") // 60
+func SumInt8(json, path string) int8 {
+	var total int8
+	scanInt8(json, path, func(n int8) { total += n })
+	return total
+}
+
+// SumInt16 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as int16.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumInt16(json, "scores") // 60
+func SumInt16(json, path string) int16 {
+	var total int16
+	scanInt16(json, path, func(n int16) { total += n })
+	return total
+}
+
+// SumInt32 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as int32.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumInt32(json, "scores") // 60
+func SumInt32(json, path string) int32 {
+	var total int32
+	scanInt32(json, path, func(n int32) { total += n })
+	return total
+}
+
+// SumInt64 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as int64.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumInt64(json, "scores") // 60
+func SumInt64(json, path string) int64 {
+	var total int64
+	scanInt64(json, path, func(n int64) { total += n })
+	return total
+}
+
+// SumUint returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as uint.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumUint(json, "scores") // 60
+func SumUint(json, path string) uint {
+	var total uint
+	scanUint(json, path, func(n uint) { total += n })
+	return total
+}
+
+// SumUint8 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as uint8.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumUint8(json, "scores") // 60
+func SumUint8(json, path string) uint8 {
+	var total uint8
+	scanUint8(json, path, func(n uint8) { total += n })
+	return total
+}
+
+// SumUint16 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as uint16.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumUint16(json, "scores") // 60
+func SumUint16(json, path string) uint16 {
+	var total uint16
+	scanUint16(json, path, func(n uint16) { total += n })
+	return total
+}
+
+// SumUint32 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as uint32.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumUint32(json, "scores") // 60
+func SumUint32(json, path string) uint32 {
+	var total uint32
+	scanUint32(json, path, func(n uint32) { total += n })
+	return total
+}
+
+// SumUint64 returns the sum of all numeric values produced by evaluating path against
+// json. Non-numeric results are silently ignored. Returns 0 when no numeric values
+// are found.
+//
+// Parameters:
+//   - json: A well-formed JSON string.
+//   - path: A fj dot-notation path. The path may resolve to a JSON array of numbers
+//     (e.g. "scores") or a single number (e.g. "scores.0").
+//
+// Returns:
+//   - The sum as uint64.
+//
+// Example:
+//
+//	json := `{"scores":[10,20,30]}`
+//	fj.SumUint64(json, "scores") // 60
+func SumUint64(json, path string) uint64 {
+	var total uint64
+	scanUint64(json, path, func(n uint64) { total += n })
+	return total
+}
+
 // Min returns the minimum numeric value among all results produced by evaluating
 // path against json. Non-numeric results are silently ignored.
 //

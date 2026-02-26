@@ -122,30 +122,70 @@ The library produces responses in this standardized format:
 
 ```json
 {
-  "data": "response body here",
   "status_code": 200,
-  "message": "How are you? I'm good",
-  "total": 1,
-  "path": "/api/v1/users",
+  "message": "Resource retrieved successfully",
+  "path": "/api/v1/orders",
+  "data": [
+    {
+      "id": "ord_01HGP286X92B7XJS8K1M2N3P4Q",
+      "customer_id": "usr_992834",
+      "status": "fulfilled",
+      "currency": "USD",
+      "amount": 145.50,
+      "items": [
+        {
+          "sku": "PROD-A102",
+          "name": "Mechanical Keyboard K8",
+          "quantity": 1,
+          "price": 120.00
+        },
+        {
+          "sku": "ACC-B04",
+          "name": "USB-C Cable 2m",
+          "quantity": 1,
+          "price": 25.50
+        }
+      ],
+      "created_at": "2026-02-26T10:12:45Z"
+    },
+    {
+      "id": "ord_01HGP289Y33C8YKT9L2N3O4R5S",
+      "customer_id": "usr_445210",
+      "status": "pending",
+      "currency": "USD",
+      "amount": 42.00,
+      "items": [
+        {
+          "sku": "SOFT-D12",
+          "name": "Subscription - Monthly Pro",
+          "quantity": 1,
+          "price": 42.00
+        }
+      ],
+      "created_at": "2026-02-26T10:15:20Z"
+    }
+  ],
+  "total": 2,
+  "pagination": {
+    "page": 1,
+    "per_page": 2,
+    "total_items": 1240,
+    "total_pages": 620,
+    "is_last": false
+  },
   "meta": {
     "request_id": "80eafc6a1655ec5a06595d155f1e6951",
-    "api_version": "v0.0.1",
+    "api_version": "1.4.2",
     "locale": "en_US",
-    "requested_time": "2024-12-14T20:24:23.983839+07:00",
+    "requested_time": "2026-02-26T17:28:08.123Z",
     "custom_fields": {
-      "fields": "userID: 103"
+      "execution_time_ms": 14,
+      "server_node": "us-east-1a"
     }
   },
-  "pagination": {
-    "page": 1000,
-    "per_page": 2,
-    "total_items": 120,
-    "total_pages": 34,
-    "is_last": true
-  },
   "debug": {
-    "___abc": "trace sessions_id: 4919e84fc26881e9fe790f5d07465db4",
-    "refer": 1234
+    "trace_id": "4919e84fc26881e9fe790f5d07465db4",
+    "handler": "GetOrderList"
   }
 }
 ```

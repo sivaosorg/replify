@@ -1017,9 +1017,9 @@ Register custom transformers once at startup:
 
 ```go
 func init() {
-    fj.AddTransformer("redact", func(json, arg string) string {
-        return `"[REDACTED]"`
-    })
+    fj.AddTransformer("redact", fj.TransformerFunc(func(json, arg string) string {
+		return `"[REDACTED]"`
+	}))
 }
 
 // Usage in path

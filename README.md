@@ -1147,6 +1147,163 @@ fj.Get(json, `users.@pluck:name|@reverse`).Raw()
 // → ["Carol","Bob","Alice"]
 ```
 
+#### Complex real-world examples
+
+The following scenarios demonstrate how to combine multiple transformers into a single expression to process realistic JSON payloads.
+
+---
+
+**Example 1 — E-commerce product catalog: filter, aggregate, and shape**
+
+```go
+catalog := `{
+    "products": [
+        {"id":"p1","name":"Laptop Pro",    "category":"electronics","price":1299.99,"stock":5},
+        {"id":"p2","name":"USB-C Hub",     "category":"electronics","price":49.99,  "stock":120},
+        {"id":"p3","name":"Desk Chair",    "category":"furniture",  "price":349.00, "stock":0},
+        {"id":"p4","name":"Standing Desk", "category":"furniture",  "price":699.00, "stock":3},
+        {"id":"p5","name":"Webcam HD",     "category":"electronics","price":89.99,  "stock":45}
+    ]
+}`
+
+// All in-stock electronics names
+fj.Get(catalog, `products.@filter:{"key":"category","value":"electronics"}|@filter:{"key":"stock","op":"gt","value":0}|@pluck:name`).Raw()
+// → ["Laptop Pro","USB-C Hub","Webcam HD"]
+
+// Count of in-stock products
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@count`).Raw()
+// → 4
+
+// Price range of in-stock products
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@min`).Raw()
+// → 49.99
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@max`).Raw()
+// → 1299.99
+
+// Project the first in-stock product as a display card (pick and rename fields)
+first := fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@first`).Raw()
+fj.Get(first, `@project:{"pick":["name","price"],"rename":{"name":"title","price":"cost"}}`).Raw()
+// → {"title":"Laptop Pro","cost":1299.99}
+```
+
+---
+
+**Example 2 — API response normalization: fill defaults then project and rename**
+
+```go
+// Raw user record from an external API with null / absent fields
+rawUser := `{"id":"u1","name":"Alice","role":null,"verified":null}`
+
+// One-shot normalization: fill nulls → keep only safe fields → rename id for the frontend
+fj.Get(rawUser, `@default:{"role":"viewer","verified":false}|@project:{"pick":["id","name","role","verified"],"rename":{"id":"userId"}}`).Raw()
+// → {"userId":"u1","name":"Alice","role":"viewer","verified":false}
+```
+
+---
+
+**Example 3 — Log processing: filter, count, and retrieve the latest entry**
+
+```go
+logs := `[
+    {"level":"error","msg":"Connection refused","ts":1700001},
+    {"level":"info", "msg":"Server started",    "ts":1700002},
+    {"level":"error","msg":"Timeout exceeded",  "ts":1700003},
+    {"level":"warn", "msg":"High memory",       "ts":1700004}
+]`
+
+// How many errors?
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@count`).Raw()
+// → 2
+
+// All error messages
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@pluck:msg`).Raw()
+// → ["Connection refused","Timeout exceeded"]
+
+// Most recent error entry (last in the filtered array)
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@last`).Raw()
+// → {"level":"error","msg":"Timeout exceeded","ts":1700003}
+```
+
+---
+
+**Example 4 — Nested data aggregation: filter → pluck → flatten → sum**
+
+```go
+teamData := `{
+    "teams": [
+        {"name":"Alpha","active":true, "monthly_revenue":[10000,12000,11000]},
+        {"name":"Beta", "active":false,"monthly_revenue":[8000,9000,8500]},
+        {"name":"Gamma","active":true, "monthly_revenue":[15000,16000,14000]}
+    ]
+}`
+
+// Total revenue across all active teams, flattening the per-team monthly arrays first
+fj.Get(teamData, `teams.@filter:{"key":"active","value":true}|@pluck:monthly_revenue|@flatten|@sum`).Raw()
+// → 78000   (Alpha: 33000 + Gamma: 45000)
+```
+
+---
+
+**Example 5 — URL-slug generation from a display name**
+
+```go
+// Multi-word title with duplicate internal spaces → URL-safe kebab-case slug
+fj.Get(`"My   Blog Post Title"`, `@trim|@lowercase|@kebabcase`).Raw()
+// → "my-blog-post-title"
+
+// Author name to lowercase slug
+fj.Get(`"John Doe"`, `@lowercase|@replace:{"target":" ","replacement":"-"}`).Raw()
+// → "john-doe"
+```
+
+---
+
+**Example 6 — Config merging and introspection**
+
+```go
+// Merge two partial config objects; later values overwrite earlier ones for duplicate keys
+overrides := `[{"host":"localhost","port":5432},{"port":5433,"ssl":true}]`
+
+merged := fj.Get(overrides, `@join`).Raw()
+// → {"host":"localhost","port":5433,"ssl":true}
+
+// Inspect which keys are present after the merge
+fj.Get(merged, `@keys`).Raw()
+// → ["host","port","ssl"]
+
+// Count the merged keys
+fj.Get(merged, `@count`).Raw()
+// → 3
+
+// Project only the connection-relevant subset and rename for the driver
+fj.Get(merged, `@project:{"pick":["host","port"],"rename":{"port":"dbPort"}}`).Raw()
+// → {"host":"localhost","dbPort":5433}
+```
+
+---
+
+**Example 7 — Leaderboard: zip parallel arrays, filter, and pluck**
+
+```go
+// Two parallel arrays zipped via @group into an array-of-objects, then filtered and plucked
+leaderboard := `{"player":["Alice","Bob","Carol","Dave"],"score":[98,72,85,91]}`
+
+// Zip the parallel arrays into objects
+grouped := fj.Get(leaderboard, `@group`).Raw()
+// → [{"player":"Alice","score":98},{"player":"Bob","score":72},
+//    {"player":"Carol","score":85},{"player":"Dave","score":91}]
+
+// Players with a score of 85 or above
+fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":85}|@pluck:player`).Raw()
+// → ["Alice","Carol","Dave"]
+
+// Top player's full record
+fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":95}|@first`).Raw()
+// → {"player":"Alice","score":98}
+```
+
+---
+
 #### Registering custom transformers
 
 ```go

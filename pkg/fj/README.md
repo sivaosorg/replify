@@ -458,66 +458,310 @@ JSON literals are prefixed with `!` and are useful when building new objects wit
 
 ## Built-in Transformers
 
-Transformers are path components prefixed with `@`. They can be chained with the pipe (`|`) operator.
+Transformers are applied with the `@` prefix inside a path expression and receive the current JSON value as input. An optional argument is passed after a `:` separator.
 
-| Transformer | Description | Argument format (optional) |
-|-------------|-------------|---------------------------|
-| `@trim` | Remove leading/trailing whitespace | — |
-| `@this` | Return the value as-is (identity) | — |
-| `@valid` | Return value only if it is valid JSON; else empty string | — |
-| `@pretty` | Format JSON with indentation | `@pretty:{"sort_keys":true,"indent":"  ","prefix":"","width":80}` |
-| `@minify` | Compact JSON, remove all whitespace | — |
-| `@flip` | Reverse string characters | — |
-| `@reverse` | Reverse array elements or object key order | — |
-| `@flatten` | Flatten nested arrays (shallow by default) | `@flatten:{"deep":true}` |
-| `@join` | Merge array of objects into one object | `@join:{"preserve":true}` |
-| `@keys` | Extract object keys as a JSON array | — |
-| `@values` | Extract object values as a JSON array | — |
-| `@string` | Encode the value as a JSON string | — |
-| `@json` | Convert a string to its JSON representation | — |
-| `@group` | Group array-of-object values by key | — |
-| `@search` | Search all values at a given sub-path | `@search:author` |
-| `@uppercase` | Convert to uppercase | — |
-| `@lowercase` | Convert to lowercase | — |
-| `@snakeCase` | Convert to snake_case (spaces → underscores, lowercase) | — |
-| `@camelCase` | Convert to camelCase | — |
-| `@kebabCase` | Convert to kebab-case (spaces → hyphens, lowercase) | — |
-| `@replace` | Replace the **first** occurrence of a substring | `@replace:{"target":"old","replacement":"new"}` |
-| `@replaceAll` | Replace **all** occurrences of a substring | `@replaceAll:{"target":"old","replacement":"new"}` |
-| `@hex` | Encode string as hexadecimal | — |
-| `@bin` | Encode string as binary | — |
-| `@insertAt` | Insert a string at a given byte index | `@insertAt:{"index":5,"insert":"XYZ"}` |
-| `@wc` | Count words in the string | — |
-| `@padLeft` | Pad on the left to a target length | `@padLeft:{"padding":"*","length":10}` |
-| `@padRight` | Pad on the right to a target length | `@padRight:{"padding":"*","length":10}` |
+```
+path.@transformerName
+path.@transformerName:argument
+path.@transformerName:{"key":"value"}
+```
+
+### Core transformers
+
+| Transformer | Alias(es) | Input | Description |
+|---|---|---|---|
+| `@pretty` | — | any | Pretty-print (indented) JSON. Accepts optional `{"sort_keys":true,"indent":"\t","prefix":"","width":80}`. |
+| `@minify` | `@ugly` | any | Compact single-line JSON (all whitespace removed). |
+| `@valid` | — | any | Returns `"true"` / `"false"` — whether the input is valid JSON. |
+| `@this` | — | any | Identity — returns the input unchanged. |
+| `@reverse` | — | array \| object | Reverses element order (array) or key order (object). |
+| `@flatten` | — | array | Shallow-flatten nested arrays. Pass `{"deep":true}` to recurse. |
+| `@join` | — | array of objects | Merge an array of objects into one object. Pass `{"preserve":true}` to keep duplicate keys. |
+| `@keys` | — | object | Return a JSON array of the object's keys. |
+| `@values` | — | object | Return a JSON array of the object's values. |
+| `@group` | — | object of arrays | Zip object-of-arrays into an array-of-objects. |
+| `@search` | — | any | `@search:path` — collect all values reachable at `path` anywhere in the tree. |
+| `@json` | — | string | Parse the string as JSON and return the value. |
+| `@string` | — | any | Encode the value as a JSON string literal. |
+
+### String transformers
+
+| Transformer | Alias(es) | Description |
+|---|---|---|
+| `@uppercase` | `@upper` | Convert all characters to upper-case. |
+| `@lowercase` | `@lower` | Convert all characters to lower-case. |
+| `@flip` | — | Reverse the characters of the string. |
+| `@trim` | — | Strip leading/trailing whitespace. |
+| `@snakecase` | `@snake`, `@snakeCase` | Convert to `snake_case`. |
+| `@camelcase` | `@camel`, `@camelCase` | Convert to `camelCase`. |
+| `@kebabcase` | `@kebab`, `@kebabCase` | Convert to `kebab-case`. |
+| `@replace` | — | `@replace:{"target":"old","replacement":"new"}` — replace first occurrence. |
+| `@replaceAll` | — | `@replaceAll:{"target":"old","replacement":"new"}` — replace all occurrences. |
+| `@hex` | — | Hex-encode the value. |
+| `@bin` | — | Binary-encode the value. |
+| `@insertAt` | — | `@insertAt:{"index":5,"insert":"XYZ"}` — insert a substring at position. |
+| `@wc` | — | Return the word-count of a string as an integer. |
+| `@padLeft` | — | `@padLeft:{"padding":"*","length":10}` — left-pad to a fixed width. |
+| `@padRight` | — | `@padRight:{"padding":"*","length":10}` — right-pad to a fixed width. |
+
+### Object transformers
+
+| Transformer | Description |
+|---|---|
+| `@project` | Pick and/or rename fields from an object. Arg: `{"pick":["f1","f2"],"rename":{"f1":"newName"}}`. Omit `pick` to keep all fields; omit `rename` for no renaming. |
+| `@default` | Inject fallback values for fields that are absent or `null`. Arg: `{"field":"defaultValue",...}`. Existing non-null fields are never overwritten. |
+
+### Array transformers
+
+| Transformer | Description |
+|---|---|
+| `@filter` | Keep only elements matching a condition. Arg: `{"key":"field","op":"eq","value":val}`. Operators: `eq` (default), `ne`, `gt`, `gte`, `lt`, `lte`, `contains`. |
+| `@pluck` | Extract a named field (supports dot-notation paths) from every element. Arg: field path string, e.g. `@pluck:name` or `@pluck:addr.city`. |
+| `@first` | Return the first element of the array, or `null` if empty. |
+| `@last` | Return the last element of the array, or `null` if empty. |
+| `@count` | Return the number of elements (array) or key-value pairs (object) as an integer. Scalars return `0`. |
+| `@sum` | Sum all numeric values in the array; non-numeric elements are skipped. Returns `0` for empty arrays. |
+| `@min` | Return the minimum numeric value in the array. Returns `null` when no numbers are present. |
+| `@max` | Return the maximum numeric value in the array. Returns `null` when no numbers are present. |
+
+### Value normalization transformers
+
+| Transformer | Description |
+|---|---|
+| `@coerce` | Convert a scalar to a target type. Arg: `{"to":"string"}`, `{"to":"number"}`, or `{"to":"bool"}`. Objects and arrays are returned unchanged. |
 
 ### Transformer Examples
 
+```go
+json := `{
+    "user": {"name": "Alice", "role": null, "age": 30, "city": "NY"},
+    "scores": [95, 87, 92, 78],
+    "users": [
+        {"name": "Alice", "active": true,  "addr": {"city": "NY"}},
+        {"name": "Bob",   "active": false, "addr": {"city": "LA"}},
+        {"name": "Carol", "active": true,  "addr": {"city": "NY"}}
+    ]
+}`
+
+// ── Core ─────────────────────────────────────────────────────────────────────
+fj.Get(json, "@pretty").String()             // indented JSON
+fj.Get(json, "@minify").String()             // compact JSON
+fj.Get(json, "user.@keys").String()          // ["name","role","age","city"]
+fj.Get(json, "user.@values").String()        // ["Alice",null,30,"NY"]
+fj.Get(json, "user.@valid").String()         // "true"
+
+// ── String ───────────────────────────────────────────────────────────────────
+fj.Get(json, "user.name.@uppercase").String()   // "ALICE"
+fj.Get(json, "user.name.@reverse").String()     // "ecilA"
+fj.Get(json, "user.name.@snakecase").String()   // "alice"
+fj.Get(json, "user.city.@padLeft:{\"padding\":\"0\",\"length\":6}").String() // "000 NY"
+
+// ── Object ───────────────────────────────────────────────────────────────────
+
+// Project: keep only name and age, rename age → years
+fj.Get(json, `user.@project:{"pick":["name","age"],"rename":{"age":"years"}}`).Raw()
+// → {"name":"Alice","years":30}
+
+// Default: fill in missing / null fields
+fj.Get(json, `user.@default:{"role":"viewer","active":true}`).Raw()
+// → {"name":"Alice","role":"viewer","age":30,"city":"NY","active":true}
+
+// ── Array ────────────────────────────────────────────────────────────────────
+
+// Filter: keep only active users
+fj.Get(json, `users.@filter:{"key":"active","value":true}`).Raw()
+// → [{"name":"Alice","active":true,...},{"name":"Carol","active":true,...}]
+
+// Pluck: extract the city from every user's address
+fj.Get(json, `users.@pluck:addr.city`).Raw()
+// → ["NY","LA","NY"]
+
+// Aggregation helpers
+fj.Get(json, "scores.@first").Raw()    // 95
+fj.Get(json, "scores.@last").Raw()     // 78
+fj.Get(json, "scores.@count").Raw()    // 4
+fj.Get(json, "scores.@sum").Raw()      // 352
+fj.Get(json, "scores.@min").Raw()      // 78
+fj.Get(json, "scores.@max").Raw()      // 95
+
+// ── Coerce ───────────────────────────────────────────────────────────────────
+fj.Get(`42`,   `@coerce:{"to":"string"}`).Raw()  // "42"
+fj.Get(`"99"`, `@coerce:{"to":"number"}`).Raw()  // 99
+fj.Get(`1`,    `@coerce:{"to":"bool"}`).Raw()    // true
 ```
-required.1.@flip                                    → "dInoxat"
-required.@reverse                                   → ["releaseDate","taxonId","alias"]
-required.@reverse.0                                 → "releaseDate"
-animals.@join.@minify                               → {"name":"Purrpaws","species":"cat","foods":{...}}
-animals.1.@keys                                     → ["name","species","foods"]
-animals.1.@values.@minify                           → ["Barky","dog",{...}]
-{"id":bank.#.company,"details":bank.#(age>=10)#.eyeColor}|@group
-    → [{"id":"HINWAY","details":"blue"},{"id":"NEXGENE","details":"green"},...]
-{"id":bank.#.company,"details":bank.#(age>=10)#.eyeColor}|@group|#  → 6
-stock.@search:#(price_2007>=50)|0.company            → "3M"
-stock.@search:#(price_2007>=50)|0.company.@lowercase → "3m"
-stock.0.company.@hex                                 → "334d"
-stock.0.company.@bin                                 → "0011001101001101"
-stock.0.description.@wc                              → 42
-author|@padLeft:{"padding":"*","length":15}|@string  → "***********subs"
-author|@padRight:{"padding":"*","length":15}|@string → "subs***********"
-bank.0.@pretty:{"sort_keys":true}
-→ {
-      "address": "766 Cooke Court, Dunbar, Connecticut, 9512",
-      "age": 26,
-      "balance": "$1,404.23",
-      ...
-  }
+
+### Composing transformers
+
+Transformers can be chained using the `|` pipe operator or dot notation:
+
+```go
+// First filter the array, then count the remaining elements
+fj.Get(json, `users.@filter:{"key":"active","value":true}|@count`).Raw()
+// → 2
+
+// Pluck names, then reverse the resulting array
+fj.Get(json, `users.@pluck:name|@reverse`).Raw()
+// → ["Carol","Bob","Alice"]
 ```
+
+### Complex real-world examples
+
+The following scenarios demonstrate how to combine multiple transformers into a single expression to process realistic JSON payloads.
+
+---
+
+**Example 1 — E-commerce product catalog: filter, aggregate, and shape**
+
+```go
+catalog := `{
+    "products": [
+        {"id":"p1","name":"Laptop Pro",    "category":"electronics","price":1299.99,"stock":5},
+        {"id":"p2","name":"USB-C Hub",     "category":"electronics","price":49.99,  "stock":120},
+        {"id":"p3","name":"Desk Chair",    "category":"furniture",  "price":349.00, "stock":0},
+        {"id":"p4","name":"Standing Desk", "category":"furniture",  "price":699.00, "stock":3},
+        {"id":"p5","name":"Webcam HD",     "category":"electronics","price":89.99,  "stock":45}
+    ]
+}`
+
+// All in-stock electronics names
+fj.Get(catalog, `products.@filter:{"key":"category","value":"electronics"}|@filter:{"key":"stock","op":"gt","value":0}|@pluck:name`).Raw()
+// → ["Laptop Pro","USB-C Hub","Webcam HD"]
+
+// Count of in-stock products
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@count`).Raw()
+// → 4
+
+// Price range of in-stock products
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@min`).Raw()
+// → 49.99
+fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@max`).Raw()
+// → 1299.99
+
+// Project the first in-stock product as a display card (pick and rename fields)
+first := fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@first`).Raw()
+fj.Get(first, `@project:{"pick":["name","price"],"rename":{"name":"title","price":"cost"}}`).Raw()
+// → {"title":"Laptop Pro","cost":1299.99}
+```
+
+---
+
+**Example 2 — API response normalization: fill defaults then project and rename**
+
+```go
+// Raw user record from an external API with null / absent fields
+rawUser := `{"id":"u1","name":"Alice","role":null,"verified":null}`
+
+// One-shot normalization: fill nulls → keep only safe fields → rename id for the frontend
+fj.Get(rawUser, `@default:{"role":"viewer","verified":false}|@project:{"pick":["id","name","role","verified"],"rename":{"id":"userId"}}`).Raw()
+// → {"userId":"u1","name":"Alice","role":"viewer","verified":false}
+```
+
+---
+
+**Example 3 — Log processing: filter, count, and retrieve the latest entry**
+
+```go
+logs := `[
+    {"level":"error","msg":"Connection refused","ts":1700001},
+    {"level":"info", "msg":"Server started",    "ts":1700002},
+    {"level":"error","msg":"Timeout exceeded",  "ts":1700003},
+    {"level":"warn", "msg":"High memory",       "ts":1700004}
+]`
+
+// How many errors?
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@count`).Raw()
+// → 2
+
+// All error messages
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@pluck:msg`).Raw()
+// → ["Connection refused","Timeout exceeded"]
+
+// Most recent error entry (last in the filtered array)
+fj.Get(logs, `@filter:{"key":"level","value":"error"}|@last`).Raw()
+// → {"level":"error","msg":"Timeout exceeded","ts":1700003}
+```
+
+---
+
+**Example 4 — Nested data aggregation: filter → pluck → flatten → sum**
+
+```go
+teamData := `{
+    "teams": [
+        {"name":"Alpha","active":true, "monthly_revenue":[10000,12000,11000]},
+        {"name":"Beta", "active":false,"monthly_revenue":[8000,9000,8500]},
+        {"name":"Gamma","active":true, "monthly_revenue":[15000,16000,14000]}
+    ]
+}`
+
+// Total revenue across all active teams, flattening the per-team monthly arrays first
+fj.Get(teamData, `teams.@filter:{"key":"active","value":true}|@pluck:monthly_revenue|@flatten|@sum`).Raw()
+// → 78000   (Alpha: 33000 + Gamma: 45000)
+```
+
+---
+
+**Example 5 — URL-slug generation from a display name**
+
+```go
+// Multi-word title with duplicate internal spaces → URL-safe kebab-case slug
+fj.Get(`"My   Blog Post Title"`, `@trim|@lowercase|@kebabcase`).Raw()
+// → "my-blog-post-title"
+
+// Author name to lowercase slug
+fj.Get(`"John Doe"`, `@lowercase|@replace:{"target":" ","replacement":"-"}`).Raw()
+// → "john-doe"
+```
+
+---
+
+**Example 6 — Config merging and introspection**
+
+```go
+// Merge two partial config objects; later values overwrite earlier ones for duplicate keys
+overrides := `[{"host":"localhost","port":5432},{"port":5433,"ssl":true}]`
+
+merged := fj.Get(overrides, `@join`).Raw()
+// → {"host":"localhost","port":5433,"ssl":true}
+
+// Inspect which keys are present after the merge
+fj.Get(merged, `@keys`).Raw()
+// → ["host","port","ssl"]
+
+// Count the merged keys
+fj.Get(merged, `@count`).Raw()
+// → 3
+
+// Project only the connection-relevant subset and rename for the driver
+fj.Get(merged, `@project:{"pick":["host","port"],"rename":{"port":"dbPort"}}`).Raw()
+// → {"host":"localhost","dbPort":5433}
+```
+
+---
+
+**Example 7 — Leaderboard: zip parallel arrays, filter, and pluck**
+
+```go
+// Two parallel arrays zipped via @group into an array-of-objects, then filtered and plucked
+leaderboard := `{"player":["Alice","Bob","Carol","Dave"],"score":[98,72,85,91]}`
+
+// Zip the parallel arrays into objects
+grouped := fj.Get(leaderboard, `@group`).Raw()
+// → [{"player":"Alice","score":98},{"player":"Bob","score":72},
+//    {"player":"Carol","score":85},{"player":"Dave","score":91}]
+
+// Players with a score of 85 or above
+fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":85}|@pluck:player`).Raw()
+// → ["Alice","Carol","Dave"]
+
+// Top player's full record
+fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":95}|@first`).Raw()
+// → {"player":"Alice","score":98}
+```
+
+---
+
+Transformers can be disabled globally with `fj.DisableTransformers = true`.
 
 ## Custom Transformers
 

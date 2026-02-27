@@ -1001,25 +1001,159 @@ ctx.Foreach(func(key, val fj.Context) bool {
 
 ### Transformers
 
-Built-in transformers are applied with the `@` prefix in a path:
+Transformers are applied with the `@` prefix inside a path expression and receive the current JSON value as input. An optional argument is passed after a `:` separator.
 
-```go
-fj.Get(json, "user.name.@uppercase").String()     // "ALICE"
-fj.Get(json, "user.name.@reverse").String()       // "ecilA"
-fj.Get(json, "@pretty").String()                  // indented JSON
-fj.Get(json, "@minify").String()                  // compact JSON
-fj.Get(json, "roles.@flatten").String()           // flatten nested arrays
-fj.Get(json, "roles.@join").String()              // join array into object
-fj.Get(json, "user.name.@word:upper").String()    // transformer with argument
+```
+path.@transformerName
+path.@transformerName:argument
+path.@transformerName:{"key":"value"}
 ```
 
-Register custom transformers once at startup:
+#### Core transformers
+
+| Transformer | Alias(es) | Input | Description |
+|---|---|---|---|
+| `@pretty` | — | any | Pretty-print (indented) JSON. Accepts optional `{"sort_keys":true,"indent":"\t","prefix":"","width":80}`. |
+| `@minify` | `@ugly` | any | Compact single-line JSON (all whitespace removed). |
+| `@valid` | — | any | Returns `"true"` / `"false"` — whether the input is valid JSON. |
+| `@this` | — | any | Identity — returns the input unchanged. |
+| `@reverse` | — | array \| object | Reverses element order (array) or key order (object). |
+| `@flatten` | — | array | Shallow-flatten nested arrays. Pass `{"deep":true}` to recurse. |
+| `@join` | — | array of objects | Merge an array of objects into one object. Pass `{"preserve":true}` to keep duplicate keys. |
+| `@keys` | — | object | Return a JSON array of the object's keys. |
+| `@values` | — | object | Return a JSON array of the object's values. |
+| `@group` | — | object of arrays | Zip object-of-arrays into an array-of-objects. |
+| `@search` | — | any | `@search:path` — collect all values reachable at `path` anywhere in the tree. |
+| `@json` | — | string | Parse the string as JSON and return the value. |
+| `@string` | — | any | Encode the value as a JSON string literal. |
+
+#### String transformers
+
+| Transformer | Alias(es) | Description |
+|---|---|---|
+| `@uppercase` | `@upper` | Convert all characters to upper-case. |
+| `@lowercase` | `@lower` | Convert all characters to lower-case. |
+| `@flip` | — | Reverse the characters of the string. |
+| `@trim` | — | Strip leading/trailing whitespace. |
+| `@snakecase` | `@snake`, `@snakeCase` | Convert to `snake_case`. |
+| `@camelcase` | `@camel`, `@camelCase` | Convert to `camelCase`. |
+| `@kebabcase` | `@kebab`, `@kebabCase` | Convert to `kebab-case`. |
+| `@replace` | — | `@replace:{"target":"old","replacement":"new"}` — replace first occurrence. |
+| `@replaceAll` | — | `@replaceAll:{"target":"old","replacement":"new"}` — replace all occurrences. |
+| `@hex` | — | Hex-encode the value. |
+| `@bin` | — | Binary-encode the value. |
+| `@insertAt` | — | `@insertAt:{"index":5,"insert":"XYZ"}` — insert a substring at position. |
+| `@wc` | — | Return the word-count of a string as an integer. |
+| `@padLeft` | — | `@padLeft:{"padding":"*","length":10}` — left-pad to a fixed width. |
+| `@padRight` | — | `@padRight:{"padding":"*","length":10}` — right-pad to a fixed width. |
+
+#### Object transformers
+
+| Transformer | Description |
+|---|---|
+| `@project` | Pick and/or rename fields from an object. Arg: `{"pick":["f1","f2"],"rename":{"f1":"newName"}}`. Omit `pick` to keep all fields; omit `rename` for no renaming. |
+| `@default` | Inject fallback values for fields that are absent or `null`. Arg: `{"field":"defaultValue",...}`. Existing non-null fields are never overwritten. |
+
+#### Array transformers
+
+| Transformer | Description |
+|---|---|
+| `@filter` | Keep only elements matching a condition. Arg: `{"key":"field","op":"eq","value":val}`. Operators: `eq` (default), `ne`, `gt`, `gte`, `lt`, `lte`, `contains`. |
+| `@pluck` | Extract a named field (supports dot-notation paths) from every element. Arg: field path string, e.g. `@pluck:name` or `@pluck:addr.city`. |
+| `@first` | Return the first element of the array, or `null` if empty. |
+| `@last` | Return the last element of the array, or `null` if empty. |
+| `@count` | Return the number of elements (array) or key-value pairs (object) as an integer. Scalars return `0`. |
+| `@sum` | Sum all numeric values in the array; non-numeric elements are skipped. Returns `0` for empty arrays. |
+| `@min` | Return the minimum numeric value in the array. Returns `null` when no numbers are present. |
+| `@max` | Return the maximum numeric value in the array. Returns `null` when no numbers are present. |
+
+#### Value normalization transformers
+
+| Transformer | Description |
+|---|---|
+| `@coerce` | Convert a scalar to a target type. Arg: `{"to":"string"}`, `{"to":"number"}`, or `{"to":"bool"}`. Objects and arrays are returned unchanged. |
+
+#### Examples
+
+```go
+json := `{
+    "user": {"name": "Alice", "role": null, "age": 30, "city": "NY"},
+    "scores": [95, 87, 92, 78],
+    "users": [
+        {"name": "Alice", "active": true,  "addr": {"city": "NY"}},
+        {"name": "Bob",   "active": false, "addr": {"city": "LA"}},
+        {"name": "Carol", "active": true,  "addr": {"city": "NY"}}
+    ]
+}`
+
+// ── Core ─────────────────────────────────────────────────────────────────────
+fj.Get(json, "@pretty").String()             // indented JSON
+fj.Get(json, "@minify").String()             // compact JSON
+fj.Get(json, "user.@keys").String()          // ["name","role","age","city"]
+fj.Get(json, "user.@values").String()        // ["Alice",null,30,"NY"]
+fj.Get(json, "user.@valid").String()         // "true"
+
+// ── String ───────────────────────────────────────────────────────────────────
+fj.Get(json, "user.name.@uppercase").String()   // "ALICE"
+fj.Get(json, "user.name.@reverse").String()     // "ecilA"
+fj.Get(json, "user.name.@snakecase").String()   // "alice"
+fj.Get(json, "user.city.@padLeft:{\"padding\":\"0\",\"length\":6}").String() // "000 NY"
+
+// ── Object ───────────────────────────────────────────────────────────────────
+
+// Project: keep only name and age, rename age → years
+fj.Get(json, `user.@project:{"pick":["name","age"],"rename":{"age":"years"}}`).Raw()
+// → {"name":"Alice","years":30}
+
+// Default: fill in missing / null fields
+fj.Get(json, `user.@default:{"role":"viewer","active":true}`).Raw()
+// → {"name":"Alice","role":"viewer","age":30,"city":"NY","active":true}
+
+// ── Array ────────────────────────────────────────────────────────────────────
+
+// Filter: keep only active users
+fj.Get(json, `users.@filter:{"key":"active","value":true}`).Raw()
+// → [{"name":"Alice","active":true,...},{"name":"Carol","active":true,...}]
+
+// Pluck: extract the city from every user's address
+fj.Get(json, `users.@pluck:addr.city`).Raw()
+// → ["NY","LA","NY"]
+
+// Aggregation helpers
+fj.Get(json, "scores.@first").Raw()    // 95
+fj.Get(json, "scores.@last").Raw()     // 78
+fj.Get(json, "scores.@count").Raw()    // 4
+fj.Get(json, "scores.@sum").Raw()      // 352
+fj.Get(json, "scores.@min").Raw()      // 78
+fj.Get(json, "scores.@max").Raw()      // 95
+
+// ── Coerce ───────────────────────────────────────────────────────────────────
+fj.Get(`42`,   `@coerce:{"to":"string"}`).Raw()  // "42"
+fj.Get(`"99"`, `@coerce:{"to":"number"}`).Raw()  // 99
+fj.Get(`1`,    `@coerce:{"to":"bool"}`).Raw()    // true
+```
+
+#### Composing transformers
+
+Transformers can be chained using the `|` pipe operator or dot notation:
+
+```go
+// First filter the array, then count the remaining elements
+fj.Get(json, `users.@filter:{"key":"active","value":true}|@count`).Raw()
+// → 2
+
+// Pluck names, then reverse the resulting array
+fj.Get(json, `users.@pluck:name|@reverse`).Raw()
+// → ["Carol","Bob","Alice"]
+```
+
+#### Registering custom transformers
 
 ```go
 func init() {
     fj.AddTransformer("redact", fj.TransformerFunc(func(json, arg string) string {
-		return `"[REDACTED]"`
-	}))
+        return `"[REDACTED]"`
+    }))
 }
 
 // Usage in path

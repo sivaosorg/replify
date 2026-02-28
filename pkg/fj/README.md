@@ -797,20 +797,20 @@ import (
 )
 
 func init() {
-    // @shout appends "!!!" to the string value
-    fj.AddTransformer("shout", func(json, arg string) string {
-        return strings.Trim(json, `"`) + "!!!"
-    })
+	// @shout appends "!!!" to the string value
+	fj.AddTransformer("shout", fj.TransformerFunc(func(json, arg string) string {
+		return strings.Trim(json, `"`) + "!!!"
+	}))
 
-    // @repeat repeats the value N times (arg is the count as a string)
-    fj.AddTransformer("repeat", func(json, arg string) string {
-        n := fj.Parse(arg).Int64()
-        if n <= 0 {
-            return json
-        }
-        v := strings.Trim(json, `"`)
-        return strings.Repeat(v, int(n))
-    })
+	// @repeat repeats the value N times (arg is the count as a string)
+	fj.AddTransformer("repeat", fj.TransformerFunc(func(json, arg string) string {
+		n := fj.Parse(arg).Int64()
+		if n <= 0 {
+			return json
+		}
+		v := strings.Trim(json, `"`)
+		return strings.Repeat(v, int(n))
+	}))
 }
 
 func main() {

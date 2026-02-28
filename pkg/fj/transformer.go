@@ -1899,7 +1899,25 @@ func init() {
 	globalRegistry.Register("hex", TransformerFunc(applyToHex))
 	globalRegistry.Register("bin", TransformerFunc(applyToBinary))
 	globalRegistry.Register("insertAt", TransformerFunc(applyInsertAt))
-	globalRegistry.Register("wc", TransformerFunc(applyCountWords))
+	globalRegistry.Register("wc", TransformerFunc(applyCountWords))        // short alias for wordCount
+	globalRegistry.Register("wordCount", TransformerFunc(applyCountWords)) // legacy alias
 	globalRegistry.Register("padLeft", TransformerFunc(applyPadLeft))
 	globalRegistry.Register("padRight", TransformerFunc(applyPadRight))
+
+	// Structural / object transformers
+	globalRegistry.Register("project", TransformerFunc(applyProject))
+
+	// Array filtering and aggregation
+	globalRegistry.Register("filter", TransformerFunc(applyFilter))
+	globalRegistry.Register("count", TransformerFunc(applyCount))
+	globalRegistry.Register("first", TransformerFunc(applyFirst))
+	globalRegistry.Register("last", TransformerFunc(applyLast))
+	globalRegistry.Register("sum", TransformerFunc(applySum))
+	globalRegistry.Register("min", TransformerFunc(applyMin))
+	globalRegistry.Register("max", TransformerFunc(applyMax))
+	globalRegistry.Register("pluck", TransformerFunc(applyPluck))
+
+	// Value normalization
+	globalRegistry.Register("default", TransformerFunc(applyDefault))
+	globalRegistry.Register("coerce", TransformerFunc(applyCoerce))
 }

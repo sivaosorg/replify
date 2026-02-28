@@ -760,21 +760,22 @@ fj.Get(merged, `@project:{"pick":["host","port"],"rename":{"port":"dbPort"}}`).R
 **Example 7 — Leaderboard: zip parallel arrays, filter, and pluck**
 
 ```go
-// Two parallel arrays zipped via @group into an array-of-objects, then filtered and plucked
-leaderboard := `{"player":["Alice","Bob","Carol","Dave"],"score":[98,72,85,91]}`
+	// Two parallel arrays zipped via @group into an array-of-objects, then filtered and plucked
+	leaderboard := `{"player":["Alice","Bob","Carol","Dave"],"score":[98,72,85,91]}`
 
-// Zip the parallel arrays into objects
-grouped := fj.Get(leaderboard, `@group`).Raw()
-// → [{"player":"Alice","score":98},{"player":"Bob","score":72},
-//    {"player":"Carol","score":85},{"player":"Dave","score":91}]
+	// Zip the parallel arrays into objects
+	grouped := fj.Get(leaderboard, `@group`).Raw()
+	// → [{"player":"Alice","score":98},{"player":"Bob","score":72},
+	//    {"player":"Carol","score":85},{"player":"Dave","score":91}]
+	fmt.Println(grouped)
 
-// Players with a score of 85 or above
-fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":85}|@pluck:player`).Raw()
-// → ["Alice","Carol","Dave"]
+	// Players with a score of 85 or above
+	fmt.Println(fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":85}|@pluck:player`).Raw())
+	// → ["Alice","Carol","Dave"]
 
-// Top player's full record
-fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":95}|@first`).Raw()
-// → {"player":"Alice","score":98}
+	// Top player's full record
+	fmt.Println(fj.Get(grouped, `@filter:{"key":"score","op":"gte","value":95}|@first`).Raw())
+	// → {"player":"Alice","score":98}
 ```
 
 ---

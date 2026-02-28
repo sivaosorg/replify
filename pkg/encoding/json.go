@@ -228,7 +228,7 @@ func JSONSafePretty(data any) string {
 func marshalToStrRecover(v any, pretty bool) (out string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = fmt.Errorf("json marshal panic: %v", r)
+			err = fmt.Errorf("%w: %v", ErrMarshalPanicRecovered, r)
 			out = ""
 		}
 	}()
@@ -345,6 +345,41 @@ func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
 	// This is done to avoid the default JSON representation of complex numbers,
 	// which is not valid JSON.
 	return `{"real":` + r + `,"imag":` + i + `}`
+}
+
+// encodeComplexJSONToken encodes a complex number to its JSON string representation.
+// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
+//
+// Parameters:
+//   - `realPart`: The real part of the complex number.
+//   - `imagPart`: The imaginary part of the complex number.
+//   - `is32`: A boolean indicating whether the complex number is a complex64 (true) or complex128 (false).
+//
+// Returns:
+//   - A string containing the JSON representation of the complex number.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	r := encodeComplexJSONToken(1.2345, 6.789, false)
+func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, error) {
+	r := formatFloatJSON(realPart, is32)
+	i := formatFloatJSON(imagPart, is32)
+	// If non-finite handling is set to error, formatFloatJSON returns "" and we should error.
+	if r == "" || i == "" {
+		// Consistent with float policy: if not using "null", report ErrNonFiniteFloat.
+		if !floatsUseNullForNonFinite {
+			return "", ErrNonFiniteFloat
+		}
+		// If using "null", r or i would be "null", so we can still construct the object.
+		if r == "" {
+			r = "null"
+		}
+		if i == "" {
+			i = "null"
+		}
+	}
+	return `{"real":` + r + `,"imag":` + i + `}`, nil
 }
 
 // jsonSafe converts a Go value to its JSON string representation or returns an error if the marshalling fails.

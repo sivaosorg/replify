@@ -1617,6 +1617,21 @@ func (m *meta) IsCustomKeyPresent(key string) bool {
 	return m.IsCustomPresent() && coll.ContainsKeyComp(m.customFields, key)
 }
 
+// JSONCustomFields returns the custom fields of the `meta` instance as a JSON string.
+//
+// This function first checks if the `meta` instance is available. If not, it returns an empty string.
+// Otherwise, it uses `jsonpass` to convert the `customFields` map into a JSON formatted string.
+//
+// Returns:
+//   - A JSON formatted string representation of the `customFields` map if `meta` is available.
+//   - An empty string if `meta` is unavailable.
+func (m *meta) JSONCustomFields() string {
+	if !m.Available() {
+		return ""
+	}
+	return jsonpass(m.customFields)
+}
+
 // OnCustom retrieves the value associated with a specific key in the custom fields of the `meta` instance.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists

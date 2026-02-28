@@ -704,7 +704,7 @@ func main() {
 **Example 4 — Nested data aggregation: filter → pluck → flatten → sum**
 
 ```go
-teamData := `{
+	teamData := `{
     "teams": [
         {"name":"Alpha","active":true, "monthly_revenue":[10000,12000,11000]},
         {"name":"Beta", "active":false,"monthly_revenue":[8000,9000,8500]},
@@ -712,9 +712,9 @@ teamData := `{
     ]
 }`
 
-// Total revenue across all active teams, flattening the per-team monthly arrays first
-fj.Get(teamData, `teams.@filter:{"key":"active","value":true}|@pluck:monthly_revenue|@flatten|@sum`).Raw()
-// → 78000   (Alpha: 33000 + Gamma: 45000)
+	// Total revenue across all active teams, flattening the per-team monthly arrays first
+	fmt.Println(fj.Get(teamData, `teams.@filter:{"key":"active","value":true}|@pluck:monthly_revenue|@flatten|@sum`).Raw())
+	// → 78000   (Alpha: 33000 + Gamma: 45000)
 ```
 
 ---

@@ -788,6 +788,30 @@ func (w *wrapper) DebuggingUint16(key string, defaultValue uint16) uint16 {
 	return conv.Uint16OrDefault(w.debug[key], defaultValue)
 }
 
+// JSONDebuggingUint16 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint16 value to return if the key is not available.
+//
+// Returns:
+//   - The uint16 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingUint16(path string, defaultValue uint16) uint16 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Uint16()
+	}
+	return defaultValue
+}
+
 // DebuggingUint32 retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
@@ -806,6 +830,30 @@ func (w *wrapper) DebuggingUint32(key string, defaultValue uint32) uint32 {
 		return defaultValue
 	}
 	return conv.Uint32OrDefault(w.debug[key], defaultValue)
+}
+
+// JSONDebuggingUint32 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint32 value to return if the key is not available.
+//
+// Returns:
+//   - The uint32 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingUint32(path string, defaultValue uint32) uint32 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Uint32()
+	}
+	return defaultValue
 }
 
 // DebuggingUint64 retrieves the value of a specific debugging key from the `wrapper` instance.
@@ -828,6 +876,30 @@ func (w *wrapper) DebuggingUint64(key string, defaultValue uint64) uint64 {
 	return conv.Uint64OrDefault(w.debug[key], defaultValue)
 }
 
+// JSONDebuggingUint64 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint64 value to return if the key is not available.
+//
+// Returns:
+//   - The uint64 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingUint64(path string, defaultValue uint64) uint64 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Uint64()
+	}
+	return defaultValue
+}
+
 // DebuggingFloat32 retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
@@ -848,6 +920,30 @@ func (w *wrapper) DebuggingFloat32(key string, defaultValue float32) float32 {
 	return conv.Float32OrDefault(w.debug[key], defaultValue)
 }
 
+// JSONDebuggingFloat32 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A float32 value to return if the key is not available.
+//
+// Returns:
+//   - The float32 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingFloat32(path string, defaultValue float32) float32 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Float32()
+	}
+	return defaultValue
+}
+
 // DebuggingFloat64 retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
@@ -866,6 +962,30 @@ func (w *wrapper) DebuggingFloat64(key string, defaultValue float64) float64 {
 		return defaultValue
 	}
 	return conv.Float64OrDefault(w.debug[key], defaultValue)
+}
+
+// JSONDebuggingFloat64 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A float64 value to return if the key is not available.
+//
+// Returns:
+//   - The float64 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingFloat64(path string, defaultValue float64) float64 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Float64()
+	}
+	return defaultValue
 }
 
 // DebuggingDuration retrieves the value of a specific debugging key from the `wrapper` instance.

@@ -3,6 +3,7 @@ package encoding
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/sivaosorg/replify/pkg/common"
 )
@@ -132,11 +133,16 @@ func JsonSafe(data any) string {
 	if data == nil {
 		return ""
 	}
+	value := reflect.ValueOf(data)
+	if common.IsEmptyValue(value) {
+		return ""
+	}
 	// Check for scalar types and convert directly
 	// This avoids unnecessary JSON marshalling for simple types
 	ok := common.IsScalarType(data)
 	if ok {
-		return fmt.Sprintf("%v", data)
+		// return fmt.Sprintf("%v", data)
+		return value.Interface().(string)
 	}
 
 	result, err := MarshalToString(data)

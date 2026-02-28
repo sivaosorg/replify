@@ -1,6 +1,8 @@
 package fj
 
 import (
+	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"unicode"
@@ -5078,4 +5080,69 @@ func scanFloat64(json, path string, fn func(float64)) {
 	if ctx.kind == Number {
 		fn(ctx.Float64())
 	}
+}
+
+// formatNumber renders a float64 as a compact JSON number string.
+// Integers are emitted without a decimal point.
+//
+// Parameters:
+//   - `f`: The float64 value to format.
+//
+// Returns:
+//   - A string containing the compact JSON number representation.
+//
+// Example Usage:
+//
+//	formatNumber(123.0) // "123"
+//	formatNumber(123.45) // "123.45"
+//	formatNumber(math.Inf(1)) // "+Inf"
+func formatNumber(f float64) string {
+	if f == math.Trunc(f) && !math.IsInf(f, 0) {
+		return fmt.Sprintf("%d", int64(f))
+	}
+	return fmt.Sprintf("%g", f)
+}
+
+// matchesCondition tests whether `actual` satisfies `op` relative to `expected`.
+// Numeric comparisons use float64; all others fall back to string comparison.
+//
+// Parameters:
+//   - `actual`: The actual value to compare.
+//   - `expected`: The expected value to compare against.
+//   - `op`: The operator to use for comparison.
+//
+// Returns:
+//   - `true` if the actual value satisfies the operator relative to the expected value,
+//     `false` otherwise.
+//
+// Example Usage:
+//
+//	matchesCondition(actual, expected, "contains") // true if actual contains expected
+//	matchesCondition(actual, expected, "ne") // true if actual is not equal to expected
+//	matchesCondition(actual, expected, "gt") // true if actual is greater than expected
+//	matchesCondition(actual, expected, "gte") // true if actual is greater than or equal to expected
+//	matchesCondition(actual, expected, "lt") // true if actual is less than expected
+//	matchesCondition(actual, expected, "lte") // true if actual is less than or equal to expected
+//	matchesCondition(actual, expected, "eq") // true if actual is equal to expected
+func matchesCondition(actual, expected Context, op string) bool {
+	switch op {
+	case "contains":
+		return strings.Contains(actual.String(), expected.String())
+	case "ne":
+		return actual.raw != expected.raw
+	case "gt", "gte", "lt", "lte":
+		a, e := actual.Float64(), expected.Float64()
+		switch op {
+		case "gt":
+			return a > e
+		case "gte":
+			return a >= e
+		case "lt":
+			return a < e
+		case "lte":
+			return a <= e
+		}
+	}
+	// default: eq – raw JSON equality (works for strings, numbers, bools, null)
+	return actual.raw == expected.raw
 }

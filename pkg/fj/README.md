@@ -604,13 +604,13 @@ func main() {
 Transformers can be chained using the `|` pipe operator or dot notation:
 
 ```go
-// First filter the array, then count the remaining elements
-fj.Get(json, `users.@filter:{"key":"active","value":true}|@count`).Raw()
-// → 2
+	// First filter the array, then count the remaining elements
+	fmt.Println(fj.Get(json, `users.@filter:{"key":"active","value":true}|@count`).Raw())
+	// → 2
 
-// Pluck names, then reverse the resulting array
-fj.Get(json, `users.@pluck:name|@reverse`).Raw()
-// → ["Carol","Bob","Alice"]
+	// Pluck names, then reverse the resulting array
+	fmt.Println(fj.Get(json, `users.@pluck:name|@reverse`).Raw())
+	// → ["Carol","Bob","Alice"]
 ```
 
 ### Complex real-world examples
@@ -622,7 +622,15 @@ The following scenarios demonstrate how to combine multiple transformers into a 
 **Example 1 — E-commerce product catalog: filter, aggregate, and shape**
 
 ```go
-catalog := `{
+package main
+
+import (
+	"fmt"
+	"github.com/sivaosorg/replify/pkg/fj"
+)
+
+func main() {
+	catalog := `{
     "products": [
         {"id":"p1","name":"Laptop Pro",    "category":"electronics","price":1299.99,"stock":5},
         {"id":"p2","name":"USB-C Hub",     "category":"electronics","price":49.99,  "stock":120},
@@ -632,24 +640,25 @@ catalog := `{
     ]
 }`
 
-// All in-stock electronics names
-fj.Get(catalog, `products.@filter:{"key":"category","value":"electronics"}|@filter:{"key":"stock","op":"gt","value":0}|@pluck:name`).Raw()
-// → ["Laptop Pro","USB-C Hub","Webcam HD"]
+	// All in-stock electronics names
+	fmt.Println(fj.Get(catalog, `products.@filter:{"key":"category","value":"electronics"}|@filter:{"key":"stock","op":"gt","value":0}|@pluck:name`).Raw())
+	// → ["Laptop Pro","USB-C Hub","Webcam HD"]
 
-// Count of in-stock products
-fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@count`).Raw()
-// → 4
+	// Count of in-stock products
+	fmt.Println(fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@count`).Raw())
+	// → 4
 
-// Price range of in-stock products
-fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@min`).Raw()
-// → 49.99
-fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@max`).Raw()
-// → 1299.99
+	// Price range of in-stock products
+	fmt.Println(fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@min`).Raw())
+	// → 49.99
+	fmt.Println(fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@pluck:price|@max`).Raw())
+	// → 1299.99
 
-// Project the first in-stock product as a display card (pick and rename fields)
-first := fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@first`).Raw()
-fj.Get(first, `@project:{"pick":["name","price"],"rename":{"name":"title","price":"cost"}}`).Raw()
-// → {"title":"Laptop Pro","cost":1299.99}
+	// Project the first in-stock product as a display card (pick and rename fields)
+	first := fj.Get(catalog, `products.@filter:{"key":"stock","op":"gt","value":0}|@first`).Raw()
+	fmt.Println(fj.Get(first, `@project:{"pick":["name","price"],"rename":{"name":"title","price":"cost"}}`).Raw())
+	// → {"title":"Laptop Pro","cost":1299.99}
+}
 ```
 
 ---

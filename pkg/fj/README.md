@@ -666,12 +666,12 @@ func main() {
 **Example 2 — API response normalization: fill defaults then project and rename**
 
 ```go
-// Raw user record from an external API with null / absent fields
-rawUser := `{"id":"u1","name":"Alice","role":null,"verified":null}`
+	// Raw user record from an external API with null / absent fields
+	rawUser := `{"id":"u1","name":"Alice","role":null,"verified":null}`
 
-// One-shot normalization: fill nulls → keep only safe fields → rename id for the frontend
-fj.Get(rawUser, `@default:{"role":"viewer","verified":false}|@project:{"pick":["id","name","role","verified"],"rename":{"id":"userId"}}`).Raw()
-// → {"userId":"u1","name":"Alice","role":"viewer","verified":false}
+	// One-shot normalization: fill nulls → keep only safe fields → rename id for the frontend
+	fmt.Println(fj.Get(rawUser, `@default:{"role":"viewer","verified":false}|@project:{"pick":["id","name","role","verified"],"rename":{"id":"userId"}}`).Raw())
+	// → {"userId":"u1","name":"Alice","role":"viewer","verified":false}
 ```
 
 ---

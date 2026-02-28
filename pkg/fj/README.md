@@ -736,23 +736,24 @@ func main() {
 **Example 6 — Config merging and introspection**
 
 ```go
-// Merge two partial config objects; later values overwrite earlier ones for duplicate keys
-overrides := `[{"host":"localhost","port":5432},{"port":5433,"ssl":true}]`
+	// Merge two partial config objects; later values overwrite earlier ones for duplicate keys
+	overrides := `[{"host":"localhost","port":5432},{"port":5433,"ssl":true}]`
 
-merged := fj.Get(overrides, `@join`).Raw()
-// → {"host":"localhost","port":5433,"ssl":true}
+	merged := fj.Get(overrides, `@join`).Raw()
+	// → {"host":"localhost","port":5433,"ssl":true}
+	fmt.Println(merged)
 
-// Inspect which keys are present after the merge
-fj.Get(merged, `@keys`).Raw()
-// → ["host","port","ssl"]
+	// Inspect which keys are present after the merge
+	fmt.Println(fj.Get(merged, `@keys`).Raw())
+	// → ["host","port","ssl"]
 
-// Count the merged keys
-fj.Get(merged, `@count`).Raw()
-// → 3
+	// Count the merged keys
+	fmt.Println(fj.Get(merged, `@count`).Raw())
+	// → 3
 
-// Project only the connection-relevant subset and rename for the driver
-fj.Get(merged, `@project:{"pick":["host","port"],"rename":{"port":"dbPort"}}`).Raw()
-// → {"host":"localhost","dbPort":5433}
+	// Project only the connection-relevant subset and rename for the driver
+	fmt.Println(fj.Get(merged, `@project:{"pick":["host","port"],"rename":{"port":"dbPort"}}`).Raw())
+	// → {"host":"localhost","dbPort":5433}
 ```
 
 ---

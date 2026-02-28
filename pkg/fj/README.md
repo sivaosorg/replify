@@ -722,13 +722,13 @@ func main() {
 **Example 5 — URL-slug generation from a display name**
 
 ```go
-// Multi-word title with duplicate internal spaces → URL-safe kebab-case slug
-fj.Get(`"My   Blog Post Title"`, `@trim|@lowercase|@kebabcase`).Raw()
-// → "my-blog-post-title"
+	// Multi-word title with duplicate internal spaces → URL-safe kebab-case slug
+	fmt.Println(fj.Get(`"My   Blog Post Title"`, `@trim|@lowercase|@kebabcase`).Raw())
+	// → "my-blog-post-title"
 
-// Author name to lowercase slug
-fj.Get(`"John Doe"`, `@lowercase|@replace:{"target":" ","replacement":"-"}`).Raw()
-// → "john-doe"
+	// Author name to lowercase slug
+	fmt.Println(fj.Get(`"John Doe"`, `@lowercase|@replace:{"target":" ","replacement":"-"}`).Raw())
+	// → "john-doe"
 ```
 
 ---

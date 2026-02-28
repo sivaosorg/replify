@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"reflect"
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/coll"
+	"github.com/sivaosorg/replify/pkg/common"
 	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/hashy"
@@ -1109,13 +1111,8 @@ func (w *wrapper) IsDebuggingKeyPresent(key string) bool {
 //   - `true` if `data` is not nil.
 //   - `false` if `data` is nil.
 func (w *wrapper) IsBodyPresent() bool {
-	s, ok := w.data.(string)
-	if ok {
-		return w.Available() &&
-			strutil.IsNotEmpty(s) &&
-			strutil.IsNotBlank(s)
-	}
-	return w.Available() && w.data != nil
+	value := reflect.ValueOf(w.data)
+	return w.Available() && !common.IsEmptyValue(value)
 }
 
 // IsHeaderPresent checks whether header information is present in the `wrapper` instance.

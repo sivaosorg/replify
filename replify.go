@@ -1626,7 +1626,7 @@ func (m *meta) IsCustomKeyPresent(key string) bool {
 //   - A JSON formatted string representation of the `customFields` map if `meta` is available.
 //   - An empty string if `meta` is unavailable.
 func (m *meta) JSONCustomFields() string {
-	if !m.Available() {
+	if !m.IsCustomPresent() {
 		return ""
 	}
 	return jsonpass(m.customFields)

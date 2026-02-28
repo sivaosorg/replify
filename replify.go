@@ -1672,6 +1672,31 @@ func (m *meta) CustomBool(key string, defaultValue bool) bool {
 	return conv.BoolOrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A boolean representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomBool(path string, defaultValue bool) bool {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Bool()
+	}
+	return defaultValue
+}
+
 // CustomDuration retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Duration.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1691,6 +1716,31 @@ func (m *meta) CustomDuration(key string, defaultValue time.Duration) time.Durat
 		return defaultValue
 	}
 	return conv.DurationOrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomDuration retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Duration.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a time.Duration using `conv.DurationOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A time.Duration representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a time.Duration if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomDuration(path string, defaultValue time.Duration) time.Duration {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Duration()
+	}
+	return defaultValue
 }
 
 // CustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
@@ -1714,6 +1764,31 @@ func (m *meta) CustomString(key string, defaultValue string) string {
 	return conv.StringOrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a string using `conv.StringOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A string representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a string if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomString(path string, defaultValue string) string {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.String()
+	}
+	return defaultValue
+}
+
 // CustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1733,6 +1808,31 @@ func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
 		return defaultValue
 	}
 	return conv.TimeOrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A time.Time representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomTime(path string, defaultValue time.Time) time.Time {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Time()
+	}
+	return defaultValue
 }
 
 // CustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
@@ -1756,6 +1856,31 @@ func (m *meta) CustomInt(key string, defaultValue int) int {
 	return conv.IntOrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: An integer representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomInt(path string, defaultValue int) int {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Int()
+	}
+	return defaultValue
+}
+
 // CustomInt8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int8.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1775,6 +1900,31 @@ func (m *meta) CustomInt8(key string, defaultValue int8) int8 {
 		return defaultValue
 	}
 	return conv.Int8OrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomInt8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int8.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int8 using `conv.Int8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: An int8 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int8 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomInt8(path string, defaultValue int8) int8 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Int8()
+	}
+	return defaultValue
 }
 
 // CustomInt16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int16.
@@ -1798,6 +1948,31 @@ func (m *meta) CustomInt16(key string, defaultValue int16) int16 {
 	return conv.Int16OrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomInt16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int16.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int16 using `conv.Int16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: An int16 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int16 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomInt16(path string, defaultValue int16) int16 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Int16()
+	}
+	return defaultValue
+}
+
 // CustomInt32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int32.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1817,6 +1992,31 @@ func (m *meta) CustomInt32(key string, defaultValue int32) int32 {
 		return defaultValue
 	}
 	return conv.Int32OrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomInt32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int32 using `conv.Int32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: An int32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomInt32(path string, defaultValue int32) int32 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Int32()
+	}
+	return defaultValue
 }
 
 // CustomInt64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int64.
@@ -1840,6 +2040,31 @@ func (m *meta) CustomInt64(key string, defaultValue int64) int64 {
 	return conv.Int64OrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomInt64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to an int64 using `conv.Int64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: An int64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as an int64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomInt64(path string, defaultValue int64) int64 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Int64()
+	}
+	return defaultValue
+}
+
 // CustomUint retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1859,6 +2084,31 @@ func (m *meta) CustomUint(key string, defaultValue uint) uint {
 		return defaultValue
 	}
 	return conv.UintOrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomUint retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint using `conv.UintOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A uint representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomUint(path string, defaultValue uint) uint {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Uint()
+	}
+	return defaultValue
 }
 
 // CustomUint8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint8.
@@ -1882,6 +2132,31 @@ func (m *meta) CustomUint8(key string, defaultValue uint8) uint8 {
 	return conv.Uint8OrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomUint8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint8.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint8 using `conv.Uint8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A uint8 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint8 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomUint8(path string, defaultValue uint8) uint8 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Uint8()
+	}
+	return defaultValue
+}
+
 // CustomUint16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint16.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1901,6 +2176,31 @@ func (m *meta) CustomUint16(key string, defaultValue uint16) uint16 {
 		return defaultValue
 	}
 	return conv.Uint16OrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomUint16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint16.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint16 using `conv.Uint16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A uint16 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint16 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomUint16(path string, defaultValue uint16) uint16 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Uint16()
+	}
+	return defaultValue
 }
 
 // CustomUint32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint32.
@@ -1924,6 +2224,31 @@ func (m *meta) CustomUint32(key string, defaultValue uint32) uint32 {
 	return conv.Uint32OrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomUint32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint32 using `conv.Uint32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A uint32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomUint32(path string, defaultValue uint32) uint32 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Uint32()
+	}
+	return defaultValue
+}
+
 // CustomUint64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint64.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1943,6 +2268,31 @@ func (m *meta) CustomUint64(key string, defaultValue uint64) uint64 {
 		return defaultValue
 	}
 	return conv.Uint64OrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomUint64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a uint64 using `conv.Uint64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A uint64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a uint64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomUint64(path string, defaultValue uint64) uint64 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Uint64()
+	}
+	return defaultValue
 }
 
 // CustomFloat32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float32.
@@ -1966,6 +2316,31 @@ func (m *meta) CustomFloat32(key string, defaultValue float32) float32 {
 	return conv.Float32OrDefault(m.customFields[key], defaultValue)
 }
 
+// JSONCustomFloat32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float32.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a float32 using `conv.Float32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A float32 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a float32 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomFloat32(path string, defaultValue float32) float32 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Float32()
+	}
+	return defaultValue
+}
+
 // CustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
 //
 // This function checks whether the `meta` instance is available and whether the specified key exists
@@ -1985,6 +2360,31 @@ func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 		return defaultValue
 	}
 	return conv.Float64OrDefault(m.customFields[key], defaultValue)
+}
+
+// JSONCustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
+//
+// This function checks whether the `meta` instance is available and whether the specified key exists
+// in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
+// converted to a float64 using `conv.Float64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// it returns the default value.
+//
+// Parameters:
+//   - `path`: A string representing the JSON path to search for in the `customFields` map.
+//   - `defaultValue`: A float64 representing the default value to return if the key is not present.
+//
+// Returns:
+//   - The value associated with the specified key in the `customFields` map as a float64 if the key is present.
+//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+func (m *meta) JSONCustomFloat64(path string, defaultValue float64) float64 {
+	if !m.IsCustomPresent() {
+		return defaultValue
+	}
+	ctx := fj.Get(m.JSONCustomFields(), path)
+	if ctx.Exists() {
+		return ctx.Float64()
+	}
+	return defaultValue
 }
 
 // ApiVersion retrieves the API version from the `meta` instance.

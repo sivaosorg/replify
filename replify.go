@@ -9,6 +9,7 @@ import (
 
 	"github.com/sivaosorg/replify/pkg/coll"
 	"github.com/sivaosorg/replify/pkg/conv"
+	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/hashy"
 	"github.com/sivaosorg/replify/pkg/randn"
 	"github.com/sivaosorg/replify/pkg/strutil"
@@ -292,6 +293,22 @@ func (w *wrapper) Debugging() map[string]any {
 	return w.debug
 }
 
+// JSONDebugging retrieves the debugging information from the `wrapper` instance as a JSON string.
+//
+// This function checks if the `wrapper` instance is available (non-nil) before returning
+// the value of the `debug` field as a JSON string. If the `wrapper` is not available, it returns an
+// empty string to ensure safe usage.
+//
+// Returns:
+//   - A `string` containing the debugging information as a JSON string.
+//   - An empty string if the `wrapper` instance is not available.
+func (w *wrapper) JSONDebugging() string {
+	if !w.Available() {
+		return ""
+	}
+	return jsonpass(w.debug)
+}
+
 // OnDebugging retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
@@ -329,6 +346,30 @@ func (w *wrapper) DebuggingBool(key string, defaultValue bool) bool {
 		return defaultValue
 	}
 	return conv.BoolOrDefault(w.debug[key], defaultValue)
+}
+
+// JSONDebuggingBool retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A boolean value to return if the key is not available.
+//
+// Returns:
+//   - The boolean value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingBool(path string, defaultValue bool) bool {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Bool()
+	}
+	return defaultValue
 }
 
 // DebuggingString retrieves the value of a specific debugging key from the `wrapper` instance.

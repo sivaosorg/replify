@@ -3161,27 +3161,27 @@ func (w *wrapper) ReplyPtr() *R {
 	return &R{wrapper: w}
 }
 
-// Json serializes the `wrapper` instance into a compact JSON string.
+// JSON serializes the `wrapper` instance into a compact JSON string.
 //
-// This function uses the `encoding.Json` utility to generate a JSON representation
+// This function uses the `encoding.JSON` utility to generate a JSON representation
 // of the `wrapper` instance. The output is a compact JSON string with no additional
 // whitespace or formatting.
 //
 // Returns:
 //   - A compact JSON string representation of the `wrapper` instance.
-func (w *wrapper) Json() string {
+func (w *wrapper) JSON() string {
 	return jsonpass(w.Respond())
 }
 
-// JsonPretty serializes the `wrapper` instance into a prettified JSON string.
+// JSONPretty serializes the `wrapper` instance into a prettified JSON string.
 //
-// This function uses the `encoding.JsonPretty` utility to generate a JSON representation
+// This function uses the `encoding.JSONPretty` utility to generate a JSON representation
 // of the `wrapper` instance. The output is a human-readable JSON string with
 // proper indentation and formatting for better readability.
 //
 // Returns:
 //   - A prettified JSON string representation of the `wrapper` instance.
-func (w *wrapper) JsonPretty() string {
+func (w *wrapper) JSONPretty() string {
 	return jsonpretty(w.Respond())
 }
 

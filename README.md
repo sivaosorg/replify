@@ -89,7 +89,7 @@ func main() {
             "name": "John Doe",
         })
     
-    fmt.Println(response.JsonPretty())
+    fmt.Println(response.JSONPretty())
 }
 ```
 
@@ -293,7 +293,7 @@ func main() {
     }
     
     // Access response properties
-    fmt.Println(w.Json())
+    fmt.Println(w.JSON())
     fmt.Println(w.StatusCode())
     fmt.Println(w.StatusText())
     fmt.Println(w.Message())
@@ -360,7 +360,7 @@ func main() {
     
     fmt.Printf("Exe time: %+v\n", diff.String())
     fmt.Printf("%+v\n", w.OnDebugging("___abc"))
-    fmt.Printf("%+v\n", w.JsonPretty())
+    fmt.Printf("%+v\n", w.JSONPretty())
 }
 ```
 
@@ -447,7 +447,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 func respondJSON(w http.ResponseWriter, response *replify.R) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(response.StatusCode())
-    w.Write([]byte(response.Json()))
+    w.Write([]byte(response.JSON()))
 }
 ```
 
@@ -645,8 +645,8 @@ The `R` type is a high-level abstraction providing a simplified interface for ha
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `Json()` | `string` | Returns compact JSON string |
-| `JsonPretty()` | `string` | Returns pretty-printed JSON |
+| `JSON()` | `string` | Returns compact JSON string |
+| `JSONPretty()` | `string` | Returns pretty-printed JSON |
 | `Respond()` | `map[string]interface{}` | Returns map representation |
 | `Reply()` | `R` | Returns R wrapper |
 

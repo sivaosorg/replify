@@ -187,6 +187,30 @@ func JSONSafe(data any) string {
 	return jsonSafe(data, false)
 }
 
+// JSONSafeToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// It uses a deferred function to recover from any panics that may occur during marshalling.
+//
+// Parameters:
+//   - `data`: The Go value to be converted to JSON.
+//
+// Returns:
+//   - A string containing the JSON representation of the input value.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	 var myStruct = struct {
+//	 	Name string
+//	 	Age  int
+//	 }{
+//	 	Name: "John",
+//	 	Age:  30,
+//	 }
+//		jsonString, err := JSONSafeToken(myStruct)
+func JSONSafeToken(data any) (string, error) {
+	return jsonSafeToken(data, false)
+}
+
 // JSONSafePretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
@@ -209,6 +233,30 @@ func JSONSafe(data any) string {
 //		jsonString, err := JSONSafePretty(myStruct)
 func JSONSafePretty(data any) string {
 	return jsonSafe(data, true)
+}
+
+// JSONSafePrettyToken converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
+// It uses a deferred function to recover from any panics that may occur during marshalling.
+//
+// Parameters:
+//   - `data`: The Go value to be converted to JSON.
+//
+// Returns:
+//   - A string containing the JSON representation of the input value.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	 var myStruct = struct {
+//	 	Name string
+//	 	Age  int
+//	 }{
+//	 	Name: "John",
+//	 	Age:  30,
+//	 }
+//		jsonString, err := JSONSafePrettyToken(myStruct)
+func JSONSafePrettyToken(data any) (string, error) {
+	return jsonSafeToken(data, true)
 }
 
 // marshalToStrRecover marshals a Go value to its JSON string representation or returns an error if the marshalling fails.
@@ -243,37 +291,6 @@ func marshalToStrRecover(v any, pretty bool) (out string, err error) {
 		return "", err
 	}
 	return string(b), nil
-}
-
-// formatFloatJSON formats a float64 to its JSON string representation.
-// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
-//
-// Parameters:
-//   - `f`: The float64 value to format.
-//   - `is32`: A boolean indicating whether the float is a float32 (true) or float64 (false).
-//
-// Returns:
-//   - A string containing the JSON representation of the float.
-//
-// Example:
-//
-//	jsonFloat := formatFloatJSON(1.2345, false)
-func formatFloatJSON(f float64, is32 bool) string {
-	if math.IsNaN(f) || math.IsInf(f, 0) {
-		if floatsUseNullForNonFinite {
-			return "null"
-		}
-		return ""
-	}
-	bitSize := 64
-	if is32 {
-		bitSize = 32
-	}
-	// 'g' format is used for general-purpose formatting. It uses the shortest
-	// representation of the float, either in decimal or scientific notation.
-	// The -1 precision means that the smallest number of digits necessary to
-	// represent the float will be used.
-	return strconv.FormatFloat(f, 'g', -1, bitSize)
 }
 
 // realFrom extracts the real part of a complex number from a reflect.Value.
@@ -318,6 +335,37 @@ func imagFrom(v reflect.Value) float64 {
 	default:
 		return 0
 	}
+}
+
+// formatFloatJSON formats a float64 to its JSON string representation.
+// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
+//
+// Parameters:
+//   - `f`: The float64 value to format.
+//   - `is32`: A boolean indicating whether the float is a float32 (true) or float64 (false).
+//
+// Returns:
+//   - A string containing the JSON representation of the float.
+//
+// Example:
+//
+//	jsonFloat := formatFloatJSON(1.2345, false)
+func formatFloatJSON(f float64, is32 bool) string {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		if floatsUseNullForNonFinite {
+			return "null"
+		}
+		return ""
+	}
+	bitSize := 64
+	if is32 {
+		bitSize = 32
+	}
+	// 'g' format is used for general-purpose formatting. It uses the shortest
+	// representation of the float, either in decimal or scientific notation.
+	// The -1 precision means that the smallest number of digits necessary to
+	// represent the float will be used.
+	return strconv.FormatFloat(f, 'g', -1, bitSize)
 }
 
 // encodeComplexJSON encodes a complex number to its JSON string representation.
@@ -492,4 +540,109 @@ func jsonSafe(data any, pretty bool) string {
 		return ""
 	}
 	return s
+}
+
+// jsonSafeToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// It uses a deferred function to recover from any panics that may occur during marshalling.
+//
+// Parameters:
+//   - `data`: The Go value to be converted to JSON.
+//   - `pretty`: A boolean indicating whether the JSON should be pretty-printed.
+//
+// Returns:
+//   - A string containing the JSON representation of the input value.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	jsonString, err := jsonSafeToken(myStruct, false)
+func jsonSafeToken(data any, pretty bool) (string, error) {
+	if data == nil {
+		return "", ErrNilInterface
+	}
+
+	// 1) Pass-through raw JSON if explicitly provided.
+	if rm, ok := data.(json.RawMessage); ok {
+		if rm == nil {
+			return "null", nil
+		}
+		if !json.Valid(rm) {
+			return "", ErrInvalidRawMessage
+		}
+		if !pretty {
+			return string(rm), nil
+		}
+		var buf bytes.Buffer
+		if err := json.Indent(&buf, rm, "", "    "); err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	}
+
+	v := reflect.ValueOf(data)
+
+	// 2) Unwrap *all* interface layers; nil interface => error.
+	for v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return "", ErrNilInterface
+		}
+		v = v.Elem()
+	}
+	data = v.Interface()
+
+	// 3) Nil-able kinds (Ptr, Map, Slice, Func, Chan) when nil => "null".
+	v = reflect.ValueOf(data)
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Slice, reflect.Func, reflect.Chan:
+		if v.IsNil() {
+			return "null", nil
+		}
+	}
+
+	// 4) Scalar fast-path as valid JSON tokens.
+	switch v.Kind() {
+	case reflect.String:
+		// MUST quote/escape to be a valid JSON string token.
+		b, err := json.Marshal(v.String())
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+
+	case reflect.Bool:
+		return strconv.FormatBool(v.Bool()), nil
+
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(v.Int(), 10), nil
+
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(v.Uint(), 10), nil
+
+	case reflect.Uintptr:
+		// Avoid precision loss & misleading semantics; emit as quoted hex address.
+		return fmt.Sprintf("%q", fmt.Sprintf("0x%x", v.Uint())), nil
+
+	case reflect.Float32, reflect.Float64:
+		f := v.Float()
+		if math.IsNaN(f) || math.IsInf(f, 0) {
+			if floatsUseNullForNonFinite {
+				return "null", nil
+			}
+			return "", ErrNonFiniteFloat
+		}
+		bitSize := 64
+		if v.Kind() == reflect.Float32 {
+			bitSize = 32
+		}
+		return strconv.FormatFloat(f, 'g', -1, bitSize), nil
+
+	case reflect.Complex64, reflect.Complex128:
+		// Encode as {"real":...,"imag":...}
+		r, i := realFrom(v), imagFrom(v)
+		s, err := encodeComplexJSONToken(r, i, v.Kind() == reflect.Complex64)
+		return s, err
+	}
+
+	// 5) Everything else: marshal with panic protection and optional pretty indent.
+	return marshalToStrRecover(data, pretty)
 }

@@ -679,24 +679,24 @@ func main() {
 **Example 3 — Log processing: filter, count, and retrieve the latest entry**
 
 ```go
-logs := `[
+	logs := `[
     {"level":"error","msg":"Connection refused","ts":1700001},
     {"level":"info", "msg":"Server started",    "ts":1700002},
     {"level":"error","msg":"Timeout exceeded",  "ts":1700003},
     {"level":"warn", "msg":"High memory",       "ts":1700004}
 ]`
 
-// How many errors?
-fj.Get(logs, `@filter:{"key":"level","value":"error"}|@count`).Raw()
-// → 2
+	// How many errors?
+	fmt.Println(fj.Get(logs, `@filter:{"key":"level","value":"error"}|@count`).Raw())
+	// → 2
 
-// All error messages
-fj.Get(logs, `@filter:{"key":"level","value":"error"}|@pluck:msg`).Raw()
-// → ["Connection refused","Timeout exceeded"]
+	// All error messages
+	fmt.Println(fj.Get(logs, `@filter:{"key":"level","value":"error"}|@pluck:msg`).Raw())
+	// → ["Connection refused","Timeout exceeded"]
 
-// Most recent error entry (last in the filtered array)
-fj.Get(logs, `@filter:{"key":"level","value":"error"}|@last`).Raw()
-// → {"level":"error","msg":"Timeout exceeded","ts":1700003}
+	// Most recent error entry (last in the filtered array)
+	fmt.Println(fj.Get(logs, `@filter:{"key":"level","value":"error"}|@last`).Raw())
+	// → {"level":"error","msg":"Timeout exceeded","ts":1700003}
 ```
 
 ---

@@ -744,6 +744,30 @@ func (w *wrapper) DebuggingUint8(key string, defaultValue uint8) uint8 {
 	return conv.Uint8OrDefault(w.debug[key], defaultValue)
 }
 
+// JSONDebuggingUint8 retrieves the value of a specific debugging key from the `wrapper` instance.
+//
+// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// is present in the `debug` map. If both conditions are met, it returns the value associated with
+// the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
+//
+// Parameters:
+//   - `path`: A string representing the debugging key to retrieve.
+//   - `defaultValue`: A uint8 value to return if the key is not available.
+//
+// Returns:
+//   - The uint8 value associated with the specified debugging key if it exists.
+//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+func (w *wrapper) JSONDebuggingUint8(path string, defaultValue uint8) uint8 {
+	if !w.Available() {
+		return defaultValue
+	}
+	ctx := fj.Get(w.JSONDebugging(), path)
+	if ctx.Exists() {
+		return ctx.Uint8()
+	}
+	return defaultValue
+}
+
 // DebuggingUint16 retrieves the value of a specific debugging key from the `wrapper` instance.
 //
 // This function checks if the `wrapper` is available (non-nil) and if the specified debugging key

@@ -559,7 +559,7 @@ func Join[T any](slice []T, separator string) string {
 		if i > 0 {
 			result += separator
 		}
-		result += fmt.Sprintf("%v", encoding.JsonSafe(item))
+		result += fmt.Sprintf("%v", encoding.JSONSafe(item))
 	}
 	return result
 }

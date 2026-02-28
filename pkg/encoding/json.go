@@ -163,7 +163,7 @@ func IsValidJSONBytes(data []byte) bool {
 	return json.Valid(data)
 }
 
-// JsonSafe converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// JSONSafe converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -182,12 +182,12 @@ func IsValidJSONBytes(data []byte) bool {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JsonSafe(myStruct)
-func JsonSafe(data any) string {
+//		jsonString, err := JSONSafe(myStruct)
+func JSONSafe(data any) string {
 	return jsonSafe(data, false)
 }
 
-// JsonSafePretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
+// JSONSafePretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -206,8 +206,8 @@ func JsonSafe(data any) string {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JsonSafePretty(myStruct)
-func JsonSafePretty(data any) string {
+//		jsonString, err := JSONSafePretty(myStruct)
+func JSONSafePretty(data any) string {
 	return jsonSafe(data, true)
 }
 

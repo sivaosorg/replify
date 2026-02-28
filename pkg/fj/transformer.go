@@ -1331,7 +1331,7 @@ func applyPadLeft(json, arg string) string {
 		return true
 	})
 	value = strutil.TrimWhitespace(strutil.Trim(value))
-	t := encoding.JsonSafe(value)
+	t := encoding.JSONSafe(value)
 	if length <= len(t) {
 		return t
 	}
@@ -1370,7 +1370,7 @@ func applyPadRight(json, arg string) string {
 		return true
 	})
 	value = strutil.TrimWhitespace(strutil.Trim(value))
-	t := encoding.JsonSafe(value)
+	t := encoding.JSONSafe(value)
 	if length <= len(t) {
 		return t
 	}

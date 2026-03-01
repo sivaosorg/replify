@@ -1,6 +1,7 @@
 package replify
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -2680,9 +2681,84 @@ func (w *wrapper) WithMessagef(message string, args ...any) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//
+// Example:
+//
+//	w, err := replify.New().WithBody(myStruct)
+//
+// Notes:
+//   - This function does not validate or normalize the input value.
+//   - It simply assigns the value to the `data` field of the `wrapper`.
+//   - The value will be marshalled to JSON when the `wrapper` is converted to a string.
+//   - Consider using WithJSONBody instead if you need to normalize the input value.
 func (w *wrapper) WithBody(v any) *wrapper {
 	w.data = v
 	return w
+}
+
+// WithJSONBody normalizes the input value and sets it as the body data for
+// the `wrapper` instance.
+//
+// The method accepts any Go value and handles it according to its dynamic type:
+//
+//   - string        – the string is passed through encoding.NormalizeJSON, which
+//     strips common JSON corruption artifacts (BOM, null bytes, escaped structural
+//     quotes, trailing commas) before setting the result as the body.
+//   - []byte        – treated as a raw string; the same NormalizeJSON pipeline is
+//     applied after converting to string.
+//   - json.RawMessage – validated directly; if invalid, an error is returned.
+//   - any other type – marshaled to JSON via encoding.JSONToken and set as the body,
+//     which is by definition already valid JSON.
+//   - nil           – returns an error; nil cannot be normalized.
+//
+// If normalization succeeds, the cleaned value is stored as the body and the method
+// returns the updated wrapper and nil.  If it fails, the body is left unchanged and
+// a descriptive error is returned.
+//
+// Parameters:
+//   - v: The value to normalize and set as the body.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance and nil on success.
+//   - The unchanged `wrapper` instance and an error if normalization fails.
+//
+// Example:
+//
+//	// From a raw-string with escaped structural quotes:
+//	w, err := replify.New().WithJSONBody(`{\"key\": "value"}`)
+//
+//	// From a struct:
+//	w, err := replify.New().WithJSONBody(myStruct)
+func (w *wrapper) WithJSONBody(v any) (*wrapper, error) {
+	if v == nil {
+		return w, NewError("WithJSONBody: cannot normalize nil value")
+	}
+	switch val := v.(type) {
+	case string:
+		normalized, err := encoding.NormalizeJSON(val)
+		if err != nil {
+			return w, err
+		}
+		w.data = normalized
+	case []byte:
+		normalized, err := encoding.NormalizeJSON(string(val))
+		if err != nil {
+			return w, err
+		}
+		w.data = normalized
+	case json.RawMessage:
+		if !json.Valid(val) {
+			return w, NewError("WithJSONBody: json.RawMessage contains invalid JSON")
+		}
+		w.data = string(val)
+	default:
+		s, err := encoding.JSONToken(val)
+		if err != nil {
+			return w, AppendError(err, "cannot marshal to JSON")
+		}
+		w.data = s
+	}
+	return w, nil
 }
 
 // WithPath sets the request path for the `wrapper` instance.
@@ -3638,7 +3714,22 @@ func (w *wrapper) JSONBytes() []byte {
 func (w *wrapper) build() map[string]any {
 	m := make(map[string]any)
 	if w.IsBodyPresent() {
-		m["data"] = w.data
+		switch v := w.data.(type) {
+		case string:
+			if encoding.IsValidJSON(v) {
+				m["data"] = json.RawMessage(encoding.Ugly([]byte(v)))
+			} else {
+				m["data"] = v
+			}
+		case []byte:
+			if encoding.IsValidJSONBytes(v) {
+				m["data"] = json.RawMessage(encoding.Ugly(v))
+			} else {
+				m["data"] = v
+			}
+		default:
+			m["data"] = w.data
+		}
 	}
 	if w.IsHeaderPresent() {
 		m["headers"] = w.header.Respond()

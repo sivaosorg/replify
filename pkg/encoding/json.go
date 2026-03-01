@@ -7,10 +7,16 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
+
+// normalizeTrailingCommaRe matches a comma followed by optional whitespace then } or ],
+// which is the pattern produced by trailing-comma JSON artifacts.
+var normalizeTrailingCommaRe = regexp.MustCompile(`,\s*([}\]])`)
 
 // Toggle to choose how to handle NaN/±Inf floats in *safe* variants.
 // When true: produce "null" (JSON-safe). When false: treat as error.
@@ -31,7 +37,7 @@ var (
 	ErrMarshalPanicRecovered = errors.New("json marshal panic recovered")
 )
 
-// Marshal converts a Go value into its JSON byte representation.
+// MarshalJSONb converts a Go value into its JSON byte representation.
 //
 // This function marshals the input value `v` using the standard json library.
 // The resulting JSON data is returned as a byte slice. If there is an error
@@ -46,12 +52,36 @@ var (
 //
 // Example:
 //
-//	jsonData, err := Marshal(myStruct)
-func Marshal(v any) ([]byte, error) {
+//	jsonData, err := MarshalJSONb(myStruct)
+func MarshalJSONb(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-// MarshalIndent converts a Go value to its JSON string representation with indentation.
+// MarshalJSONs converts a Go value to its JSON string representation.
+//
+// This function utilizes the standard json library to marshal the input value `v`
+// into a JSON string. If the marshalling is successful, it returns the resulting
+// JSON string. If an error occurs during the process, it returns an error.
+//
+// Parameters:
+//   - `v`: The Go value to be marshalled into JSON.
+//
+// Returns:
+//   - A string containing the JSON representation of the input value.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	jsonString, err := MarshalJSONs(myStruct)
+func MarshalJSONs(v any) (string, error) {
+	data, err := MarshalJSONb(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// MarshalJSONIndent converts a Go value to its JSON string representation with indentation.
 //
 // This function marshals the input value `v` into a formatted JSON string,
 // allowing for easy readability by including a specified prefix and indentation.
@@ -68,36 +98,12 @@ func Marshal(v any) ([]byte, error) {
 //
 // Example:
 //
-//	jsonIndented, err := MarshalIndent(myStruct, "", "    ")
-func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
+//	jsonIndented, err := MarshalJSONIndent(myStruct, "", "    ")
+func MarshalJSONIndent(v any, prefix, indent string) ([]byte, error) {
 	return json.MarshalIndent(v, prefix, indent)
 }
 
-// MarshalToString converts a Go value to its JSON string representation.
-//
-// This function utilizes the standard json library to marshal the input value `v`
-// into a JSON string. If the marshalling is successful, it returns the resulting
-// JSON string. If an error occurs during the process, it returns an error.
-//
-// Parameters:
-//   - `v`: The Go value to be marshalled into JSON.
-//
-// Returns:
-//   - A string containing the JSON representation of the input value.
-//   - An error if the marshalling fails.
-//
-// Example:
-//
-//	jsonString, err := MarshalToString(myStruct)
-func MarshalToString(v any) (string, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
-}
-
-// Unmarshal parses JSON-encoded data and stores the result in the value pointed to by `v`.
+// UnmarshalBytes parses JSON-encoded data and stores the result in the value pointed to by `v`.
 //
 // This function uses the standard json library to unmarshal JSON data
 // (given as a byte slice) into the specified Go value `v`. If the unmarshalling
@@ -112,12 +118,12 @@ func MarshalToString(v any) (string, error) {
 //
 // Example:
 //
-//	err := Unmarshal(jsonData, &myStruct)
-func Unmarshal(data []byte, v any) error {
+//	err := UnmarshalBytes(jsonData, &myStruct)
+func UnmarshalBytes(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
 
-// SafeUnmarshal parses JSON-encoded data and stores the result in the value pointed to by `v`.
+// SafeUnmarshalBytes parses JSON-encoded data and stores the result in the value pointed to by `v`.
 //
 // This function uses the standard json library to unmarshal JSON data
 // (given as a byte slice) into the specified Go value `v`. If the unmarshalling
@@ -132,8 +138,8 @@ func Unmarshal(data []byte, v any) error {
 //
 // Example:
 //
-//	err := SafeUnmarshal(jsonData, &myStruct)
-func SafeUnmarshal(data []byte, v any) error {
+//	err := SafeUnmarshalBytes(jsonData, &myStruct)
+func SafeUnmarshalBytes(data []byte, v any) error {
 	if len(data) == 0 {
 		return errors.New("empty JSON data")
 	}
@@ -142,17 +148,17 @@ func SafeUnmarshal(data []byte, v any) error {
 		return errors.New("invalid JSON")
 	}
 
-	return Unmarshal(data, v)
+	return UnmarshalBytes(data, v)
 }
 
-// UnmarshalFromString parses JSON-encoded string and stores the result in the value pointed to by `v`.
+// UnmarshalJSON parses JSON-encoded string and stores the result in the value pointed to by `v`.
 //
 // This function utilizes the standard json library to unmarshal JSON data
 // from a string into the specified Go value `v`. If the unmarshalling is
 // successful, it populates the value `v`. If an error occurs, it returns the error.
 //
 // Parameters:
-//   - `str`: A string containing JSON data to be unmarshalled.
+//   - `jsonStr`: A string containing JSON data to be unmarshalled.
 //   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
 //
 // Returns:
@@ -160,19 +166,19 @@ func SafeUnmarshal(data []byte, v any) error {
 //
 // Example:
 //
-//	err := UnmarshalFromString(jsonString, &myStruct)
-func UnmarshalFromString(str string, v any) error {
-	return json.Unmarshal([]byte(str), v)
+//	err := UnmarshalJSON(jsonString, &myStruct)
+func UnmarshalJSON(jsonStr string, v any) error {
+	return json.Unmarshal([]byte(jsonStr), v)
 }
 
-// SafeUnmarshalFromString parses JSON-encoded string and stores the result in the value pointed to by `v`.
+// SafeUnmarshalJSON parses JSON-encoded string and stores the result in the value pointed to by `v`.
 //
 // This function uses the standard json library to unmarshal JSON data
 // (given as a string) into the specified Go value `v`. If the unmarshalling
 // is successful, it populates the value `v`. If an error occurs, it returns the error.
 //
 // Parameters:
-//   - `str`: A string containing JSON data to be unmarshalled.
+//   - `jsonStr`: A string containing JSON data to be unmarshalled.
 //   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
 //
 // Returns:
@@ -180,17 +186,17 @@ func UnmarshalFromString(str string, v any) error {
 //
 // Example:
 //
-//	err := SafeUnmarshalFromString(jsonString, &myStruct)
-func SafeUnmarshalFromString(str string, v any) error {
-	if strutil.IsEmpty(str) {
+//	err := SafeUnmarshalJSON(jsonString, &myStruct)
+func SafeUnmarshalJSON(jsonStr string, v any) error {
+	if strutil.IsEmpty(jsonStr) {
 		return errors.New("empty JSON data")
 	}
 
-	if !IsValidJSON(str) {
+	if !IsValidJSON(jsonStr) {
 		return errors.New("invalid JSON")
 	}
 
-	return UnmarshalFromString(str, v)
+	return UnmarshalJSON(jsonStr, v)
 }
 
 // IsValidJSON checks if a given string is a valid JSON format.
@@ -219,6 +225,83 @@ func IsValidJSON(s string) bool {
 //   - A boolean indicating whether the input byte slice is valid JSON.
 func IsValidJSONBytes(data []byte) bool {
 	return json.Valid(data)
+}
+
+// NormalizeJSON attempts to normalize a malformed JSON-like string into valid JSON.
+//
+// Normalization strategy — passes are applied in sequence; validity is checked
+// after each pass that modifies the candidate. The function returns as soon as
+// a pass produces a valid JSON string, so no unnecessary work is performed.
+//
+//  1. Empty / whitespace-only input → return error.
+//  2. Already valid JSON → return unchanged (fast path, no allocation).
+//  3. Pass 1 – strip a leading UTF-8 BOM (U+FEFF / 0xEF 0xBB 0xBF).
+//  4. Pass 2 – remove embedded null bytes (0x00) which are invalid inside JSON text.
+//  5. Pass 3 – unescape literal `\"` sequences to `"`.  This is the most common
+//     artifact produced when JSON is stored in Go raw string literals or travels
+//     through systems that double-escape structural quote characters.
+//  6. Pass 4 – remove trailing commas before `}` or `]`.  These are produced by
+//     some serializers and are not permitted by the JSON grammar.
+//
+// Passes are cumulative: each pass operates on the output of the previous one.
+// The function does NOT silently corrupt already-valid JSON (step 2 guarantees
+// this). Only inputs that fail the initial validation ever enter the pass chain.
+//
+// Parameters:
+//   - s: The input string to normalize.
+//
+// Returns:
+//   - A valid JSON string on success.
+//   - An error if the input is empty/whitespace or cannot be normalized to valid JSON.
+//
+// Example:
+//
+//	normalized, err := NormalizeJSON(`{\"key\": "value"}`)
+func NormalizeJSON(s string) (string, error) {
+	if strutil.IsEmpty(s) {
+		return "", errors.New("empty input")
+	}
+
+	// Fast path: already valid JSON — return as-is with no allocation.
+	if IsValidJSON(s) {
+		return s, nil
+	}
+
+	candidate := s
+
+	// Pass 1: Strip leading UTF-8 BOM (0xEF 0xBB 0xBF).
+	if strings.HasPrefix(candidate, "\xEF\xBB\xBF") {
+		candidate = candidate[3:]
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	// Pass 2: Remove embedded null bytes.
+	if strings.Contains(candidate, "\x00") {
+		candidate = strings.ReplaceAll(candidate, "\x00", "")
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	// Pass 3: Unescape literal \" → " (structural quote escape artifacts).
+	if strings.Contains(candidate, `\"`) {
+		candidate = strings.ReplaceAll(candidate, `\"`, `"`)
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	// Pass 4: Remove trailing commas before } or ] (invalid in JSON grammar).
+	if noTrailing := normalizeTrailingCommaRe.ReplaceAllString(candidate, "$1"); noTrailing != candidate {
+		candidate = noTrailing
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	return "", errors.New("cannot normalize to valid JSON")
 }
 
 // JSON converts a Go value to its JSON string representation or returns an error if the marshalling fails.
@@ -341,9 +424,9 @@ func marshalToStrRecover(v any, pretty bool) (out string, err error) {
 
 	var b []byte
 	if pretty {
-		b, err = MarshalIndent(v, "", "    ")
+		b, err = MarshalJSONIndent(v, "", "    ")
 	} else {
-		b, err = Marshal(v)
+		b, err = MarshalJSONb(v)
 	}
 	if err != nil {
 		return "", err

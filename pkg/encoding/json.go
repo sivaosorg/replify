@@ -37,7 +37,7 @@ var (
 	ErrMarshalPanicRecovered = errors.New("json marshal panic recovered")
 )
 
-// Marshal converts a Go value into its JSON byte representation.
+// MarshalJSONb converts a Go value into its JSON byte representation.
 //
 // This function marshals the input value `v` using the standard json library.
 // The resulting JSON data is returned as a byte slice. If there is an error
@@ -52,12 +52,36 @@ var (
 //
 // Example:
 //
-//	jsonData, err := Marshal(myStruct)
-func Marshal(v any) ([]byte, error) {
+//	jsonData, err := MarshalJSONb(myStruct)
+func MarshalJSONb(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-// MarshalIndent converts a Go value to its JSON string representation with indentation.
+// MarshalJSONs converts a Go value to its JSON string representation.
+//
+// This function utilizes the standard json library to marshal the input value `v`
+// into a JSON string. If the marshalling is successful, it returns the resulting
+// JSON string. If an error occurs during the process, it returns an error.
+//
+// Parameters:
+//   - `v`: The Go value to be marshalled into JSON.
+//
+// Returns:
+//   - A string containing the JSON representation of the input value.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	jsonString, err := MarshalJSONs(myStruct)
+func MarshalJSONs(v any) (string, error) {
+	data, err := MarshalJSONb(v)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// MarshalJSONIndent converts a Go value to its JSON string representation with indentation.
 //
 // This function marshals the input value `v` into a formatted JSON string,
 // allowing for easy readability by including a specified prefix and indentation.
@@ -74,33 +98,9 @@ func Marshal(v any) ([]byte, error) {
 //
 // Example:
 //
-//	jsonIndented, err := MarshalIndent(myStruct, "", "    ")
-func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
+//	jsonIndented, err := MarshalJSONIndent(myStruct, "", "    ")
+func MarshalJSONIndent(v any, prefix, indent string) ([]byte, error) {
 	return json.MarshalIndent(v, prefix, indent)
-}
-
-// MarshalToString converts a Go value to its JSON string representation.
-//
-// This function utilizes the standard json library to marshal the input value `v`
-// into a JSON string. If the marshalling is successful, it returns the resulting
-// JSON string. If an error occurs during the process, it returns an error.
-//
-// Parameters:
-//   - `v`: The Go value to be marshalled into JSON.
-//
-// Returns:
-//   - A string containing the JSON representation of the input value.
-//   - An error if the marshalling fails.
-//
-// Example:
-//
-//	jsonString, err := MarshalToString(myStruct)
-func MarshalToString(v any) (string, error) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
 }
 
 // UnmarshalBytes parses JSON-encoded data and stores the result in the value pointed to by `v`.
@@ -424,9 +424,9 @@ func marshalToStrRecover(v any, pretty bool) (out string, err error) {
 
 	var b []byte
 	if pretty {
-		b, err = MarshalIndent(v, "", "    ")
+		b, err = MarshalJSONIndent(v, "", "    ")
 	} else {
-		b, err = Marshal(v)
+		b, err = MarshalJSONb(v)
 	}
 	if err != nil {
 		return "", err

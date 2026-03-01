@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sivaosorg/replify"
 	"github.com/sivaosorg/replify/pkg/encoding"
 )
 
@@ -590,4 +591,128 @@ func TestJSONPrettyToken_Complex128(t *testing.T) {
 	if got != `{"real":2,"imag":3}` {
 		t.Errorf("JSONPrettyToken(complex128) = %q; want %q", got, `{"real":2,"imag":3}`)
 	}
+}
+
+// /////////////////////////////////////////////////////
+// Section: wrapper.JSON() and wrapper.JSONPretty()
+// /////////////////////////////////////////////////////
+
+// wrapperJSONFixture is the JSON body used across wrapper JSON tests.
+const wrapperJSONFixture = `{"store":{"owner":"Alice"},"ratings":[5,3,4]}`
+
+// TestWrapperJSON_ValidJSONStringBody ensures that JSON() inlines a valid JSON
+// string body as a JSON object (not an escaped string literal) in the output.
+func TestWrapperJSON_ValidJSONStringBody(t *testing.T) {
+w := replify.New().WithBody(wrapperJSONFixture)
+out := w.JSON()
+
+var parsed map[string]any
+if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+t.Fatalf("JSON() output is not valid JSON: %v\noutput: %s", err, out)
+}
+
+// The "data" field must be a JSON object, not a string.
+data, ok := parsed["data"].(map[string]any)
+if !ok {
+t.Fatalf("JSON() data field type = %T; want map[string]any", parsed["data"])
+}
+if _, hasStore := data["store"]; !hasStore {
+t.Errorf("JSON() data field missing 'store' key; got keys in data: %v", keysOf(data))
+}
+}
+
+// TestWrapperJSON_NoEscapedCharsInDataField verifies that JSON() does not
+// produce escaped newlines or tabs in the "data" field when the body is valid JSON.
+func TestWrapperJSON_NoEscapedCharsInDataField(t *testing.T) {
+body := "{\n\t\"key\": \"value\"\n}"
+w := replify.New().WithBody(body)
+out := w.JSON()
+if strings.Contains(out, `\n`) || strings.Contains(out, `\t`) {
+t.Errorf("JSON() output contains escaped whitespace; want compact inline JSON\noutput: %s", out)
+}
+}
+
+// TestWrapperJSON_BytesBody verifies that a []byte body containing valid JSON
+// is also inlined correctly (not double-encoded).
+func TestWrapperJSON_BytesBody(t *testing.T) {
+w := replify.New().WithBody([]byte(wrapperJSONFixture))
+out := w.JSON()
+
+var parsed map[string]any
+if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+t.Fatalf("JSON() (bytes body) is not valid JSON: %v", err)
+}
+if _, ok := parsed["data"].(map[string]any); !ok {
+t.Errorf("JSON() (bytes body) data field type = %T; want map[string]any", parsed["data"])
+}
+}
+
+// TestWrapperJSON_NonJSONStringBody verifies that a non-JSON string body is
+// kept as a JSON string value (not inlined as raw JSON).
+func TestWrapperJSON_NonJSONStringBody(t *testing.T) {
+w := replify.New().WithBody("hello world")
+out := w.JSON()
+
+var parsed map[string]any
+if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+t.Fatalf("JSON() (non-JSON body) is not valid JSON: %v", err)
+}
+if s, ok := parsed["data"].(string); !ok || s != "hello world" {
+t.Errorf("JSON() (non-JSON body) data = %v (%T); want string %q", parsed["data"], parsed["data"], "hello world")
+}
+}
+
+// TestWrapperJSON_EmptyBody verifies that JSON() works when no body is set.
+func TestWrapperJSON_EmptyBody(t *testing.T) {
+w := replify.New()
+out := w.JSON()
+
+var parsed map[string]any
+if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+t.Fatalf("JSON() (empty body) is not valid JSON: %v", err)
+}
+if _, hasData := parsed["data"]; hasData {
+t.Errorf("JSON() (empty body) should not have 'data' field; got: %v", parsed["data"])
+}
+}
+
+// TestWrapperJSONPretty_ValidJSONStringBody verifies that JSONPretty() produces
+// properly indented output with the data field inlined as a JSON object.
+func TestWrapperJSONPretty_ValidJSONStringBody(t *testing.T) {
+w := replify.New().WithBody(wrapperJSONFixture)
+out := w.JSONPretty()
+
+if !strings.Contains(out, "    ") {
+t.Errorf("JSONPretty() output is not indented\noutput: %s", out)
+}
+
+var parsed map[string]any
+if err := json.Unmarshal([]byte(out), &parsed); err != nil {
+t.Fatalf("JSONPretty() output is not valid JSON: %v\noutput: %s", err, out)
+}
+if _, ok := parsed["data"].(map[string]any); !ok {
+t.Errorf("JSONPretty() data field type = %T; want map[string]any", parsed["data"])
+}
+}
+
+// TestWrapperJSONBytes_ValidJSONBody verifies that JSONBytes() returns a non-nil
+// byte slice equal to JSON() when the body is valid JSON.
+func TestWrapperJSONBytes_ValidJSONBody(t *testing.T) {
+w := replify.New().WithBody(wrapperJSONFixture)
+b := w.JSONBytes()
+if b == nil {
+t.Fatal("JSONBytes() = nil; want non-nil byte slice")
+}
+if string(b) != w.JSON() {
+t.Errorf("JSONBytes() != []byte(JSON())")
+}
+}
+
+// keysOf returns the keys of a map as a slice (helper for test error messages).
+func keysOf(m map[string]any) []string {
+keys := make([]string, 0, len(m))
+for k := range m {
+keys = append(keys, k)
+}
+return keys
 }

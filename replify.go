@@ -1,6 +1,7 @@
 package replify
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -3638,7 +3639,22 @@ func (w *wrapper) JSONBytes() []byte {
 func (w *wrapper) build() map[string]any {
 	m := make(map[string]any)
 	if w.IsBodyPresent() {
-		m["data"] = w.data
+		switch v := w.data.(type) {
+		case string:
+			if encoding.IsValidJSON(v) {
+				m["data"] = json.RawMessage(encoding.Ugly([]byte(v)))
+			} else {
+				m["data"] = v
+			}
+		case []byte:
+			if encoding.IsValidJSONBytes(v) {
+				m["data"] = json.RawMessage(encoding.Ugly(v))
+			} else {
+				m["data"] = v
+			}
+		default:
+			m["data"] = w.data
+		}
 	}
 	if w.IsHeaderPresent() {
 		m["headers"] = w.header.Respond()

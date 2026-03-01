@@ -1129,7 +1129,7 @@ func (w *wrapper) IsJSONBody() bool {
 	if !w.Available() || !w.IsBodyPresent() {
 		return false
 	}
-	json := w.JSON()
+	json := encoding.JSON(w.data)
 	return fj.IsValidJSON(json) && encoding.IsValidJSON(json)
 }
 

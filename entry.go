@@ -45,7 +45,7 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	}
 
 	var data map[string]any
-	err = encoding.UnmarshalFromString(jsonStr, &data)
+	err = encoding.UnmarshalJSON(jsonStr, &data)
 	if err != nil {
 		return nil, NewErrorAck(err)
 	}

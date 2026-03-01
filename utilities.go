@@ -132,7 +132,7 @@ func cryptoID() string {
 //
 //	jsonStr := jsonpass(myStruct)
 func jsonpass(data any) string {
-	return encoding.JSONSafe(data)
+	return encoding.JSON(data)
 }
 
 // jsonpretty converts a Go value to its pretty-printed JSON string representation or returns the value directly if it is already a string.
@@ -151,5 +151,5 @@ func jsonpass(data any) string {
 //
 //	jsonPrettyStr := jsonpretty(myStruct)
 func jsonpretty(data any) string {
-	return encoding.JSONSafePretty(data)
+	return encoding.JSONPretty(data)
 }

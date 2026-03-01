@@ -163,7 +163,7 @@ func IsValidJSONBytes(data []byte) bool {
 	return json.Valid(data)
 }
 
-// JSONSafe converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// JSON converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -182,12 +182,12 @@ func IsValidJSONBytes(data []byte) bool {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONSafe(myStruct)
-func JSONSafe(data any) string {
+//		jsonString, err := JSON(myStruct)
+func JSON(data any) string {
 	return jsonSafe(data, false)
 }
 
-// JSONSafeToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// JSONToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -206,12 +206,12 @@ func JSONSafe(data any) string {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONSafeToken(myStruct)
-func JSONSafeToken(data any) (string, error) {
+//		jsonString, err := JSONToken(myStruct)
+func JSONToken(data any) (string, error) {
 	return jsonSafeToken(data, false)
 }
 
-// JSONSafePretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
+// JSONPretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -230,12 +230,12 @@ func JSONSafeToken(data any) (string, error) {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONSafePretty(myStruct)
-func JSONSafePretty(data any) string {
+//		jsonString, err := JSONPretty(myStruct)
+func JSONPretty(data any) string {
 	return jsonSafe(data, true)
 }
 
-// JSONSafePrettyToken converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
+// JSONPrettyToken converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -254,8 +254,8 @@ func JSONSafePretty(data any) string {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONSafePrettyToken(myStruct)
-func JSONSafePrettyToken(data any) (string, error) {
+//		jsonString, err := JSONPrettyToken(myStruct)
+func JSONPrettyToken(data any) (string, error) {
 	return jsonSafeToken(data, true)
 }
 

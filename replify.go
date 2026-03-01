@@ -11,6 +11,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/coll"
 	"github.com/sivaosorg/replify/pkg/common"
 	"github.com/sivaosorg/replify/pkg/conv"
+	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/hashy"
 	"github.com/sivaosorg/replify/pkg/randn"
@@ -1113,6 +1114,23 @@ func (w *wrapper) IsDebuggingKeyPresent(key string) bool {
 func (w *wrapper) IsBodyPresent() bool {
 	value := reflect.ValueOf(w.data)
 	return w.Available() && !common.IsEmptyValue(value)
+}
+
+// IsJSONBody checks whether the body data is a valid JSON string.
+//
+// This function first checks if the `wrapper` is available and if the body data is present using `IsBodyPresent()`.
+// Then it uses the `JSON()` function to retrieve the body data as a JSON string and checks if it is valid using `fj.IsValidJSON()`.
+//
+// Returns:
+//   - A boolean value indicating whether the body data is a valid JSON string:
+//   - `true` if the `wrapper` is available, the body data is present, and the body data is a valid JSON string.
+//   - `false` if the `wrapper` is not available, the body data is not present, or the body data is not a valid JSON string.
+func (w *wrapper) IsJSONBody() bool {
+	if !w.Available() || !w.IsBodyPresent() {
+		return false
+	}
+	json := w.JSON()
+	return fj.IsValidJSON(json) && encoding.IsValidJSON(json)
 }
 
 // IsHeaderPresent checks whether header information is present in the `wrapper` instance.

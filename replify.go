@@ -3603,6 +3603,21 @@ func (w *wrapper) JSONPretty() string {
 	return jsonpretty(w.Respond())
 }
 
+// JSONBytes serializes the `wrapper` instance into a JSON byte slice.
+//
+// This function first checks if the `wrapper` is available and if the body data is a valid JSON string using `IsJSONBody()`.
+// If both conditions are met, it returns the JSON byte slice. Otherwise, it returns an empty byte slice.
+//
+// Returns:
+//   - A byte slice containing the JSON representation of the `wrapper` instance.
+//   - An empty byte slice if the `wrapper` is not available or the body data is not a valid JSON string.
+func (w *wrapper) JSONBytes() []byte {
+	if !w.IsJSONBody() {
+		return nil
+	}
+	return []byte(w.JSON())
+}
+
 // build generates a map representation of the `wrapper` instance.
 // This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
 // and organizes them into a key-value map. It ensures that only non-empty or meaningful fields

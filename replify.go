@@ -2681,12 +2681,22 @@ func (w *wrapper) WithMessagef(message string, args ...any) *wrapper {
 //
 // Returns:
 //   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//
+// Example:
+//
+//	w, err := replify.New().WithBody(myStruct)
+//
+// Notes:
+//   - This function does not validate or normalize the input value.
+//   - It simply assigns the value to the `data` field of the `wrapper`.
+//   - The value will be marshalled to JSON when the `wrapper` is converted to a string.
+//   - Consider using WithJSONBody instead if you need to normalize the input value.
 func (w *wrapper) WithBody(v any) *wrapper {
 	w.data = v
 	return w
 }
 
-// WithNormalizedBody normalizes the input value and sets it as the body data for
+// WithJSONBody normalizes the input value and sets it as the body data for
 // the `wrapper` instance.
 //
 // The method accepts any Go value and handles it according to its dynamic type:
@@ -2715,13 +2725,13 @@ func (w *wrapper) WithBody(v any) *wrapper {
 // Example:
 //
 //	// From a raw-string with escaped structural quotes:
-//	w, err := replify.New().WithNormalizedBody(`{\"key\": "value"}`)
+//	w, err := replify.New().WithJSONBody(`{\"key\": "value"}`)
 //
 //	// From a struct:
-//	w, err := replify.New().WithNormalizedBody(myStruct)
-func (w *wrapper) WithNormalizedBody(v any) (*wrapper, error) {
+//	w, err := replify.New().WithJSONBody(myStruct)
+func (w *wrapper) WithJSONBody(v any) (*wrapper, error) {
 	if v == nil {
-		return w, errors.New("WithNormalizedBody: cannot normalize nil value")
+		return w, NewError("WithJSONBody: cannot normalize nil value")
 	}
 	switch val := v.(type) {
 	case string:
@@ -2738,13 +2748,13 @@ func (w *wrapper) WithNormalizedBody(v any) (*wrapper, error) {
 		w.data = normalized
 	case json.RawMessage:
 		if !json.Valid(val) {
-			return w, errors.New("WithNormalizedBody: json.RawMessage contains invalid JSON")
+			return w, NewError("WithJSONBody: json.RawMessage contains invalid JSON")
 		}
 		w.data = string(val)
 	default:
 		s, err := encoding.JSONToken(val)
 		if err != nil {
-			return w, fmt.Errorf("cannot marshal to JSON: %w", err)
+			return w, AppendError(err, "cannot marshal to JSON")
 		}
 		w.data = s
 	}

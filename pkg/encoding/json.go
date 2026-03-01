@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"math"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
+
+// normalizeTrailingCommaRe matches a comma followed by optional whitespace then } or ],
+// which is the pattern produced by trailing-comma JSON artifacts.
+var normalizeTrailingCommaRe = regexp.MustCompile(`,\s*([}\]])`)
 
 // Toggle to choose how to handle NaN/±Inf floats in *safe* variants.
 // When true: produce "null" (JSON-safe). When false: treat as error.
@@ -720,25 +725,30 @@ func jsonSafeToken(data any, pretty bool) (string, error) {
 
 // NormalizeJSON attempts to normalize a malformed JSON-like string into valid JSON.
 //
-// Normalization strategy:
-//  1. Empty input → return error.
-//  2. Already valid JSON → return unchanged (fast path, no allocation).
-//  3. Unescape literal `\"` sequences to `"` — a common artifact that arises when
-//     JSON is stored in Go raw string literals or transported through systems that
-//     double-escape structural quote characters.
-//  4. Validate the result; return the fixed string if valid, otherwise return an error.
+// Normalization strategy — passes are applied in sequence; validity is checked
+// after each pass that modifies the candidate. The function returns as soon as
+// a pass produces a valid JSON string, so no unnecessary work is performed.
 //
-// The function does NOT silently corrupt already-valid JSON: step 2 guarantees that
-// any input already accepted by the JSON parser is returned unchanged. The unescape
-// pass is only attempted when the input is invalid, so intra-string escape sequences
-// like `\"` inside a proper JSON string value are never touched.
+//  1. Empty / whitespace-only input → return error.
+//  2. Already valid JSON → return unchanged (fast path, no allocation).
+//  3. Pass 1 – strip a leading UTF-8 BOM (U+FEFF / 0xEF 0xBB 0xBF).
+//  4. Pass 2 – remove embedded null bytes (0x00) which are invalid inside JSON text.
+//  5. Pass 3 – unescape literal `\"` sequences to `"`.  This is the most common
+//     artifact produced when JSON is stored in Go raw string literals or travels
+//     through systems that double-escape structural quote characters.
+//  6. Pass 4 – remove trailing commas before `}` or `]`.  These are produced by
+//     some serializers and are not permitted by the JSON grammar.
+//
+// Passes are cumulative: each pass operates on the output of the previous one.
+// The function does NOT silently corrupt already-valid JSON (step 2 guarantees
+// this). Only inputs that fail the initial validation ever enter the pass chain.
 //
 // Parameters:
 //   - s: The input string to normalize.
 //
 // Returns:
 //   - A valid JSON string on success.
-//   - An error if the input is empty or cannot be normalized to valid JSON.
+//   - An error if the input is empty/whitespace or cannot be normalized to valid JSON.
 //
 // Example:
 //
@@ -751,10 +761,40 @@ func NormalizeJSON(s string) (string, error) {
 	if IsValidJSON(s) {
 		return s, nil
 	}
-	// Unescape literal \" → " (structural quote escape artifacts).
-	fixed := strings.ReplaceAll(s, `\"`, `"`)
-	if IsValidJSON(fixed) {
-		return fixed, nil
+
+	candidate := s
+
+	// Pass 1: Strip leading UTF-8 BOM (0xEF 0xBB 0xBF).
+	if strings.HasPrefix(candidate, "\xEF\xBB\xBF") {
+		candidate = candidate[3:]
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
 	}
+
+	// Pass 2: Remove embedded null bytes.
+	if strings.Contains(candidate, "\x00") {
+		candidate = strings.ReplaceAll(candidate, "\x00", "")
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	// Pass 3: Unescape literal \" → " (structural quote escape artifacts).
+	if strings.Contains(candidate, `\"`) {
+		candidate = strings.ReplaceAll(candidate, `\"`, `"`)
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
+	// Pass 4: Remove trailing commas before } or ] (invalid in JSON grammar).
+	if noTrailing := normalizeTrailingCommaRe.ReplaceAllString(candidate, "$1"); noTrailing != candidate {
+		candidate = noTrailing
+		if IsValidJSON(candidate) {
+			return candidate, nil
+		}
+	}
+
 	return "", errors.New("cannot normalize to valid JSON")
 }

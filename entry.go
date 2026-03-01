@@ -1,6 +1,7 @@
 package replify
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -35,21 +36,21 @@ import (
 // structured format, making it easier to work with in Go. It handles various
 // nested objects (like `header`, `meta`, and `pagination`), checking for the
 // presence of keys and converting them into their appropriate types.
-func UnwrapJSON(json string) (w *wrapper, err error) {
-	if strutil.IsEmpty(json) {
+func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
+	if strutil.IsEmpty(jsonStr) {
 		return nil, NewError("JSON string is required")
 	}
-	if !encoding.IsValidJSON(json) || !fj.IsValidJSON(json) {
-		return nil, NewErrorf("invalid JSON string: %s", json)
+	if !encoding.IsValidJSON(jsonStr) || !fj.IsValidJSON(jsonStr) {
+		return nil, NewErrorf("invalid JSON string: %s", jsonStr)
 	}
 
 	var data map[string]any
-	err = encoding.UnmarshalFromString(json, &data)
+	err = encoding.UnmarshalFromString(jsonStr, &data)
 	if err != nil {
 		return nil, NewErrorAck(err)
 	}
 	if len(data) == 0 {
-		return nil, NewErrorf("an unexpected error occurred while unmarshaling JSON to map, json: %s", json)
+		return nil, NewErrorf("an unexpected error occurred while unmarshaling JSON to map, json: %s", jsonStr)
 	}
 	w = &wrapper{}
 	if value, exists := data["status_code"].(float64); exists {
@@ -61,8 +62,29 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 	if value, exists := data["message"].(string); exists {
 		w.message = value
 	}
+	// if the data is a string, check if it is a valid JSON string and convert it to a json.RawMessage
+	// otherwise, keep it as a string.
+	// if the data is a []byte, check if it is a valid JSON byte slice and convert it to a json.RawMessage
+	// otherwise, keep it as a []byte.
+	// if the data is a json.RawMessage, keep it as a json.RawMessage
+	// otherwise, keep it as a json.RawMessage.
 	if value, exists := data["data"]; exists {
-		w.data = value
+		switch v := value.(type) {
+		case string:
+			if encoding.IsValidJSON(v) {
+				w.data = json.RawMessage(encoding.Ugly([]byte(v)))
+			} else {
+				w.data = v
+			}
+		case []byte:
+			if encoding.IsValidJSONBytes(v) {
+				w.data = json.RawMessage(encoding.Ugly(v))
+			} else {
+				w.data = v
+			}
+		default:
+			w.data = value
+		}
 	}
 	if value, exists := data["path"].(string); exists {
 		w.path = value

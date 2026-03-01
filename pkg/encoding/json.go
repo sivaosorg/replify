@@ -8,6 +8,8 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // Toggle to choose how to handle NaN/±Inf floats in *safe* variants.
@@ -115,6 +117,34 @@ func Unmarshal(data []byte, v any) error {
 	return json.Unmarshal(data, v)
 }
 
+// SafeUnmarshal parses JSON-encoded data and stores the result in the value pointed to by `v`.
+//
+// This function uses the standard json library to unmarshal JSON data
+// (given as a byte slice) into the specified Go value `v`. If the unmarshalling
+// is successful, it populates the value `v`. If an error occurs, it returns the error.
+//
+// Parameters:
+//   - `data`: A byte slice containing JSON data to be unmarshalled.
+//   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
+//
+// Returns:
+//   - An error if the unmarshalling fails.
+//
+// Example:
+//
+//	err := SafeUnmarshal(jsonData, &myStruct)
+func SafeUnmarshal(data []byte, v any) error {
+	if len(data) == 0 {
+		return errors.New("empty JSON data")
+	}
+
+	if !IsValidJSONBytes(data) {
+		return errors.New("invalid JSON")
+	}
+
+	return Unmarshal(data, v)
+}
+
 // UnmarshalFromString parses JSON-encoded string and stores the result in the value pointed to by `v`.
 //
 // This function utilizes the standard json library to unmarshal JSON data
@@ -133,6 +163,34 @@ func Unmarshal(data []byte, v any) error {
 //	err := UnmarshalFromString(jsonString, &myStruct)
 func UnmarshalFromString(str string, v any) error {
 	return json.Unmarshal([]byte(str), v)
+}
+
+// SafeUnmarshalFromString parses JSON-encoded string and stores the result in the value pointed to by `v`.
+//
+// This function uses the standard json library to unmarshal JSON data
+// (given as a string) into the specified Go value `v`. If the unmarshalling
+// is successful, it populates the value `v`. If an error occurs, it returns the error.
+//
+// Parameters:
+//   - `str`: A string containing JSON data to be unmarshalled.
+//   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
+//
+// Returns:
+//   - An error if the unmarshalling fails.
+//
+// Example:
+//
+//	err := SafeUnmarshalFromString(jsonString, &myStruct)
+func SafeUnmarshalFromString(str string, v any) error {
+	if strutil.IsEmpty(str) {
+		return errors.New("empty JSON data")
+	}
+
+	if !IsValidJSON(str) {
+		return errors.New("invalid JSON")
+	}
+
+	return UnmarshalFromString(str, v)
 }
 
 // IsValidJSON checks if a given string is a valid JSON format.

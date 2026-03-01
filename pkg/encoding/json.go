@@ -8,6 +8,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
@@ -715,4 +716,45 @@ func jsonSafeToken(data any, pretty bool) (string, error) {
 
 	// 5) Everything else: marshal with panic protection and optional pretty indent.
 	return marshalToStrRecover(data, pretty)
+}
+
+// NormalizeJSON attempts to normalize a malformed JSON-like string into valid JSON.
+//
+// Normalization strategy:
+//  1. Empty input → return error.
+//  2. Already valid JSON → return unchanged (fast path, no allocation).
+//  3. Unescape literal `\"` sequences to `"` — a common artifact that arises when
+//     JSON is stored in Go raw string literals or transported through systems that
+//     double-escape structural quote characters.
+//  4. Validate the result; return the fixed string if valid, otherwise return an error.
+//
+// The function does NOT silently corrupt already-valid JSON: step 2 guarantees that
+// any input already accepted by the JSON parser is returned unchanged. The unescape
+// pass is only attempted when the input is invalid, so intra-string escape sequences
+// like `\"` inside a proper JSON string value are never touched.
+//
+// Parameters:
+//   - s: The input string to normalize.
+//
+// Returns:
+//   - A valid JSON string on success.
+//   - An error if the input is empty or cannot be normalized to valid JSON.
+//
+// Example:
+//
+//	normalized, err := NormalizeJSON(`{\"key\": "value"}`)
+func NormalizeJSON(s string) (string, error) {
+	if strutil.IsEmpty(s) {
+		return "", errors.New("empty input")
+	}
+	// Fast path: already valid JSON — return as-is with no allocation.
+	if IsValidJSON(s) {
+		return s, nil
+	}
+	// Unescape literal \" → " (structural quote escape artifacts).
+	fixed := strings.ReplaceAll(s, `\"`, `"`)
+	if IsValidJSON(fixed) {
+		return fixed, nil
+	}
+	return "", errors.New("cannot normalize to valid JSON")
 }

@@ -2686,6 +2686,38 @@ func (w *wrapper) WithBody(v any) *wrapper {
 	return w
 }
 
+// WithNormalizedBody normalizes the input string to valid JSON using
+// encoding.NormalizeJSON and sets it as the body data for the `wrapper` instance.
+//
+// This is useful when the input string may contain malformed JSON-like content
+// (e.g., literal `\"` escape artifacts from raw string literals or double-encoded
+// transports) that would otherwise prevent correct operation of IsJSONBody(),
+// JSON(), JSONPretty(), and QueryJSONBody().
+//
+// If normalization succeeds, the cleaned JSON string is stored as the body and
+// the method returns the updated wrapper and a nil error.
+// If the input cannot be normalized to valid JSON, the body is left unchanged
+// and a descriptive error is returned.
+//
+// Parameters:
+//   - s: The string to normalize and set as the body.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance and nil on success.
+//   - The unchanged `wrapper` instance and an error if normalization fails.
+//
+// Example:
+//
+//	w, err := replify.New().WithNormalizedBody(`{\"key\": "value"}`)
+func (w *wrapper) WithNormalizedBody(s string) (*wrapper, error) {
+	normalized, err := encoding.NormalizeJSON(s)
+	if err != nil {
+		return w, err
+	}
+	w.data = normalized
+	return w, nil
+}
+
 // WithPath sets the request path for the `wrapper` instance.
 //
 // This function updates the `path` field of the `wrapper` with the provided string

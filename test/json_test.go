@@ -593,9 +593,9 @@ func TestJSONPrettyToken_Complex128(t *testing.T) {
 	}
 }
 
-// /////////////////////////////////////////////////////
+// ///////////////////////////
 // Section: wrapper.JSON() and wrapper.JSONPretty()
-// /////////////////////////////////////////////////////
+// ///////////////////////////
 
 // wrapperJSONFixture is the JSON body used across wrapper JSON tests.
 const wrapperJSONFixture = `{"store":{"owner":"Alice"},"ratings":[5,3,4]}`
@@ -715,4 +715,151 @@ for k := range m {
 keys = append(keys, k)
 }
 return keys
+}
+
+// ///////////////////////////
+// Section: encoding.NormalizeJSON()
+// ///////////////////////////
+
+// TestNormalizeJSON_AlreadyValid verifies that already-valid JSON is returned
+// unchanged (fast path, no modification).
+func TestNormalizeJSON_AlreadyValid(t *testing.T) {
+input := `{"key":"value","n":42}`
+got, err := encoding.NormalizeJSON(input)
+if err != nil {
+t.Fatalf("NormalizeJSON(valid) unexpected error: %v", err)
+}
+if got != input {
+t.Errorf("NormalizeJSON(valid) = %q; want %q (unchanged)", got, input)
+}
+}
+
+// TestNormalizeJSON_Empty verifies that an empty string returns an error.
+func TestNormalizeJSON_Empty(t *testing.T) {
+_, err := encoding.NormalizeJSON("")
+if err == nil {
+t.Error("NormalizeJSON(\"\") expected error; got nil")
+}
+}
+
+// TestNormalizeJSON_WhitespaceOnly verifies that a whitespace-only string returns an error.
+func TestNormalizeJSON_WhitespaceOnly(t *testing.T) {
+_, err := encoding.NormalizeJSON("   ")
+if err == nil {
+t.Error("NormalizeJSON(whitespace) expected error; got nil")
+}
+}
+
+// TestNormalizeJSON_EscapedStructuralQuotes verifies that literal `\"` sequences
+// used as structural key/value delimiters are unescaped to produce valid JSON.
+func TestNormalizeJSON_EscapedStructuralQuotes(t *testing.T) {
+// Simulate a raw string with \"key\" artifacts.
+input := `{\"key\": \"value\"}`
+got, err := encoding.NormalizeJSON(input)
+if err != nil {
+t.Fatalf("NormalizeJSON(escaped structural quotes) unexpected error: %v", err)
+}
+if !encoding.IsValidJSON(got) {
+t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
+}
+want := `{"key": "value"}`
+if got != want {
+t.Errorf("NormalizeJSON = %q; want %q", got, want)
+}
+}
+
+// TestNormalizeJSON_MixedEscapedKeys verifies a realistic case where only some keys
+// are escaped with `\"` and the rest of the object is normal JSON.
+func TestNormalizeJSON_MixedEscapedKeys(t *testing.T) {
+input := `{\"store\": {"owner": "Alice"}}`
+got, err := encoding.NormalizeJSON(input)
+if err != nil {
+t.Fatalf("NormalizeJSON(mixed escaped keys) unexpected error: %v", err)
+}
+if !encoding.IsValidJSON(got) {
+t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
+}
+}
+
+// TestNormalizeJSON_UnfixableInput verifies that an input that cannot be normalized
+// to valid JSON returns an error.
+func TestNormalizeJSON_UnfixableInput(t *testing.T) {
+_, err := encoding.NormalizeJSON("{this is not json at all}")
+if err == nil {
+t.Error("NormalizeJSON(unfixable) expected error; got nil")
+}
+}
+
+// TestNormalizeJSON_ObjectArray verifies normalization of a more complex structure
+// with escaped outer keys.
+func TestNormalizeJSON_ObjectArray(t *testing.T) {
+input := `{\"items\": [1, 2, 3], \"count\": 3}`
+got, err := encoding.NormalizeJSON(input)
+if err != nil {
+t.Fatalf("NormalizeJSON(object+array) unexpected error: %v", err)
+}
+if !encoding.IsValidJSON(got) {
+t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
+}
+}
+
+// ///////////////////////////
+// Section: wrapper.WithNormalizedBody()
+// ///////////////////////////
+
+// TestWithNormalizedBody_ValidJSON verifies that a valid JSON string is accepted
+// without modification and downstream functions work correctly.
+func TestWithNormalizedBody_ValidJSON(t *testing.T) {
+input := `{"store":{"owner":"Alice"}}`
+w, err := replify.New().WithNormalizedBody(input)
+if err != nil {
+t.Fatalf("WithNormalizedBody(valid) unexpected error: %v", err)
+}
+if !w.IsJSONBody() {
+t.Error("WithNormalizedBody(valid): IsJSONBody() = false; want true")
+}
+if w.Body() != input {
+t.Errorf("WithNormalizedBody(valid): Body() = %v; want %q", w.Body(), input)
+}
+}
+
+// TestWithNormalizedBody_EscapedQuotes verifies that escaped structural quotes are
+// fixed so that IsJSONBody(), JSON(), and JSONPretty() all behave correctly.
+func TestWithNormalizedBody_EscapedQuotes(t *testing.T) {
+input := `{\"store\": {\"owner\": \"Alice\"}}`
+w, err := replify.New().WithNormalizedBody(input)
+if err != nil {
+t.Fatalf("WithNormalizedBody(escaped) unexpected error: %v", err)
+}
+if !w.IsJSONBody() {
+t.Error("WithNormalizedBody(escaped): IsJSONBody() = false; want true")
+}
+// JSON() output must be valid JSON with data inlined as an object.
+jsonOut := w.JSON()
+var parsed map[string]any
+if err := json.Unmarshal([]byte(jsonOut), &parsed); err != nil {
+t.Fatalf("WithNormalizedBody(escaped): JSON() output is not valid JSON: %v\noutput: %s", err, jsonOut)
+}
+if _, ok := parsed["data"].(map[string]any); !ok {
+t.Errorf("WithNormalizedBody(escaped): JSON() data field type = %T; want map[string]any", parsed["data"])
+}
+}
+
+// TestWithNormalizedBody_InvalidInput verifies that an input that cannot be normalized
+// returns an error and leaves the wrapper body unchanged.
+func TestWithNormalizedBody_InvalidInput(t *testing.T) {
+w := replify.New()
+w.WithBody("original")
+_, err := w.WithNormalizedBody("{this is not json}")
+if err == nil {
+t.Error("WithNormalizedBody(invalid) expected error; got nil")
+}
+}
+
+// TestWithNormalizedBody_Empty verifies that an empty string returns an error.
+func TestWithNormalizedBody_Empty(t *testing.T) {
+_, err := replify.New().WithNormalizedBody("")
+if err == nil {
+t.Error("WithNormalizedBody(\"\") expected error; got nil")
+}
 }

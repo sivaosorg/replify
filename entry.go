@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/encoding"
+	"github.com/sivaosorg/replify/pkg/fj"
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // UnwrapJSON takes a JSON string as input and maps it into a 'wrapper' struct, populating its fields
@@ -34,13 +36,20 @@ import (
 // nested objects (like `header`, `meta`, and `pagination`), checking for the
 // presence of keys and converting them into their appropriate types.
 func UnwrapJSON(json string) (w *wrapper, err error) {
+	if strutil.IsEmpty(json) {
+		return nil, NewError("JSON string is required")
+	}
+	if !encoding.IsValidJSON(json) || !fj.IsValidJSON(json) {
+		return nil, NewErrorf("invalid JSON string: %s", json)
+	}
+
 	var data map[string]any
 	err = encoding.UnmarshalFromString(json, &data)
 	if err != nil {
 		return nil, NewErrorAck(err)
 	}
 	if len(data) == 0 {
-		return nil, NewErrorf("the wrapper response is empty with JSON string: %v", json)
+		return nil, NewErrorf("an unexpected error occurred while unmarshaling JSON to map, json: %s", json)
 	}
 	w = &wrapper{}
 	if value, exists := data["status_code"].(float64); exists {
@@ -163,7 +172,7 @@ func UnwrapJSON(json string) (w *wrapper, err error) {
 //	}
 func WrapFrom(data map[string]any) (w *wrapper, err error) {
 	if len(data) == 0 {
-		return nil, NewError("data is nil/null")
+		return nil, NewError("data is required")
 	}
 	json := jsonpass(data)
 	return UnwrapJSON(json)

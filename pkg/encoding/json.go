@@ -449,6 +449,12 @@ func jsonSafe(data any, pretty bool) string {
 		return ""
 	}
 
+	// if data is string, return it
+	s, ok := data.(string)
+	if ok {
+		return s
+	}
+
 	// 1) Pass-through raw JSON if explicitly provided.
 	if rm, ok := data.(json.RawMessage); ok {
 		if rm == nil {
@@ -559,6 +565,12 @@ func jsonSafe(data any, pretty bool) string {
 func jsonSafeToken(data any, pretty bool) (string, error) {
 	if data == nil {
 		return "", ErrNilInterface
+	}
+
+	// if data is string, return it
+	s, ok := data.(string)
+	if ok {
+		return s, nil
 	}
 
 	// 1) Pass-through raw JSON if explicitly provided.

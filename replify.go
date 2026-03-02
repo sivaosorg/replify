@@ -3632,8 +3632,8 @@ func (w *wrapper) Respond() map[string]any {
 //
 // Example usage:
 //
-//	var response replify.R = replify.NewWrap().Reply()
-//	fmt.Println(response.Json())  // Prints the wrapped response details, including data, headers, and metadata.
+//	var response replify.R = replify.New().Reply()
+//	fmt.Println(response.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) Reply() R {
 	return R{wrapper: w}
 }
@@ -3649,8 +3649,8 @@ func (w *wrapper) Reply() R {
 //
 // Example usage:
 //
-//	var responsePtr *replify.R = replify.NewWrap().ReplyPtr()
-//	fmt.Println(responsePtr.Json())  // Prints the wrapped response details, including data, headers, and metadata.
+//	var responsePtr *replify.R = replify.New().ReplyPtr()
+//	fmt.Println(responsePtr.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) ReplyPtr() *R {
 	return &R{wrapper: w}
 }

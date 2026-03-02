@@ -155,28 +155,28 @@ func (p *pagination) Respond() map[string]any {
 	return m
 }
 
-// Json serializes the `pagination` instance into a compact JSON string.
+// JSON serializes the `pagination` instance into a compact JSON string.
 //
-// This function uses the `encoding.Json` utility to generate a JSON representation
+// This function uses the `encoding.JSON` utility to generate a JSON representation
 // of the `pagination` instance. The output is a compact JSON string with no additional
 // whitespace or formatting, providing a minimalistic view of the pagination data.
 //
 // Returns:
 //   - A compact JSON string representation of the `pagination` instance.
-func (p *pagination) Json() string {
+func (p *pagination) JSON() string {
 	return jsonpass(p.Respond())
 }
 
-// JsonPretty serializes the `pagination` instance into a prettified JSON string.
+// JSONPretty serializes the `pagination` instance into a prettified JSON string.
 //
-// This function uses the `encoding.JsonPretty` utility to generate a JSON representation
+// This function uses the `encoding.JSONPretty` utility to generate a JSON representation
 // of the `pagination` instance. The output is a human-readable JSON string with
 // proper indentation and formatting for better readability, which is helpful for
 // inspecting pagination data during development or debugging.
 //
 // Returns:
 //   - A prettified JSON string representation of the `pagination` instance.
-func (p *pagination) JsonPretty() string {
+func (p *pagination) JSONPretty() string {
 	return jsonpretty(p.Respond())
 }
 

@@ -279,27 +279,27 @@ func (m *meta) Respond() map[string]any {
 	return mk
 }
 
-// Json serializes the `meta` instance into a compact JSON string.
+// JSON serializes the `meta` instance into a compact JSON string.
 //
-// This function uses the `encoding.Json` utility to create a compact JSON representation
+// This function uses the `encoding.JSON` utility to create a compact JSON representation
 // of the `meta` instance. The resulting string is formatted without additional whitespace,
 // suitable for efficient storage or transmission of metadata.
 //
 // Returns:
 //   - A compact JSON string representation of the `meta` instance.
-func (m *meta) Json() string {
+func (m *meta) JSON() string {
 	return jsonpass(m.Respond())
 }
 
-// JsonPretty serializes the `meta` instance into a prettified JSON string.
+// JSONPretty serializes the `meta` instance into a prettified JSON string.
 //
-// This function calls the `encoding.JsonPretty` utility to produce a formatted, human-readable
+// This function calls the `encoding.JSONPretty` utility to produce a formatted, human-readable
 // JSON string representation of the `meta` instance. The output is useful for debugging
 // or inspecting metadata in a more structured format.
 //
 // Returns:
 //   - A prettified JSON string representation of the `meta` instance.
-func (m *meta) JsonPretty() string {
+func (m *meta) JSONPretty() string {
 	return jsonpretty(m.Respond())
 }
 

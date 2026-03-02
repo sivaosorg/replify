@@ -506,24 +506,24 @@ func (sw *StreamingWrapper) Start(ctx context.Context) *wrapper {
 	return sw.wrapper
 }
 
-// Json returns the JSON representation of the StreamConfig.
+// JSON returns the JSON representation of the StreamConfig.
 // This method serializes the StreamConfig struct into a JSON string
-// using the encoding.Json function.
-func (s *StreamConfig) Json() string {
+// using the encoding.JSON function.
+func (s *StreamConfig) JSON() string {
 	return jsonpass(s)
 }
 
-// Json returns the JSON representation of the StreamingStats.
+// JSON returns the JSON representation of the StreamingStats.
 // This method serializes the StreamingStats struct into a JSON string
-// using the encoding.Json function.
-func (s *StreamingStats) Json() string {
+// using the encoding.JSON function.
+func (s *StreamingStats) JSON() string {
 	return jsonpass(s)
 }
 
-// Json returns the JSON representation of the StreamProgress.
+// JSON returns the JSON representation of the StreamProgress.
 // This method serializes the StreamProgress struct into a JSON string
-// using the encoding.Json function.
-func (s *StreamProgress) Json() string {
+// using the encoding.JSON function.
+func (s *StreamProgress) JSON() string {
 	return jsonpass(s)
 }
 

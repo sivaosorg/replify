@@ -99,27 +99,27 @@ func (h *header) Respond() map[string]any {
 	return m
 }
 
-// Json serializes the `header` instance into a compact JSON string.
+// JSON serializes the `header` instance into a compact JSON string.
 //
-// This function uses the `encoding.Json` utility to create a compact JSON representation
+// This function uses the `encoding.JSON` utility to create a compact JSON representation
 // of the `header` instance. The resulting string contains only the key information, formatted
 // with minimal whitespace, making it suitable for compact storage or transmission of header data.
 //
 // Returns:
 //   - A compact JSON string representation of the `header` instance.
-func (h *header) Json() string {
+func (h *header) JSON() string {
 	return jsonpass(h.Respond())
 }
 
-// JsonPretty serializes the `header` instance into a prettified JSON string.
+// JSONPretty serializes the `header` instance into a prettified JSON string.
 //
-// This function uses the `encoding.JsonPretty` utility to produce a formatted, human-readable
+// This function uses the `encoding.JSONPretty` utility to produce a formatted, human-readable
 // JSON string representation of the `header` instance. The output is structured with indentation
 // and newlines, making it ideal for inspecting header data in a clear, easy-to-read format, especially
 // during debugging or development.
 //
 // Returns:
 //   - A prettified JSON string representation of the `header` instance, formatted for improved readability.
-func (h *header) JsonPretty() string {
+func (h *header) JSONPretty() string {
 	return jsonpretty(h.Respond())
 }

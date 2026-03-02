@@ -70,7 +70,7 @@ func main() {
     user := User{Name: "Alice", Age: 30, Email: "alice@example.com"}
     
     // Marshal to JSON
-    jsonBytes, err := encoding.Marshal(user)
+    jsonBytes, err := encoding.MarshalJSONb(user)
     if err != nil {
         panic(err)
     }
@@ -94,72 +94,95 @@ func main() {
 ### 1. Basic JSON Marshaling
 
 ```go
-type Product struct {
-    ID    int     `json:"id"`
-    Name  string  `json:"name"`
-    Price float64 `json:"price"`
-}
+package main
 
-product := Product{ID: 1, Name: "Laptop", Price: 999.99}
+import (
+	"fmt"
+	"log"
 
-// Marshal to bytes
-jsonBytes, err := encoding.Marshal(product)
-if err != nil {
-    log.Fatal(err)
-}
-fmt.Println(string(jsonBytes))
-// Output: {"id":1,"name":"Laptop","price":999.99}
+	"github.com/sivaosorg/replify/pkg/encoding"
+)
 
-// Marshal to string directly
-jsonString, err := encoding.MarshalToString(product)
-if err != nil {
-    log.Fatal(err)
-}
-fmt.Println(jsonString)
-// Output: {"id":1,"name":"Laptop","price":999.99}
+func main() {
+	type Product struct {
+		ID    int     `json:"id"`
+		Name  string  `json:"name"`
+		Price float64 `json:"price"`
+	}
 
-// Marshal with indentation
-indented, err := encoding.MarshalIndent(product, "", "  ")
-if err != nil {
-    log.Fatal(err)
+	product := Product{ID: 1, Name: "Laptop", Price: 999.99}
+
+	// Marshal to bytes
+	jsonBytes, err := encoding.MarshalJSONb(product)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(jsonBytes))
+	// Output: {"id":1,"name":"Laptop","price":999.99}
+
+	// Marshal to string directly
+	jsonString, err := encoding.MarshalJSONs(product)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(jsonString)
+	// Output: {"id":1,"name":"Laptop","price":999.99}
+
+	// Marshal with indentation
+	indented, err := encoding.MarshalJSONIndent(product, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(string(indented))
+	// Output:
+	//
+	//	{
+	//	  "id": 1,
+	//	  "name": "Laptop",
+	//	  "price": 999.99
+	//	}
 }
-fmt.Println(string(indented))
-// Output:
-// {
-//   "id": 1,
-//   "name": "Laptop",
-//   "price": 999.99
-// }
 ```
 
 ### 2. JSON Unmarshaling
 
 ```go
-type User struct {
-    Name  string `json:"name"`
-    Age   int    `json:"age"`
-    Email string `json:"email"`
-}
+package main
 
-// From bytes
-jsonBytes := []byte(`{"name":"Bob","age":25,"email":"bob@example.com"}`)
-var user User
-err := encoding.Unmarshal(jsonBytes, &user)
-if err != nil {
-    log.Fatal(err)
-}
-fmt.Printf("%+v\n", user)
-// Output: {Name:Bob Age:25 Email:bob@example.com}
+import (
+	"fmt"
+	"log"
 
-// From string
-jsonString := `{"name":"Charlie","age":35,"email":"charlie@example.com"}`
-var anotherUser User
-err = encoding.UnmarshalFromString(jsonString, &anotherUser)
-if err != nil {
-    log.Fatal(err)
+	"github.com/sivaosorg/replify/pkg/encoding"
+)
+
+func main() {
+	type User struct {
+		Name  string `json:"name"`
+		Age   int    `json:"age"`
+		Email string `json:"email"`
+	}
+
+	// From bytes
+	jsonBytes := []byte(`{"name":"Bob","age":25,"email":"bob@example.com"}`)
+	var user User
+	err := encoding.UnmarshalBytes(jsonBytes, &user)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%+v\n", user)
+	// Output: {Name:Bob Age:25 Email:bob@example.com}
+
+	// From string
+	jsonString := `{"name":"Charlie","age":35,"email":"charlie@example.com"}`
+	var anotherUser User
+	err = encoding.UnmarshalJSON(jsonString, &anotherUser)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("%+v\n", anotherUser)
+	// Output: {Name:Charlie Age:35 Email:charlie@example.com}
 }
-fmt.Printf("%+v\n", anotherUser)
-// Output: {Name:Charlie Age:35 Email:charlie@example.com}
 ```
 
 ### 3. Pretty Printing JSON
@@ -309,7 +332,7 @@ func formatResponse(data interface{}) (string, error) {
         Message: "Request processed successfully",
     }
     
-    return encoding.MarshalToString(response)
+    return encoding.MarshalJSONs(response)
 }
 
 // Usage
@@ -330,7 +353,7 @@ type AppConfig struct {
 
 func SaveConfig(config AppConfig, filename string) error {
     // Marshal with indentation for readability
-    data, err := encoding.MarshalIndent(config, "", "  ")
+    data, err := encoding.MarshalJSONIndent(config, "", "  ")
     if err != nil {
         return err
     }
@@ -345,7 +368,7 @@ func LoadConfig(filename string) (*AppConfig, error) {
     }
     
     var config AppConfig
-    err = encoding.Unmarshal(data, &config)
+    err = encoding.UnmarshalBytes(data, &config)
     return &config, err
 }
 ```
@@ -353,7 +376,7 @@ func LoadConfig(filename string) (*AppConfig, error) {
 #### Debug Logging
 ```go
 func LogJSON(label string, data interface{}) {
-    jsonBytes, err := encoding.Marshal(data)
+    jsonBytes, err := encoding.MarshalJSONb(data)
     if err != nil {
         log.Printf("[ERROR] Failed to marshal %s: %v", label, err)
         return
@@ -376,7 +399,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
     
     // Unmarshal request body
     body, _ := io.ReadAll(r.Body)
-    if err := encoding.Unmarshal(body, &requestData); err != nil {
+    if err := encoding.UnmarshalBytes(body, &requestData); err != nil {
         http.Error(w, "Invalid JSON", http.StatusBadRequest)
         return
     }
@@ -388,7 +411,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
     }
     
     // Marshal response
-    jsonBytes, _ := encoding.Marshal(responseData)
+    jsonBytes, _ := encoding.MarshalJSONb(responseData)
     w.Header().Set("Content-Type", "application/json")
     w.Write(jsonBytes)
 }
@@ -397,7 +420,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 #### CLI Output Formatting
 ```go
 func DisplayResults(results []Result) {
-    jsonBytes, err := encoding.Marshal(results)
+    jsonBytes, err := encoding.MarshalJSONb(results)
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error: %v\n", err)
         return
@@ -442,7 +465,7 @@ company := Company{
 }
 
 // Marshal and pretty print
-jsonBytes, _ := encoding.Marshal(company)
+jsonBytes, _ := encoding.MarshalJSONb(company)
 pretty := encoding.Pretty(jsonBytes)
 fmt.Println(string(pretty))
 ```
@@ -455,15 +478,15 @@ fmt.Println(string(pretty))
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `Marshal` | `(v any) ([]byte, error)` | Convert Go value to JSON bytes |
-| `MarshalToString` | `(v any) (string, error)` | Convert Go value to JSON string |
-| `MarshalIndent` | `(v any, prefix, indent string) ([]byte, error)` | Convert Go value to indented JSON |
+| `MarshalJSONb` | `(v any) ([]byte, error)` | Convert Go value to JSON bytes |
+| `MarshalJSONs` | `(v any) (string, error)` | Convert Go value to JSON string |
+| `MarshalJSONIndent` | `(v any, prefix, indent string) ([]byte, error)` | Convert Go value to indented JSON |
 
 **Examples:**
 ```go
-bytes, err := encoding.Marshal(data)
-str, err := encoding.MarshalToString(data)
-indented, err := encoding.MarshalIndent(data, "", "  ")
+bytes, err := encoding.MarshalJSONb(data)
+str, err := encoding.MarshalJSONs(data)
+indented, err := encoding.MarshalJSONIndent(data, "", "  ")
 ```
 
 ---
@@ -472,13 +495,13 @@ indented, err := encoding.MarshalIndent(data, "", "  ")
 
 | Function | Signature | Description |
 |----------|-----------|-------------|
-| `Unmarshal` | `(data []byte, v any) error` | Parse JSON bytes into Go value |
-| `UnmarshalFromString` | `(str string, v any) error` | Parse JSON string into Go value |
+| `UnmarshalBytes` | `(data []byte, v any) error` | Parse JSON bytes into Go value |
+| `UnmarshalJSON` | `(str string, v any) error` | Parse JSON string into Go value |
 
 **Examples:**
 ```go
-err := encoding.Unmarshal(jsonBytes, &myStruct)
-err := encoding.UnmarshalFromString(jsonString, &myStruct)
+err := encoding.UnmarshalBytes(jsonBytes, &myStruct)
+err := encoding.UnmarshalJSON(jsonString, &myStruct)
 ```
 
 ---
@@ -553,10 +576,10 @@ Use this when calling `Pretty()` or pass `nil` to `PrettyOptions()`.
 1. **Forgetting Error Handling**
    ```go
    // ❌ Bad: ignoring errors
-   jsonBytes, _ := encoding.Marshal(data)
+   jsonBytes, _ := encoding.MarshalJSONb(data)
    
    // ✅ Good: handle errors
-   jsonBytes, err := encoding.Marshal(data)
+   jsonBytes, err := encoding.MarshalJSONb(data)
    if err != nil {
        log.Printf("Failed to marshal: %v", err)
        return err
@@ -567,22 +590,22 @@ Use this when calling `Pretty()` or pass `nil` to `PrettyOptions()`.
    ```go
    // ❌ Bad: unmarshaling into non-pointer
    var user User
-   encoding.Unmarshal(data, user) // Won't work!
+   encoding.UnmarshalBytes(data, user) // Won't work!
    
    // ✅ Good: pass pointer
    var user User
-   encoding.Unmarshal(data, &user)
+   encoding.UnmarshalBytes(data, &user)
    ```
 
 3. **Using Pretty in Production APIs**
    ```go
    // ❌ Bad: pretty-printing adds overhead
-   jsonBytes, _ := encoding.Marshal(data)
+   jsonBytes, _ := encoding.MarshalJSONb(data)
    pretty := encoding.Pretty(jsonBytes)
    w.Write(pretty) // Extra processing!
    
    // ✅ Good: use compact format
-   jsonBytes, _ := encoding.Marshal(data)
+   jsonBytes, _ := encoding.MarshalJSONb(data)
    w.Write(jsonBytes)
    ```
 
@@ -603,10 +626,10 @@ Use this when calling `Pretty()` or pass `nil` to `PrettyOptions()`.
 ✅ **Use appropriate functions for the context**
 ```go
 // For APIs: compact format
-jsonBytes, _ := encoding.Marshal(data)
+jsonBytes, _ := encoding.MarshalJSONb(data)
 
 // For configuration files: indented format
-indented, _ := encoding.MarshalIndent(config, "", "  ")
+indented, _ := encoding.MarshalJSONIndent(config, "", "  ")
 
 // For debugging: pretty print
 pretty := encoding.Pretty(jsonBytes)
@@ -626,7 +649,7 @@ func SafeUnmarshal(data []byte, v interface{}) error {
         return errors.New("invalid JSON")
     }
     
-    return encoding.Unmarshal(data, v)
+    return encoding.UnmarshalBytes(data, v)
 }
 ```
 
@@ -679,7 +702,7 @@ for i := 0; i < 100; i++ {
     go func(id int) {
         defer wg.Done()
         data := getData(id)
-        jsonBytes, _ := encoding.Marshal(data)
+        jsonBytes, _ := encoding.MarshalJSONb(data)
         pretty := encoding.Pretty(jsonBytes)
         // Safe concurrent use
     }(i)
@@ -690,14 +713,14 @@ wg.Wait()
 ### ⚡ Performance Tips
 
 **Fast operations:**
-- `Marshal` - Direct encoding/json wrapper
-- `Unmarshal` - Direct encoding/json wrapper
+- `MarshalJSONb` - Direct encoding/json wrapper
+- `UnmarshalBytes` - Direct encoding/json wrapper
 - `UglyInPlace` - Modifies in-place (no allocation)
 
 **Moderate operations:**
 - `Ugly` - Creates new buffer
 - `Pretty` - Formatting overhead
-- `MarshalIndent` - Extra formatting
+- `MarshalJSONIndent` - Extra formatting
 
 **Slower operations:**
 - `PrettyOptions` with `SortKeys: true` - Sorting overhead
@@ -742,7 +765,7 @@ fmt.Println("After:", string(pretty))
 **Check types:**
 ```go
 var v interface{}
-encoding.Unmarshal(data, &v)
+encoding.UnmarshalBytes(data, &v)
 fmt.Printf("Type: %T, Value: %v\n", v, v)
 ```
 
@@ -760,14 +783,14 @@ func TestMarshalUnmarshal(t *testing.T) {
     original := TestStruct{Name: "test", Value: 42}
     
     // Marshal
-    jsonBytes, err := encoding.Marshal(original)
+    jsonBytes, err := encoding.MarshalJSONb(original)
     if err != nil {
         t.Fatalf("Marshal failed: %v", err)
     }
     
     // Unmarshal
     var result TestStruct
-    err = encoding.Unmarshal(jsonBytes, &result)
+    err = encoding.UnmarshalBytes(jsonBytes, &result)
     if err != nil {
         t.Fatalf("Unmarshal failed: %v", err)
     }
@@ -788,7 +811,7 @@ func TestPrettyFormatting(t *testing.T) {
     
     // Check it's still valid JSON
     var v interface{}
-    if err := encoding.Unmarshal(pretty, &v); err != nil {
+    if err := encoding.UnmarshalBytes(pretty, &v); err != nil {
         t.Errorf("Pretty output is not valid JSON: %v", err)
     }
 }

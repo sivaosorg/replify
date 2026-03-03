@@ -8,65 +8,6 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// Expression is a parsed cron expression that exposes schedule utilities
-// without requiring a running Scheduler instance. Obtain one via MustParse.
-//
-// Expression is immutable and safe for concurrent use.
-type Expression struct {
-	raw      string
-	schedule Schedule
-}
-
-// Raw returns the original expression string as passed to MustParse.
-func (e Expression) Raw() string { return e.raw }
-
-// Next returns the first activation time strictly after from. It returns the
-// zero time when no future activation exists (e.g. the schedule is exhausted).
-//
-// Example:
-//
-//	next := expr.Next(time.Now())
-func (e Expression) Next(from time.Time) time.Time {
-	return e.schedule.Next(from)
-}
-
-// NextN returns the next n activation times starting from from. If fewer than
-// n future activations exist, the slice is shorter than n.
-//
-// Example:
-//
-//	next := expr.NextN(time.Now(), 5)
-func (e Expression) NextN(from time.Time, n int) []time.Time {
-	if n <= 0 {
-		return nil
-	}
-	out := make([]time.Time, 0, n)
-	cur := from
-	for len(out) < n {
-		next := e.schedule.Next(cur)
-		if next.IsZero() {
-			break
-		}
-		out = append(out, next)
-		cur = next
-	}
-	return out
-}
-
-// IsDue reports whether the expression is due at the given time using
-// second-level granularity. See the package-level IsDue for the exact
-// semantics.
-//
-// Example:
-//
-//	now := time.Now().Truncate(time.Minute)
-//	if expr.IsDue(now) {
-//		sendDailyReport()
-//	}
-func (e Expression) IsDue(at time.Time) bool {
-	return isDue(e.schedule, at)
-}
-
 // MustParse is like Parse but panics instead of returning an error when the
 // expression is invalid. It is intended for use in package-level variable
 // initializers where the expression is a compile-time constant.

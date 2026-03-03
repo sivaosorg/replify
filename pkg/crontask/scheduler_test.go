@@ -442,8 +442,8 @@ func TestBackoffPolicies(t *testing.T) {
 	}
 }
 
-// TestNoopHooks ensures NoopHooks satisfies the Hooks interface and panics on
-// no methods.
+// TestNoopHooks ensures NoopHooks satisfies the Hooks interface and that all
+// methods are safe to call without any side effects.
 func TestNoopHooks(t *testing.T) {
 	t.Parallel()
 	var h Hooks = NoopHooks{}
@@ -474,12 +474,15 @@ func TestSchedulerWithSecondsOption(t *testing.T) {
 }
 
 // testHooks is a lightweight Hooks implementation used in scheduler tests.
+// The callback fields use distinct parameter names to avoid confusion with
+// context.Context: the first string argument is an unused placeholder, and
+// the second is the job ID.
 type testHooks struct {
 	NoopHooks
-	onStart    func(ctx, id string)
-	onSuccess  func(ctx, id string, d time.Duration)
-	onFailure  func(ctx, id string, d time.Duration, err error)
-	onComplete func(ctx, id string, d time.Duration)
+	onStart    func(placeholder, id string)
+	onSuccess  func(placeholder, id string, d time.Duration)
+	onFailure  func(placeholder, id string, d time.Duration, err error)
+	onComplete func(placeholder, id string, d time.Duration)
 }
 
 func (h *testHooks) OnStart(_ context.Context, id string) {

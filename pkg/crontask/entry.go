@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // Expression is a parsed cron expression that exposes schedule utilities
@@ -20,12 +22,20 @@ func (e Expression) Raw() string { return e.raw }
 
 // Next returns the first activation time strictly after from. It returns the
 // zero time when no future activation exists (e.g. the schedule is exhausted).
+//
+// Example:
+//
+//	next := expr.Next(time.Now())
 func (e Expression) Next(from time.Time) time.Time {
 	return e.schedule.Next(from)
 }
 
 // NextN returns the next n activation times starting from from. If fewer than
 // n future activations exist, the slice is shorter than n.
+//
+// Example:
+//
+//	next := expr.NextN(time.Now(), 5)
 func (e Expression) NextN(from time.Time, n int) []time.Time {
 	if n <= 0 {
 		return nil
@@ -46,6 +56,13 @@ func (e Expression) NextN(from time.Time, n int) []time.Time {
 // IsDue reports whether the expression is due at the given time using
 // second-level granularity. See the package-level IsDue for the exact
 // semantics.
+//
+// Example:
+//
+//	now := time.Now().Truncate(time.Minute)
+//	if expr.IsDue(now) {
+//		sendDailyReport()
+//	}
 func (e Expression) IsDue(at time.Time) bool {
 	return isDue(e.schedule, at)
 }
@@ -69,6 +86,10 @@ func MustParse(expr string) Expression {
 // valid cron expression recognised by this package. It is equivalent to
 // Validate(expr) == nil.
 //
+// Example:
+//
+//	valid := crontask.IsValidCronExpr("0 9 * * 1-5")
+//
 // Thread-safe; does not require a Scheduler instance.
 func IsValidCronExpr(expr string) bool {
 	return Validate(expr) == nil
@@ -80,6 +101,10 @@ func IsValidCronExpr(expr string) bool {
 //
 // ValidateCronExpr is a convenience wrapper around Validate and is provided
 // for callers who prefer the longer, self-documenting name.
+//
+// Example:
+//
+//	err := crontask.ValidateCronExpr("0 9 * * 1-5")
 //
 // Thread-safe; does not require a Scheduler instance.
 func ValidateCronExpr(expr string) error {
@@ -182,6 +207,10 @@ func NextRuns(expr string, from time.Time, n int) ([]time.Time, error) {
 //	desc, err := crontask.Explain("0 0 * * 1-5")
 //	// desc == "At 00:00, Monday through Friday"
 func Explain(expr string) (string, error) {
+	if strutil.IsEmpty(expr) {
+		return "", ErrInvalidExpression
+	}
+
 	trimmed := strings.TrimSpace(expr)
 	// Validate first — reuse Parse to avoid duplicating validation logic.
 	if _, err := Parse(trimmed); err != nil {
@@ -236,6 +265,11 @@ func Explain(expr string) (string, error) {
 //
 //	err := crontask.RegisterAlias("@nightly", "0 2 * * *")
 func RegisterAlias(name, expr string) error {
+	if strutil.IsEmpty(name) || strutil.IsEmpty(expr) {
+		return fmt.Errorf("crontask: alias name %q and expression %q cannot be empty", name, expr)
+	}
+
+	// name must begin with "@"
 	if !strings.HasPrefix(name, "@") {
 		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
 	}
@@ -245,6 +279,8 @@ func RegisterAlias(name, expr string) error {
 	if len(fields) != 5 && len(fields) != 6 {
 		return fmt.Errorf("crontask: alias expression must have 5 or 6 fields, got %q", expr)
 	}
+
+	// Validate that expr is a valid cron expression
 	if _, err := Parse(expr); err != nil {
 		return err
 	}
@@ -268,12 +304,19 @@ func RegisterAlias(name, expr string) error {
 //	// ... use @nightly ...
 //	crontask.DeleteAlias("@nightly")
 func DeleteAlias(name string) error {
+	if strutil.IsEmpty(name) {
+		return fmt.Errorf("crontask: alias name %q cannot be empty", name)
+	}
+
+	// name must begin with "@"
 	if !strings.HasPrefix(name, "@") {
 		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
 	}
 	key := strings.ToLower(name)
 	aliasMapMu.Lock()
 	defer aliasMapMu.Unlock()
+
+	// Check if alias exists
 	if _, ok := aliasMap[key]; !ok {
 		return fmt.Errorf("crontask: alias %q not found", name)
 	}

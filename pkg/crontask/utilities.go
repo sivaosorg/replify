@@ -477,3 +477,21 @@ func explainFields(fields []string) string {
 		return "Custom schedule"
 	}
 }
+
+// recordResult stores the outcome of a single execution into the entry's
+// mutable state.
+func recordResult(e *entry, t time.Time, err error) {
+	e.mu.Lock()
+	e.lastRun = t
+	e.lastErr = err
+	e.runCount++
+	e.mu.Unlock()
+}
+
+// updateNextRun recomputes the next activation time for e using the
+// scheduler's reference time as the base.
+func updateNextRun(e *entry, now time.Time) {
+	e.mu.Lock()
+	e.nextRun = e.schedule.Next(now)
+	e.mu.Unlock()
+}

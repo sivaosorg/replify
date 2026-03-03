@@ -2,6 +2,7 @@ package crontask
 
 import (
 	"context"
+	"sync"
 	"time"
 )
 
@@ -35,6 +36,43 @@ import (
 // When using the six-field (seconds-first) format, the above expansions gain
 // a leading "0" second field automatically.
 type Alias = string
+
+// JobFunc is the function signature for a scheduled job. The context passed
+// to JobFunc is derived from the job's base context (or context.Background
+// when none is configured) and may carry a deadline when WithTimeout is set.
+// Jobs should honour context cancellation for clean shutdown.
+type JobFunc func(ctx context.Context) error
+
+// JobInfo is an immutable snapshot of a registered job's metadata and
+// runtime statistics. It is returned by Jobs() and used for introspection.
+type JobInfo struct {
+	// ID is the unique identifier of the job, either supplied by the caller
+	// via WithJobID or generated automatically at registration time.
+	ID string
+
+	// Name is an optional human-readable label set via WithJobName.
+	Name string
+
+	// Expression is the raw cron expression string as supplied to Register.
+	Expression string
+
+	// NextRun is the next scheduled activation time in the scheduler's
+	// timezone. The zero value means the schedule has no future activations.
+	NextRun time.Time
+
+	// LastRun is the time the job was most recently dispatched. The zero
+	// value means the job has never been executed.
+	LastRun time.Time
+
+	// LastErr is the error returned by the most recent execution, or nil if
+	// the last execution succeeded or the job has never been run.
+	LastErr error
+
+	// RunCount is the total number of times the job has been dispatched
+	// (across all retries within a single schedule activation, only the
+	// initial dispatch is counted).
+	RunCount int64
+}
 
 // Schedule is the interface implemented by any type that can compute the next
 // activation time for a scheduled job. The single method Next receives the
@@ -131,6 +169,23 @@ type JobError struct {
 	Err error
 }
 
+// entry is the internal mutable state for a single registered job. Access
+// must be protected by the owning registry's mutex.
+type entry struct {
+	id         string
+	name       string
+	expression string
+	schedule   Schedule
+	fn         JobFunc
+	cfg        jobConfig
+
+	mu       sync.Mutex
+	nextRun  time.Time
+	lastRun  time.Time
+	lastErr  error
+	runCount int64
+}
+
 // fieldSpec describes the valid range for a single cron field,
 // used by the parser to validate field values.
 type fieldSpec struct {
@@ -162,4 +217,10 @@ type intervalSchedule struct {
 // dispatches hook calls.
 type executor struct {
 	onError func(id string, err error)
+}
+
+// registry is the concurrent-safe store of all registered job entries.
+type registry struct {
+	mu      sync.RWMutex
+	entries map[string]*entry
 }

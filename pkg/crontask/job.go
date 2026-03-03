@@ -1,68 +1,16 @@
 package crontask
 
 import (
-	"context"
-	"sync"
 	"time"
 )
-
-// JobFunc is the function signature for a scheduled job. The context passed
-// to JobFunc is derived from the job's base context (or context.Background
-// when none is configured) and may carry a deadline when WithTimeout is set.
-// Jobs should honour context cancellation for clean shutdown.
-type JobFunc func(ctx context.Context) error
-
-// JobInfo is an immutable snapshot of a registered job's metadata and
-// runtime statistics. It is returned by Jobs() and used for introspection.
-type JobInfo struct {
-	// ID is the unique identifier of the job, either supplied by the caller
-	// via WithJobID or generated automatically at registration time.
-	ID string
-
-	// Name is an optional human-readable label set via WithJobName.
-	Name string
-
-	// Expression is the raw cron expression string as supplied to Register.
-	Expression string
-
-	// NextRun is the next scheduled activation time in the scheduler's
-	// timezone. The zero value means the schedule has no future activations.
-	NextRun time.Time
-
-	// LastRun is the time the job was most recently dispatched. The zero
-	// value means the job has never been executed.
-	LastRun time.Time
-
-	// LastErr is the error returned by the most recent execution, or nil if
-	// the last execution succeeded or the job has never been run.
-	LastErr error
-
-	// RunCount is the total number of times the job has been dispatched
-	// (across all retries within a single schedule activation, only the
-	// initial dispatch is counted).
-	RunCount int64
-}
-
-// entry is the internal mutable state for a single registered job. Access
-// must be protected by the owning registry's mutex.
-type entry struct {
-	id         string
-	name       string
-	expression string
-	schedule   Schedule
-	fn         JobFunc
-	cfg        jobConfig
-
-	mu       sync.Mutex
-	nextRun  time.Time
-	lastRun  time.Time
-	lastErr  error
-	runCount int64
-}
 
 // snapshot returns an immutable JobInfo that reflects the current state of the
 // entry. The caller must hold at least a read lock on the entry's own mutex OR
 // be the sole owner.
+//
+// Example:
+//
+//	info := entry.snapshot()
 func (e *entry) snapshot() JobInfo {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -77,19 +25,12 @@ func (e *entry) snapshot() JobInfo {
 	}
 }
 
-// registry is the concurrent-safe store of all registered job entries.
-type registry struct {
-	mu      sync.RWMutex
-	entries map[string]*entry
-}
-
-// newRegistry allocates an initialised registry.
-func newRegistry() *registry {
-	return &registry{entries: make(map[string]*entry)}
-}
-
 // add inserts or replaces an entry in the registry. If an entry with the same
 // ID already exists it is overwritten without error.
+//
+// Example:
+//
+//	r.add(entry)
 func (r *registry) add(e *entry) {
 	r.mu.Lock()
 	r.entries[e.id] = e
@@ -98,6 +39,10 @@ func (r *registry) add(e *entry) {
 
 // remove deletes the entry with the given id. It returns ErrJobNotFound when
 // the id is not present.
+//
+// Example:
+//
+//	r.remove("my-job")
 func (r *registry) remove(id string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -110,6 +55,10 @@ func (r *registry) remove(id string) error {
 
 // get returns the entry for the given id and a boolean indicating whether
 // the entry was found.
+//
+// Example:
+//
+//	e, ok := r.get("my-job")
 func (r *registry) get(id string) (*entry, bool) {
 	r.mu.RLock()
 	e, ok := r.entries[id]
@@ -118,6 +67,10 @@ func (r *registry) get(id string) (*entry, bool) {
 }
 
 // list returns a slice of all entries in an unspecified order.
+//
+// Example:
+//
+//	entries := r.list()
 func (r *registry) list() []*entry {
 	r.mu.RLock()
 	out := make([]*entry, 0, len(r.entries))
@@ -133,6 +86,10 @@ func (r *registry) list() []*entry {
 // upcoming activation among all remaining entries. When all entries have a
 // zero nextRun (schedules exhausted), remaining is set to a large value
 // (maxSleep) so the loop simply parks.
+//
+// Example:
+//
+//	due, remaining := r.nextDue(time.Now())
 func (r *registry) nextDue(now time.Time) (due []*entry, remaining time.Duration) {
 	const maxSleep = time.Hour
 
@@ -157,22 +114,4 @@ func (r *registry) nextDue(now time.Time) (due []*entry, remaining time.Duration
 		}
 	}
 	return
-}
-
-// updateNextRun recomputes the next activation time for e using the
-// scheduler's reference time as the base.
-func updateNextRun(e *entry, now time.Time) {
-	e.mu.Lock()
-	e.nextRun = e.schedule.Next(now)
-	e.mu.Unlock()
-}
-
-// recordResult stores the outcome of a single execution into the entry's
-// mutable state.
-func recordResult(e *entry, t time.Time, err error) {
-	e.mu.Lock()
-	e.lastRun = t
-	e.lastErr = err
-	e.runCount++
-	e.mu.Unlock()
 }

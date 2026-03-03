@@ -169,6 +169,40 @@ type JobError struct {
 	Err error
 }
 
+// BackoffPolicy is a function that receives the one-based attempt number and
+// returns the duration to wait before the next attempt. Returning zero means
+// the retry fires immediately.
+type BackoffPolicy func(attempt int) time.Duration
+
+// SchedulerOption is a functional option applied to a Scheduler at
+// construction time via New.
+type SchedulerOption func(*schedulerConfig)
+
+// JobOption is a functional option applied to a job entry at registration
+// time via Register.
+type JobOption func(*jobConfig)
+
+// jobConfig holds the per-job configuration resolved from the applied
+// JobOptions.
+type jobConfig struct {
+	id         string
+	name       string
+	maxRetries int
+	backoff    BackoffPolicy
+	timeout    time.Duration
+	jitter     time.Duration
+	hooks      Hooks
+	ctx        context.Context
+}
+
+// schedulerConfig holds the configuration fields resolved from the applied
+// SchedulerOptions.
+type schedulerConfig struct {
+	loc      *time.Location
+	withSecs bool
+	onError  func(id string, err error)
+}
+
 // entry is the internal mutable state for a single registered job. Access
 // must be protected by the owning registry's mutex.
 type entry struct {

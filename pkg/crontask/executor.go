@@ -64,7 +64,6 @@ func (ex *executor) run(e *entry, scheduledAt time.Time) {
 		select {
 		case <-ctx.Done():
 			finalErr = ctx.Err()
-			break
 		default:
 		}
 		if finalErr != nil {

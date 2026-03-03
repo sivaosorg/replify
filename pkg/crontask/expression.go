@@ -1,8 +1,6 @@
 package crontask
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 )
@@ -153,39 +151,6 @@ func lookupAlias(name string) (string, bool) {
 	v, ok := aliasMap[name]
 	aliasMapMu.RUnlock()
 	return v, ok
-}
-
-// RegisterAlias registers a custom alias that can subsequently be used
-// anywhere a cron expression is accepted (Register, Parse, IsDue, etc.).
-//
-// name must begin with "@". expr must be a valid five-field or six-field cron
-// expression; @every and nested alias expressions are not accepted as the
-// right-hand side of a registration.
-//
-// If name already exists (built-in or previously registered), it is silently
-// overwritten with the new expression. Names are matched case-insensitively.
-//
-// Example:
-//
-//	err := crontask.RegisterAlias("@nightly", "0 2 * * *")
-func RegisterAlias(name, expr string) error {
-	if !strings.HasPrefix(name, "@") {
-		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
-	}
-	// Validate that expr is a plain 5 or 6 field expression so that aliases
-	// cannot create indirect chains.
-	fields := strings.Fields(strings.TrimSpace(expr))
-	if len(fields) != 5 && len(fields) != 6 {
-		return fmt.Errorf("crontask: alias expression must have 5 or 6 fields, got %q", expr)
-	}
-	if _, err := Parse(expr); err != nil {
-		return err
-	}
-	key := strings.ToLower(name)
-	aliasMapMu.Lock()
-	aliasMap[key] = expr
-	aliasMapMu.Unlock()
-	return nil
 }
 
 // fieldSpec describes the valid range for a single cron field.

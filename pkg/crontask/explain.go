@@ -31,67 +31,6 @@ var aliasDescriptions = map[string]string{
 	"@marketclose":    "At 16:00, Monday through Friday",
 }
 
-// Explain converts a cron expression into a natural English description.
-//
-// Supported input forms:
-//
-//   - "@every 5m"               → "Every 5 minutes"
-//   - "@daily", "@hourly", etc  → predefined descriptions for built-in aliases
-//   - "*/30 * * * * *"          → "Every 30 seconds"
-//   - "0 9 * * 1-5"             → "At 09:00, Monday through Friday"
-//   - "TZ=..." prefixes         → described without the timezone qualifier
-//
-// Custom aliases registered via RegisterAlias are described by expanding them
-// to their underlying expression and applying the field-based explainer.
-//
-// Explain returns ErrInvalidExpression (wrapped) for invalid input and never
-// panics.
-//
-// Example:
-//
-//	desc, err := crontask.Explain("0 0 * * 1-5")
-//	// desc == "At 00:00, Monday through Friday"
-func Explain(expr string) (string, error) {
-	trimmed := strings.TrimSpace(expr)
-	// Validate first — reuse Parse to avoid duplicating validation logic.
-	if _, err := Parse(trimmed); err != nil {
-		return "", err
-	}
-
-	// Strip optional leading TZ= specifier; timezone does not affect the
-	// "when" part of the description.
-	clean := trimmed
-	if strings.HasPrefix(clean, "TZ=") {
-		idx := strings.Index(clean, " ")
-		if idx >= 0 {
-			clean = strings.TrimSpace(clean[idx+1:])
-		}
-	}
-
-	// @every interval expressions.
-	if strings.HasPrefix(clean, "@every ") {
-		durStr := strings.TrimSpace(strings.TrimPrefix(clean, "@every "))
-		d, _ := time.ParseDuration(durStr)
-		return explainIntervalDuration(d), nil
-	}
-
-	// @alias expressions.
-	if strings.HasPrefix(clean, "@") {
-		lower := strings.ToLower(clean)
-		// Check predefined descriptions first for the best output.
-		if desc, ok := aliasDescriptions[lower]; ok {
-			return desc, nil
-		}
-		// Custom alias — expand and fall through to the field-based explainer.
-		if expanded, ok := lookupAlias(lower); ok {
-			return explainFields(strings.Fields(expanded)), nil
-		}
-		return "", ErrInvalidExpression
-	}
-
-	return explainFields(strings.Fields(clean)), nil
-}
-
 // explainFields produces an English description from a pre-split field slice.
 func explainFields(fields []string) string {
 	switch len(fields) {

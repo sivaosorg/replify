@@ -1,0 +1,282 @@
+package crontask
+
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
+// Expression is a parsed cron expression that exposes schedule utilities
+// without requiring a running Scheduler instance. Obtain one via MustParse.
+//
+// Expression is immutable and safe for concurrent use.
+type Expression struct {
+	raw      string
+	schedule Schedule
+}
+
+// Raw returns the original expression string as passed to MustParse.
+func (e Expression) Raw() string { return e.raw }
+
+// Next returns the first activation time strictly after from. It returns the
+// zero time when no future activation exists (e.g. the schedule is exhausted).
+func (e Expression) Next(from time.Time) time.Time {
+	return e.schedule.Next(from)
+}
+
+// NextN returns the next n activation times starting from from. If fewer than
+// n future activations exist, the slice is shorter than n.
+func (e Expression) NextN(from time.Time, n int) []time.Time {
+	if n <= 0 {
+		return nil
+	}
+	out := make([]time.Time, 0, n)
+	cur := from
+	for len(out) < n {
+		next := e.schedule.Next(cur)
+		if next.IsZero() {
+			break
+		}
+		out = append(out, next)
+		cur = next
+	}
+	return out
+}
+
+// IsDue reports whether the expression is due at the given time using
+// second-level granularity. See the package-level IsDue for the exact
+// semantics.
+func (e Expression) IsDue(at time.Time) bool {
+	return isDue(e.schedule, at)
+}
+
+// MustParse is like Parse but panics instead of returning an error when the
+// expression is invalid. It is intended for use in package-level variable
+// initializers where the expression is a compile-time constant.
+//
+// Example:
+//
+//	var reportSchedule = crontask.MustParse("0 9 * * 1-5")
+func MustParse(expr string) Expression {
+	s, err := Parse(expr)
+	if err != nil {
+		panic(fmt.Sprintf("crontask.MustParse: %v", err))
+	}
+	return Expression{raw: expr, schedule: s}
+}
+
+// IsValidCronExpr reports whether expr is a syntactically and semantically
+// valid cron expression recognised by this package. It is equivalent to
+// Validate(expr) == nil.
+//
+// Thread-safe; does not require a Scheduler instance.
+func IsValidCronExpr(expr string) bool {
+	return Validate(expr) == nil
+}
+
+// ValidateCronExpr validates expr and returns a descriptive error when it is
+// invalid. The returned error, if non-nil, is an *ExpressionError that also
+// satisfies errors.Is(err, ErrInvalidExpression).
+//
+// ValidateCronExpr is a convenience wrapper around Validate and is provided
+// for callers who prefer the longer, self-documenting name.
+//
+// Thread-safe; does not require a Scheduler instance.
+func ValidateCronExpr(expr string) error {
+	return Validate(expr)
+}
+
+// IsDue reports whether the cron expression expr was due at the given time at.
+//
+// The check uses second-level granularity: IsDue returns true when the first
+// activation of the schedule after (at − 1 second) is at or before at. For
+// standard five-field expressions this means the function returns true exactly
+// at the start of a matching minute; for six-field or @every expressions it
+// returns true at the matching second.
+//
+// IsDue returns false for invalid expressions without panicking.
+//
+// Thread-safe; does not require a Scheduler instance.
+//
+// Example:
+//
+//	now := time.Now().Truncate(time.Minute)
+//	if crontask.IsDue("0 9 * * 1-5", now) {
+//	    sendDailyReport()
+//	}
+func IsDue(expr string, at time.Time) bool {
+	sched, err := Parse(expr)
+	if err != nil {
+		return false
+	}
+	return isDue(sched, at)
+}
+
+// NextRun returns the first activation time for expr after the reference time
+// from. It is a convenience wrapper around Parse and Schedule.Next that avoids
+// the need to create a Scheduler or call Parse manually.
+//
+// Thread-safe; does not require a Scheduler instance.
+//
+// Example:
+//
+//	next, err := crontask.NextRun("0 9 * * 1-5", time.Now())
+func NextRun(expr string, from time.Time) (time.Time, error) {
+	sched, err := Parse(expr)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return sched.Next(from), nil
+}
+
+// NextRuns returns the next n activation times for expr starting from from.
+// It is a convenience wrapper around Parse and Schedule.Next.
+//
+// When n ≤ 0, NextRuns returns a nil slice without an error. When the schedule
+// has fewer than n future activations, the returned slice is shorter than n.
+//
+// Thread-safe; does not require a Scheduler instance.
+//
+// Example:
+//
+//	runs, err := crontask.NextRuns("0 9 * * 1-5", time.Now(), 5)
+func NextRuns(expr string, from time.Time, n int) ([]time.Time, error) {
+	sched, err := Parse(expr)
+	if err != nil {
+		return nil, err
+	}
+	if n <= 0 {
+		return nil, nil
+	}
+	out := make([]time.Time, 0, n)
+	cur := from
+	for len(out) < n {
+		next := sched.Next(cur)
+		if next.IsZero() {
+			break
+		}
+		out = append(out, next)
+		cur = next
+	}
+	return out, nil
+}
+
+// Explain converts a cron expression into a natural English description.
+//
+// Supported input forms:
+//
+//   - "@every 5m"               → "Every 5 minutes"
+//   - "@daily", "@hourly", etc  → predefined descriptions for built-in aliases
+//   - "*/30 * * * * *"          → "Every 30 seconds"
+//   - "0 9 * * 1-5"             → "At 09:00, Monday through Friday"
+//   - "TZ=..." prefixes         → described without the timezone qualifier
+//
+// Custom aliases registered via RegisterAlias are described by expanding them
+// to their underlying expression and applying the field-based explainer.
+//
+// Explain returns ErrInvalidExpression (wrapped) for invalid input and never
+// panics.
+//
+// Example:
+//
+//	desc, err := crontask.Explain("0 0 * * 1-5")
+//	// desc == "At 00:00, Monday through Friday"
+func Explain(expr string) (string, error) {
+	trimmed := strings.TrimSpace(expr)
+	// Validate first — reuse Parse to avoid duplicating validation logic.
+	if _, err := Parse(trimmed); err != nil {
+		return "", err
+	}
+
+	// Strip optional leading TZ= specifier; timezone does not affect the
+	// "when" part of the description.
+	clean := trimmed
+	if strings.HasPrefix(clean, "TZ=") {
+		idx := strings.Index(clean, " ")
+		if idx >= 0 {
+			clean = strings.TrimSpace(clean[idx+1:])
+		}
+	}
+
+	// @every interval expressions.
+	if strings.HasPrefix(clean, "@every ") {
+		durStr := strings.TrimSpace(strings.TrimPrefix(clean, "@every "))
+		d, _ := time.ParseDuration(durStr)
+		return explainIntervalDuration(d), nil
+	}
+
+	// @alias expressions.
+	if strings.HasPrefix(clean, "@") {
+		lower := strings.ToLower(clean)
+		// Check predefined descriptions first for the best output.
+		if desc, ok := aliasDescriptions[lower]; ok {
+			return desc, nil
+		}
+		// Custom alias — expand and fall through to the field-based explainer.
+		if expanded, ok := lookupAlias(lower); ok {
+			return explainFields(strings.Fields(expanded)), nil
+		}
+		return "", ErrInvalidExpression
+	}
+
+	return explainFields(strings.Fields(clean)), nil
+}
+
+// RegisterAlias registers a custom alias that can subsequently be used
+// anywhere a cron expression is accepted (Register, Parse, IsDue, etc.).
+//
+// name must begin with "@". expr must be a valid five-field or six-field cron
+// expression; @every and nested alias expressions are not accepted as the
+// right-hand side of a registration.
+//
+// If name already exists (built-in or previously registered), it is silently
+// overwritten with the new expression. Names are matched case-insensitively.
+//
+// Example:
+//
+//	err := crontask.RegisterAlias("@nightly", "0 2 * * *")
+func RegisterAlias(name, expr string) error {
+	if !strings.HasPrefix(name, "@") {
+		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
+	}
+	// Validate that expr is a plain 5 or 6 field expression so that aliases
+	// cannot create indirect chains.
+	fields := strings.Fields(strings.TrimSpace(expr))
+	if len(fields) != 5 && len(fields) != 6 {
+		return fmt.Errorf("crontask: alias expression must have 5 or 6 fields, got %q", expr)
+	}
+	if _, err := Parse(expr); err != nil {
+		return err
+	}
+	key := strings.ToLower(name)
+	aliasMapMu.Lock()
+	aliasMap[key] = expr
+	aliasMapMu.Unlock()
+	return nil
+}
+
+// DeleteAlias removes a previously registered alias by name. The name
+// comparison is case-insensitive and the "@" prefix is required.
+//
+// Built-in aliases can be deleted if needed, though doing so is not
+// recommended for production code. An error is returned when the alias
+// does not exist in the registry.
+//
+// Example:
+//
+//	crontask.RegisterAlias("@nightly", "0 2 * * *")
+//	// ... use @nightly ...
+//	crontask.DeleteAlias("@nightly")
+func DeleteAlias(name string) error {
+	if !strings.HasPrefix(name, "@") {
+		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
+	}
+	key := strings.ToLower(name)
+	aliasMapMu.Lock()
+	defer aliasMapMu.Unlock()
+	if _, ok := aliasMap[key]; !ok {
+		return fmt.Errorf("crontask: alias %q not found", name)
+	}
+	delete(aliasMap, key)
+	return nil
+}

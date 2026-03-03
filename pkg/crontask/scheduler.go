@@ -244,6 +244,20 @@ func (s *Scheduler) NextRuns(id string, t time.Time, n int) ([]time.Time, error)
 	return out, nil
 }
 
+// Location returns the timezone that this scheduler uses to compute job
+// next-run times. The value is the location supplied via WithLocation; it
+// defaults to time.UTC when no location option is provided.
+func (s *Scheduler) Location() *time.Location {
+	return s.cfg.loc
+}
+
+// WithSecondsEnabled reports whether the Scheduler was constructed with the
+// WithSeconds option, meaning it accepts six-field cron expressions and ticks
+// at one-second granularity.
+func (s *Scheduler) WithSecondsEnabled() bool {
+	return s.cfg.withSecs
+}
+
 // now returns the current time in the scheduler's configured timezone.
 func (s *Scheduler) now() time.Time {
 	return time.Now().In(s.cfg.loc)

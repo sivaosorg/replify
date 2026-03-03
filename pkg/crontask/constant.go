@@ -168,3 +168,35 @@ var dowNames = map[string]int{
 // entries are populated at package-init time (single-goroutine), after which
 // all reads go through lookupAlias and all writes through RegisterAlias.
 var aliasMapMu sync.RWMutex
+
+// aliasDescriptions maps well-known alias names (lower-case) to their
+// human-readable English descriptions. Custom aliases registered via
+// RegisterAlias are not present here; they fall through to the field-based
+// explainer using the expanded expression.
+var aliasDescriptions = map[string]string{
+	"@yearly":         "Once a year, at midnight on January 1st",
+	"@annually":       "Once a year, at midnight on January 1st",
+	"@monthly":        "Once a month, at midnight on the 1st",
+	"@weekly":         "Once a week, at midnight on Sunday",
+	"@daily":          "Once a day, at midnight",
+	"@midnight":       "Once a day, at midnight",
+	"@hourly":         "Every hour",
+	"@minutely":       "Every minute",
+	"@weekdays":       "At midnight, Monday through Friday",
+	"@weekends":       "At midnight, on Saturday and Sunday",
+	"@businessdaily":  "At 09:00, Monday through Friday",
+	"@businesshourly": "Every hour from 09:00 to 17:00, Monday through Friday",
+	"@quarterly":      "Once a quarter, at midnight on the 1st",
+	"@semimonthly":    "Twice a month, at midnight on the 1st and 15th",
+	"@workhours":      "Every minute from 09:00 to 17:59, Monday through Friday",
+	"@marketopen":     "At 09:30, Monday through Friday",
+	"@marketclose":    "At 16:00, Monday through Friday",
+}
+
+// monthLabels maps month numbers to their English names.
+// The zeroth element is unused.
+var monthLabels = [13]string{
+	"", "January", "February", "March", "April",
+	"May", "June", "July", "August", "September",
+	"October", "November", "December",
+}

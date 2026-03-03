@@ -6,13 +6,6 @@ import (
 	"time"
 )
 
-// executor is responsible for running a single job entry within its own
-// goroutine. It enforces timeouts, applies jitter, runs retry loops, and
-// dispatches hook calls.
-type executor struct {
-	onError func(id string, err error)
-}
-
 // dispatch launches the job entry in a new goroutine. The caller (the
 // scheduler loop) never blocks on dispatch.
 func (ex *executor) dispatch(e *entry, scheduledAt time.Time) {

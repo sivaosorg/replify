@@ -111,3 +111,10 @@ type cronSchedule struct {
 type intervalSchedule struct {
 	interval time.Duration
 }
+
+// executor is responsible for running a single job entry within its own
+// goroutine. It enforces timeouts, applies jitter, runs retry loops, and
+// dispatches hook calls.
+type executor struct {
+	onError func(id string, err error)
+}

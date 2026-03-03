@@ -54,15 +54,6 @@ func (e Expression) IsDue(at time.Time) bool {
 	return isDue(e.schedule, at)
 }
 
-// lookupAlias performs a concurrent-safe lookup in aliasMap using the
-// lower-cased alias name (including the "@" prefix).
-func lookupAlias(name string) (string, bool) {
-	aliasMapMu.RLock()
-	v, ok := aliasMap[name]
-	aliasMapMu.RUnlock()
-	return v, ok
-}
-
 // Next returns the earliest time after t at which the schedule would activate.
 // The receiver's location is applied before field matching; if no activation
 // exists within the next four years, the zero time is returned.
@@ -117,4 +108,13 @@ WRAP:
 // Next returns the earliest multiple of the interval that is strictly after t.
 func (s *intervalSchedule) Next(t time.Time) time.Time {
 	return t.Add(s.interval - time.Duration(t.UnixNano())%s.interval)
+}
+
+// lookupAlias performs a concurrent-safe lookup in aliasMap using the
+// lower-cased alias name (including the "@" prefix).
+func lookupAlias(name string) (string, bool) {
+	aliasMapMu.RLock()
+	v, ok := aliasMap[name]
+	aliasMapMu.RUnlock()
+	return v, ok
 }

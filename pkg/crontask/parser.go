@@ -76,7 +76,7 @@ func Parse(expr string) (Schedule, error) {
 
 	// Handle @alias expressions.
 	if strings.HasPrefix(expr, "@") {
-		expanded, ok := aliasMap[strings.ToLower(expr)]
+		expanded, ok := lookupAlias(strings.ToLower(expr))
 		if !ok {
 			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: fmt.Sprintf("unknown alias %q", expr)}
 		}

@@ -19,11 +19,15 @@ too opinionated or too minimal). `crontask` occupies the middle ground:
 - **Correct** — schedules fire at the right time across DST transitions, leap
   years, and arbitrary timezones.
 - **Expressive** — standard five/six-field cron, `@alias` shortcuts, `@every`
-  intervals, step expressions, named month/weekday tokens, and per-job jitter.
+  intervals, step expressions, named month/weekday tokens, business-oriented
+  built-in aliases, runtime-registerable custom aliases, and per-job jitter.
 - **Observable** — every job exposes live metadata (last run, next run, run
   count, last error) and accepts hook interfaces for metrics and alerting.
 - **Extensible** — option-function constructors make it easy to configure
   individual schedulers and jobs without a proliferating API surface.
+- **Utility-first** — standalone helpers (`IsValidCronExpr`, `IsDue`,
+  `NextRun`, `NextRuns`, `Explain`, `MustParse`) work without a running
+  scheduler, making the package useful in CLI tools and test helpers too.
 
 ---
 
@@ -46,8 +50,12 @@ Requires Go 1.21 or later.
 | `@alias` shortcuts              | ✔           | ✔     | ✔        |
 | `@every <duration>`             | ✔           | ✗     | ✔        |
 | Named month/DOW tokens          | ✔           | ✔     | ✔        |
+| Business-oriented built-in aliases | ✗        | ✗     | ✔        |
+| Runtime custom alias registration  | ✗        | ✗     | ✔        |
 | Timezone per scheduler          | ✔           | ✗     | ✔        |
 | Timezone per expression (TZ=)   | ✗           | ✗     | ✔        |
+| Human-readable expression explanation | ✗     | ✗     | ✔        |
+| Standalone utility functions    | ✗           | partial | ✔      |
 | Per-job retry + backoff         | ✗           | ✗     | ✔        |
 | Per-job execution timeout       | ✗           | ✗     | ✔        |
 | Per-job jitter                  | ✗           | ✗     | ✔        |
@@ -130,13 +138,21 @@ s.Start()
 ### Alias Expressions
 
 ```go
-s.Register(crontask.AliasHourly,   handler)  // "@hourly"
-s.Register(crontask.AliasDaily,    handler)  // "@daily"
-s.Register(crontask.AliasWeekly,   handler)  // "@weekly"
-s.Register(crontask.AliasMonthly,  handler)  // "@monthly"
-s.Register(crontask.AliasYearly,   handler)  // "@yearly"
-s.Register(crontask.AliasWeekdays, handler)  // Monday–Friday at midnight
-s.Register(crontask.AliasWeekends, handler)  // Saturday–Sunday at midnight
+s.Register(crontask.AliasHourly,         handler)  // "@hourly"
+s.Register(crontask.AliasDaily,          handler)  // "@daily"
+s.Register(crontask.AliasWeekly,         handler)  // "@weekly"
+s.Register(crontask.AliasMonthly,        handler)  // "@monthly"
+s.Register(crontask.AliasYearly,         handler)  // "@yearly"
+s.Register(crontask.AliasWeekdays,       handler)  // Monday–Friday at midnight
+s.Register(crontask.AliasWeekends,       handler)  // Saturday–Sunday at midnight
+// Business-oriented aliases:
+s.Register(crontask.AliasBusinessDaily,  handler)  // 09:00 weekdays
+s.Register(crontask.AliasBusinessHourly, handler)  // top of each hour 09–17 weekdays
+s.Register(crontask.AliasQuarterly,      handler)  // midnight, 1st of each quarter
+s.Register(crontask.AliasSemiMonthly,    handler)  // midnight, 1st and 15th
+s.Register(crontask.AliasWorkHours,      handler)  // every minute 09–17 weekdays
+s.Register(crontask.AliasMarketOpen,     handler)  // 09:30 weekdays
+s.Register(crontask.AliasMarketClose,    handler)  // 16:00 weekdays
 ```
 
 ### Interval Expressions
@@ -250,6 +266,199 @@ s, _ := crontask.New(
 
 ---
 
+## Standalone Utility Functions
+
+These helpers work without a running scheduler and are safe for concurrent use.
+
+### Validation
+
+```go
+// Boolean validity check.
+ok := crontask.IsValidCronExpr("0 9 * * 1-5") // true
+
+// Structured error for invalid input.
+if err := crontask.ValidateCronExpr("bad expr"); err != nil {
+    log.Println(err) // crontask: invalid expression "bad expr": expected 5 or 6 fields, got 2
+}
+```
+
+### IsDue
+
+```go
+// Check whether a schedule is due right now (second-level granularity).
+if crontask.IsDue("0 9 * * 1-5", time.Now()) {
+    sendDailyReport()
+}
+```
+
+### NextRun / NextRuns
+
+```go
+// First activation after now.
+next, err := crontask.NextRun("0 9 * * 1-5", time.Now())
+
+// Next 5 activations.
+runs, err := crontask.NextRuns("0 9 * * 1-5", time.Now(), 5)
+for _, r := range runs {
+    fmt.Println(r.Format(time.RFC3339))
+}
+```
+
+### MustParse
+
+```go
+// Panics for invalid expressions — safe for package-level variables.
+var settlement = crontask.MustParse(crontask.AliasMarketClose)
+
+fmt.Println(settlement.Raw())                  // "@marketClose"
+fmt.Println(settlement.Next(time.Now()))       // next 16:00 weekday
+fmt.Println(settlement.IsDue(time.Now()))      // true at 16:00 on a weekday
+fmt.Println(settlement.NextN(time.Now(), 3))   // next 3 closings
+```
+
+### Custom Alias Registration
+
+```go
+// Register once at startup (e.g. in main or init).
+if err := crontask.RegisterAlias("@nightly", "0 2 * * *"); err != nil {
+    log.Fatal(err)
+}
+
+// Use everywhere the new alias is valid.
+s.Register("@nightly", backupHandler)
+next, _ := crontask.NextRun("@nightly", time.Now())
+```
+
+### Explain
+
+Convert any expression to a natural English description:
+
+```go
+desc, _ := crontask.Explain("@every 5m")
+// "Every 5 minutes"
+
+desc, _ = crontask.Explain("*/30 * * * * *")
+// "Every 30 seconds"
+
+desc, _ = crontask.Explain("0 0 * * 1-5")
+// "At 00:00, Monday through Friday"
+
+desc, _ = crontask.Explain("0 9 * * 1-5")
+// "At 09:00, Monday through Friday"
+
+desc, _ = crontask.Explain("@marketClose")
+// "At 16:00, Monday through Friday"
+
+desc, _ = crontask.Explain("0 0 1 1,4,7,10 *")
+// "At 00:00, on the 1st of each month, in January, April, July, and October"
+```
+
+---
+
+## Real-World Examples
+
+### Email Report Every Weekday at 9 AM
+
+```go
+s.Register("0 9 * * 1-5",
+    func(ctx context.Context) error {
+        return emailService.SendDailyDigest(ctx)
+    },
+    crontask.WithJobName("daily-email-report"),
+    crontask.WithTimeout(30*time.Second),
+    crontask.WithMaxRetries(2),
+    crontask.WithBackoff(crontask.ConstantBackoff(5*time.Second)),
+)
+```
+
+### Cleanup Job Every 6 Hours
+
+```go
+s.Register("0 */6 * * *",
+    func(ctx context.Context) error {
+        return store.PurgeExpiredSessions(ctx)
+    },
+    crontask.WithJobName("session-cleanup"),
+    crontask.WithTimeout(2*time.Minute),
+)
+```
+
+### Financial Settlement at Market Close
+
+```go
+s.Register(crontask.AliasMarketClose,
+    func(ctx context.Context) error {
+        return settlement.RunDailySettlement(ctx)
+    },
+    crontask.WithJobName("daily-settlement"),
+    crontask.WithTimeout(10*time.Minute),
+    crontask.WithMaxRetries(1),
+    crontask.WithBackoff(crontask.ConstantBackoff(30*time.Second)),
+)
+```
+
+### Retry Webhook Every 2 Minutes with Backoff
+
+```go
+s.Register("@every 2m",
+    func(ctx context.Context) error {
+        return webhookClient.DeliverPending(ctx)
+    },
+    crontask.WithJobName("webhook-retry"),
+    crontask.WithMaxRetries(5),
+    crontask.WithBackoff(crontask.ExponentialBackoff(time.Second)),
+    crontask.WithTimeout(30*time.Second),
+)
+```
+
+### Health Check Every 30 Seconds
+
+```go
+s.Register("@every 30s",
+    func(ctx context.Context) error {
+        return healthChecker.Ping(ctx)
+    },
+    crontask.WithJobName("health-check"),
+    crontask.WithTimeout(5*time.Second),
+)
+```
+
+### Business-Only Scheduling (Weekdays Only)
+
+```go
+// Use the built-in alias.
+s.Register(crontask.AliasBusinessHourly,
+    func(ctx context.Context) error {
+        return metrics.CollectBusinessHourStats(ctx)
+    },
+    crontask.WithJobName("business-hour-metrics"),
+)
+
+// Or with an explicit TZ to align with a specific office.
+s.Register("TZ=Europe/London 0 9-17 * * 1-5",
+    func(ctx context.Context) error {
+        return alerts.CheckSLABreaches(ctx)
+    },
+    crontask.WithJobName("sla-check-london"),
+)
+```
+
+### Using Explain to Log the Schedule
+
+```go
+exprs := []string{"@businessDaily", "@every 30s", "0 0 1 1,4,7,10 *"}
+for _, expr := range exprs {
+    desc, err := crontask.Explain(expr)
+    if err != nil {
+        log.Printf("invalid expression %q: %v", expr, err)
+        continue
+    }
+    log.Printf("registered job: %s (%s)", expr, desc)
+}
+```
+
+---
+
 ## Expression Syntax Reference
 
 ### Standard Fields
@@ -264,8 +473,7 @@ s, _ := crontask.New(
 * * * * *
 ```
 
-With optional leading seconds field (requires `crontask.WithSeconds()` or
-simply provide six fields):
+With optional leading seconds field:
 
 ```
 ┌─────────────── second       (0–59)
@@ -285,21 +493,28 @@ simply provide six fields):
 | `*/s`    | Every s-th value across the full range   | `*/15`        |
 | `a,b,c`  | Comma-separated list                     | `1,15,30`     |
 
-### Aliases
+### Built-in Aliases
 
-| Alias         | Equivalent            |
-|---------------|-----------------------|
-| `@yearly`     | `0 0 1 1 *`           |
-| `@annually`   | `0 0 1 1 *`           |
-| `@monthly`    | `0 0 1 * *`           |
-| `@weekly`     | `0 0 * * 0`           |
-| `@daily`      | `0 0 * * *`           |
-| `@midnight`   | `0 0 * * *`           |
-| `@hourly`     | `0 * * * *`           |
-| `@minutely`   | `* * * * *`           |
-| `@weekdays`   | `0 0 * * 1-5`         |
-| `@weekends`   | `0 0 * * 0,6`         |
-| `@every <d>`  | Interval (e.g. `5m`)  |
+| Alias              | Equivalent                | Description                            |
+|--------------------|---------------------------|----------------------------------------|
+| `@yearly`          | `0 0 1 1 *`               | Once a year, midnight January 1st      |
+| `@annually`        | `0 0 1 1 *`               | Synonym for @yearly                    |
+| `@monthly`         | `0 0 1 * *`               | Midnight on the 1st each month         |
+| `@weekly`          | `0 0 * * 0`               | Midnight on Sunday                     |
+| `@daily`           | `0 0 * * *`               | Midnight every day                     |
+| `@midnight`        | `0 0 * * *`               | Synonym for @daily                     |
+| `@hourly`          | `0 * * * *`               | Top of each hour                       |
+| `@minutely`        | `* * * * *`               | Every minute                           |
+| `@weekdays`        | `0 0 * * 1-5`             | Midnight, Monday–Friday                |
+| `@weekends`        | `0 0 * * 0,6`             | Midnight, Saturday and Sunday          |
+| `@businessDaily`   | `0 9 * * 1-5`             | 09:00 weekdays                         |
+| `@businessHourly`  | `0 9-17 * * 1-5`          | Top of each hour, 09–17, weekdays      |
+| `@quarterly`       | `0 0 1 1,4,7,10 *`        | Midnight, first day of each quarter    |
+| `@semiMonthly`     | `0 0 1,15 * *`            | Midnight on the 1st and 15th           |
+| `@workhours`       | `* 9-17 * * 1-5`          | Every minute 09:00–17:59, weekdays     |
+| `@marketOpen`      | `30 9 * * 1-5`            | 09:30 weekdays (US market open)        |
+| `@marketClose`     | `0 16 * * 1-5`            | 16:00 weekdays (US market close)       |
+| `@every <d>`       | Interval (e.g. `5m`)      | Fires every duration aligned to epoch  |
 
 ---
 
@@ -343,7 +558,9 @@ g := gronx.New()
 if !g.IsValid(expr) { /* ... */ }
 
 // crontask
-if err := crontask.Validate(expr); err != nil { /* ... */ }
+if !crontask.IsValidCronExpr(expr) { /* ... */ }
+// or
+if err := crontask.ValidateCronExpr(expr); err != nil { /* ... */ }
 ```
 
 ```go
@@ -352,30 +569,182 @@ tasker := gronx.NewTasker()
 nextTime, _ := tasker.NextTick(expr, false)
 
 // crontask — next tick
-sched, _ := crontask.Parse(expr)
-nextTime := sched.Next(time.Now())
+nextTime, err := crontask.NextRun(expr, time.Now())
 ```
 
 ---
 
 ## Limitations & Design Trade-offs
 
-- **No persistent storage** — Job state (run count, last error) is kept in
-  memory only. If the process restarts, the history is lost. A persistence
-  hook interface is the intended extension point.
-- **No distributed coordination** — Two instances of the same service will
-  both execute scheduled jobs. Use a distributed lock (e.g. Redis `SET NX`)
-  inside your job function if exactly-once semantics are required.
-- **Goroutine-per-invocation** — Each job dispatch spawns a goroutine. For
-  very high-frequency intervals (`@every 1ms`) with slow jobs, goroutine
-  accumulation is possible. Use `WithTimeout` to bound execution time.
-- **No missed-job detection** — If a job fires while the scheduler is stopped,
-  the missed activation is silently skipped. This is consistent with the
-  behaviour of both robfig/cron and most Unix cron implementations.
-- **DST transitions** — The scheduler uses `time.After` which is monotonic and
-  unaffected by wall-clock adjustments. During a DST "spring forward" the
-  skipped hour is not replayed; during a "fall back" the extra hour may cause
-  one additional activation.
+### No Persistent Storage
+
+**Current behaviour:** Job state (run count, last error) is kept in memory
+only. If the process restarts, the history is lost.
+
+**Mitigation:** Define a persistence adapter around the existing `Hooks`
+interface:
+
+```go
+// PersistenceAdapter is a conceptual sketch — implement using your preferred
+// storage backend (Redis, Postgres, BoltDB, etc.).
+type PersistenceAdapter struct {
+    crontask.NoopHooks
+    db *sql.DB
+}
+
+func (p *PersistenceAdapter) OnSuccess(_ context.Context, id string, d time.Duration) {
+    _, _ = p.db.Exec(
+        "UPDATE cron_jobs SET last_run=NOW(), last_err=NULL, run_count=run_count+1 WHERE id=$1", id)
+}
+
+func (p *PersistenceAdapter) OnFailure(_ context.Context, id string, _ time.Duration, err error) {
+    _, _ = p.db.Exec(
+        "UPDATE cron_jobs SET last_run=NOW(), last_err=$2, run_count=run_count+1 WHERE id=$1", id, err.Error())
+}
+
+// Attach at registration time.
+s.Register("@daily", handler, crontask.WithHooks(&PersistenceAdapter{db: db}))
+```
+
+At process start, read the persisted metadata and use it to decide whether
+to skip the first activation (catch-up avoidance) or run immediately.
+
+---
+
+### No Distributed Coordination
+
+**Current behaviour:** Two instances of the same service will both execute
+scheduled jobs. This can cause duplicate work or data corruption.
+
+**Mitigation 1 — distributed lock inside the job:**
+
+```go
+s.Register("@hourly", func(ctx context.Context) error {
+    // Acquire a 60-second lease via Redis SET NX EX.
+    acquired, err := redisClient.SetNX(ctx, "lock:hourly-report", "1", time.Minute).Result()
+    if err != nil || !acquired {
+        return nil // another instance has the lock; skip quietly
+    }
+    defer redisClient.Del(ctx, "lock:hourly-report")
+
+    return generateReport(ctx)
+})
+```
+
+**Mitigation 2 — lock middleware via Hooks:**
+
+```go
+type DistributedLockHook struct {
+    crontask.NoopHooks
+    redis  *redis.Client
+    locked map[string]bool
+    mu     sync.Mutex
+}
+
+func (h *DistributedLockHook) OnStart(ctx context.Context, id string) {
+    acquired, _ := h.redis.SetNX(ctx, "lock:"+id, "1", 2*time.Minute).Result()
+    h.mu.Lock()
+    h.locked[id] = acquired
+    h.mu.Unlock()
+    // If not acquired, the job function should check ctx.Done() or the job
+    // should return early by convention.
+}
+
+func (h *DistributedLockHook) OnComplete(_ context.Context, id string, _ time.Duration) {
+    h.mu.Lock()
+    if h.locked[id] {
+        h.redis.Del(context.Background(), "lock:"+id)
+    }
+    delete(h.locked, id)
+    h.mu.Unlock()
+}
+```
+
+---
+
+### Goroutine-per-Invocation
+
+**Current behaviour:** Each job dispatch spawns a goroutine. For very
+high-frequency intervals with slow jobs, goroutine accumulation is possible.
+
+**Mitigation 1 — always set a timeout:**
+
+```go
+s.Register("@every 1s", handler,
+    crontask.WithTimeout(500*time.Millisecond), // bound execution
+)
+```
+
+**Mitigation 2 — semaphore inside the job function:**
+
+```go
+sem := make(chan struct{}, 4) // allow at most 4 concurrent executions
+
+s.Register("@every 1s", func(ctx context.Context) error {
+    select {
+    case sem <- struct{}{}:
+        defer func() { <-sem }()
+    default:
+        return nil // drop this tick; already at capacity
+    }
+    return doWork(ctx)
+})
+```
+
+**Best practice:** use `@every` intervals no smaller than the expected
+job duration, and always set `WithTimeout` to prevent goroutine leaks from
+stuck jobs.
+
+---
+
+### No Missed-Job Detection
+
+**Current behaviour:** If a job fires while the scheduler is stopped (e.g.
+during a deployment), the missed activation is silently skipped. This matches
+the behaviour of Unix cron and robfig/cron.
+
+**Mitigation — external catch-up pattern:**
+
+```go
+// At startup, check whether the last recorded run is older than one period.
+// If so, run the job immediately before starting the scheduler.
+
+lastRun := db.GetLastRun("daily-report")
+if time.Since(lastRun) > 24*time.Hour {
+    if err := dailyReportJob(ctx); err != nil {
+        log.Printf("catch-up run failed: %v", err)
+    }
+}
+
+s.Register("@daily", dailyReportJob)
+s.Start()
+```
+
+---
+
+### DST Transitions
+
+**Current behaviour:** The scheduler uses `time.After` which is based on the
+monotonic clock and is therefore unaffected by wall-clock adjustments:
+
+- **Spring forward (clocks skip an hour):** any activation whose scheduled
+  time falls in the skipped hour is silently missed for that day.
+- **Fall back (clocks repeat an hour):** the repeated hour may cause one
+  additional activation compared to a typical day.
+
+**Example — illustrating the spring-forward case:**
+
+```go
+// A job scheduled for 02:30 in a timezone that observes DST will not fire
+// on the night clocks move from 02:00 → 03:00 (the time never exists).
+tz, _ := time.LoadLocation("America/New_York")
+s, _ := crontask.New(crontask.WithLocation(tz))
+s.Register("30 2 * * *", handler) // silently skipped on DST spring-forward night
+```
+
+**Recommendation:** Avoid scheduling jobs at wall-clock times that fall
+inside DST transition windows (typically 00:00–03:00 in the affected timezone).
+Use UTC for high-reliability schedules.
 
 ---
 
@@ -383,3 +752,4 @@ nextTime := sched.Next(time.Now())
 
 This package is part of the replify module and is distributed under the same
 license. See the repository root for details.
+

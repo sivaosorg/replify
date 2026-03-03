@@ -1,6 +1,9 @@
 package crontask
 
 import (
+	"fmt"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,7 +26,7 @@ type Schedule interface {
 // both Vixie-cron and gronx. Aliases are resolved by the parser before
 // field-level parsing occurs.
 //
-// The following aliases are recognised:
+// The following aliases are recognised out of the box:
 //
 //	@yearly   (or @annually)  — "0 0 1 1 *"
 //	@monthly                  — "0 0 1 * *"
@@ -33,6 +36,18 @@ type Schedule interface {
 //	@minutely                 — "* * * * *"
 //	@weekdays                 — "0 0 * * 1-5"
 //	@weekends                 — "0 0 * * 0,6"
+//
+// Business-oriented aliases:
+//
+//	@businessDaily   — "0 9 * * 1-5"       (09:00 on weekdays)
+//	@businessHourly  — "0 9-17 * * 1-5"    (top of each hour, 09–17, weekdays)
+//	@quarterly       — "0 0 1 1,4,7,10 *"  (midnight, first day of each quarter)
+//	@semiMonthly     — "0 0 1,15 * *"      (midnight, 1st and 15th of each month)
+//	@workhours       — "* 9-17 * * 1-5"    (every minute 09:00–17:59, weekdays)
+//	@marketOpen      — "30 9 * * 1-5"      (09:30, weekdays)
+//	@marketClose     — "0 16 * * 1-5"      (16:00, weekdays)
+//
+// Additional aliases can be registered at runtime with RegisterAlias.
 //
 // When using the six-field (seconds-first) format, the above expansions gain
 // a leading "0" second field automatically.
@@ -68,22 +83,109 @@ const (
 
 	// AliasWeekends fires at midnight on Saturday and Sunday.
 	AliasWeekends Alias = "@weekends"
+
+	// AliasBusinessDaily fires at 09:00 on every weekday (Monday–Friday).
+	// It is suitable for once-per-business-day jobs that run at the start of
+	// the working day.
+	AliasBusinessDaily Alias = "@businessDaily"
+
+	// AliasBusinessHourly fires at the top of each hour from 09:00 to 17:00
+	// on every weekday. It is suitable for tasks that should run once per
+	// business hour during core working hours.
+	AliasBusinessHourly Alias = "@businessHourly"
+
+	// AliasQuarterly fires at midnight on the first day of each calendar
+	// quarter (January, April, July, and October).
+	AliasQuarterly Alias = "@quarterly"
+
+	// AliasSemiMonthly fires at midnight on the 1st and 15th of every month,
+	// giving two activations per month.
+	AliasSemiMonthly Alias = "@semiMonthly"
+
+	// AliasWorkHours fires every minute during business hours: 09:00–17:59
+	// on every weekday. Suitable for polling tasks that should only run
+	// during office hours.
+	AliasWorkHours Alias = "@workhours"
+
+	// AliasMarketOpen fires at 09:30 on every weekday, aligned with the
+	// standard US equity market open time.
+	AliasMarketOpen Alias = "@marketOpen"
+
+	// AliasMarketClose fires at 16:00 on every weekday, aligned with the
+	// standard US equity market close time.
+	AliasMarketClose Alias = "@marketClose"
 )
+
+// aliasMapMu guards aliasMap for concurrent reads and writes. The initial
+// entries are populated at package-init time (single-goroutine), after which
+// all reads go through lookupAlias and all writes through RegisterAlias.
+var aliasMapMu sync.RWMutex
 
 // aliasMap maps each recognised alias to its canonical five-field (minute-first)
 // cron expression. The parser consults this map before attempting field-level
 // parsing.
 var aliasMap = map[string]string{
-	AliasYearly:   "0 0 1 1 *",
-	AliasAnnually: "0 0 1 1 *",
-	AliasMonthly:  "0 0 1 * *",
-	AliasWeekly:   "0 0 * * 0",
-	AliasDaily:    "0 0 * * *",
-	AliasMidnight: "0 0 * * *",
-	AliasHourly:   "0 * * * *",
-	AliasMinutely: "* * * * *",
-	AliasWeekdays: "0 0 * * 1-5",
-	AliasWeekends: "0 0 * * 0,6",
+	// Standard aliases — keys stored in lower case to match lookupAlias.
+	"@yearly":   "0 0 1 1 *",
+	"@annually": "0 0 1 1 *",
+	"@monthly":  "0 0 1 * *",
+	"@weekly":   "0 0 * * 0",
+	"@daily":    "0 0 * * *",
+	"@midnight": "0 0 * * *",
+	"@hourly":   "0 * * * *",
+	"@minutely": "* * * * *",
+	"@weekdays": "0 0 * * 1-5",
+	"@weekends": "0 0 * * 0,6",
+	// Business-oriented aliases.
+	"@businessdaily":  "0 9 * * 1-5",
+	"@businesshourly": "0 9-17 * * 1-5",
+	"@quarterly":      "0 0 1 1,4,7,10 *",
+	"@semimonthly":    "0 0 1,15 * *",
+	"@workhours":      "* 9-17 * * 1-5",
+	"@marketopen":     "30 9 * * 1-5",
+	"@marketclose":    "0 16 * * 1-5",
+}
+
+// lookupAlias performs a concurrent-safe lookup in aliasMap using the
+// lower-cased alias name (including the "@" prefix).
+func lookupAlias(name string) (string, bool) {
+	aliasMapMu.RLock()
+	v, ok := aliasMap[name]
+	aliasMapMu.RUnlock()
+	return v, ok
+}
+
+// RegisterAlias registers a custom alias that can subsequently be used
+// anywhere a cron expression is accepted (Register, Parse, IsDue, etc.).
+//
+// name must begin with "@". expr must be a valid five-field or six-field cron
+// expression; @every and nested alias expressions are not accepted as the
+// right-hand side of a registration.
+//
+// If name already exists (built-in or previously registered), it is silently
+// overwritten with the new expression. Names are matched case-insensitively.
+//
+// Example:
+//
+//	err := crontask.RegisterAlias("@nightly", "0 2 * * *")
+func RegisterAlias(name, expr string) error {
+	if !strings.HasPrefix(name, "@") {
+		return fmt.Errorf("crontask: alias name %q must begin with \"@\"", name)
+	}
+	// Validate that expr is a plain 5 or 6 field expression so that aliases
+	// cannot create indirect chains.
+	fields := strings.Fields(strings.TrimSpace(expr))
+	if len(fields) != 5 && len(fields) != 6 {
+		return fmt.Errorf("crontask: alias expression must have 5 or 6 fields, got %q", expr)
+	}
+	if _, err := Parse(expr); err != nil {
+		return err
+	}
+	key := strings.ToLower(name)
+	aliasMapMu.Lock()
+	aliasMap[key] = expr
+	aliasMapMu.Unlock()
+	return nil
 }
 
 // fieldSpec describes the valid range for a single cron field.

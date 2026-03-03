@@ -91,6 +91,10 @@ func TestParseAlias(t *testing.T) {
 		"@yearly", "@annually", "@monthly", "@weekly",
 		"@daily", "@midnight", "@hourly", "@minutely",
 		"@weekdays", "@weekends",
+		// Business aliases.
+		"@businessDaily", "@businessHourly",
+		"@quarterly", "@semiMonthly",
+		"@workhours", "@marketOpen", "@marketClose",
 	}
 	for _, a := range aliases {
 		a := a
@@ -307,5 +311,95 @@ func TestDowSundayNormalisation(t *testing.T) {
 	n0 := s0.Next(ref)
 	if !n7.Equal(n0) {
 		t.Errorf("Next with dow=7 (%v) != Next with dow=0 (%v)", n7, n0)
+	}
+}
+
+// TestRegisterAlias verifies the custom alias registration workflow.
+func TestRegisterAlias(t *testing.T) {
+	t.Parallel()
+
+	const name = "@test-register-alias"
+
+	// A valid five-field expression should register successfully.
+	if err := RegisterAlias(name, "0 3 * * *"); err != nil {
+		t.Fatalf("RegisterAlias: unexpected error: %v", err)
+	}
+	// Parse must now succeed for the custom alias.
+	if _, err := Parse(name); err != nil {
+		t.Errorf("Parse after RegisterAlias: %v", err)
+	}
+	// Registering with a new expression overwrites the old one.
+	if err := RegisterAlias(name, "0 4 * * *"); err != nil {
+		t.Fatalf("RegisterAlias overwrite: %v", err)
+	}
+	// Cleanup so other tests are unaffected.
+	aliasMapMu.Lock()
+	delete(aliasMap, name)
+	aliasMapMu.Unlock()
+}
+
+// TestRegisterAliasErrors verifies rejection of malformed registrations.
+func TestRegisterAliasErrors(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name string
+		expr string
+	}{
+		// Name does not start with "@".
+		{"no-at-prefix", "0 * * * *"},
+		// Expression has wrong field count.
+		{"@bad-count", "0 * * *"},
+		// Expression has an invalid field value.
+		{"@bad-value", "99 * * * *"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			if err := RegisterAlias(tc.name, tc.expr); err == nil {
+				t.Errorf("RegisterAlias(%q, %q): expected error, got nil", tc.name, tc.expr)
+			}
+		})
+	}
+}
+
+// TestBusinessAliasesNextRun spot-checks that business alias schedules compute
+// sensible next-run times.
+func TestBusinessAliasesNextRun(t *testing.T) {
+	t.Parallel()
+	// @businessDaily fires at 09:00 on weekdays.
+	// Use a Monday at 08:00 as the reference; next should be 09:00 same day.
+	ref := time.Date(2024, 1, 8, 8, 0, 0, 0, time.UTC) // Monday
+	sched, err := Parse(AliasBusinessDaily)
+	if err != nil {
+		t.Fatalf("Parse(%q): %v", AliasBusinessDaily, err)
+	}
+	next := sched.Next(ref)
+	want := time.Date(2024, 1, 8, 9, 0, 0, 0, time.UTC)
+	if !next.Equal(want) {
+		t.Errorf("AliasBusinessDaily Next = %v, want %v", next, want)
+	}
+
+	// @marketOpen fires at 09:30 on weekdays.
+	sched2, err := Parse(AliasMarketOpen)
+	if err != nil {
+		t.Fatalf("Parse(%q): %v", AliasMarketOpen, err)
+	}
+	next2 := sched2.Next(ref)
+	want2 := time.Date(2024, 1, 8, 9, 30, 0, 0, time.UTC)
+	if !next2.Equal(want2) {
+		t.Errorf("AliasMarketOpen Next = %v, want %v", next2, want2)
+	}
+
+	// @quarterly fires on 1 Jan.
+	refQ := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	schedQ, err := Parse(AliasQuarterly)
+	if err != nil {
+		t.Fatalf("Parse(%q): %v", AliasQuarterly, err)
+	}
+	nextQ := schedQ.Next(refQ)
+	wantQ := time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
+	if !nextQ.Equal(wantQ) {
+		t.Errorf("AliasQuarterly Next = %v, want %v", nextQ, wantQ)
 	}
 }

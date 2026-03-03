@@ -186,21 +186,22 @@ func TestExplain_InvalidExpr(t *testing.T) {
 // RegisterAlias is described by the field-based explainer.
 func TestExplain_CustomAlias(t *testing.T) {
 	t.Parallel()
-	if err := RegisterAlias("@nightly", "0 2 * * *"); err != nil {
+	const customAlias = "@nightly"
+	if err := RegisterAlias(customAlias, "0 2 * * *"); err != nil {
 		t.Fatalf("RegisterAlias: %v", err)
 	}
-	got, err := Explain("@nightly")
+	got, err := Explain(customAlias)
 	if err != nil {
-		t.Fatalf("Explain(@nightly): %v", err)
+		t.Fatalf("Explain(%s): %v", customAlias, err)
 	}
 	want := "At 02:00"
 	if got != want {
-		t.Errorf("Explain(@nightly) = %q, want %q", got, want)
+		t.Errorf("Explain(%s) = %q, want %q", customAlias, got, want)
 	}
 
 	// Cleanup so other tests are not affected.
 	aliasMapMu.Lock()
-	delete(aliasMap, "@nightly")
+	delete(aliasMap, customAlias)
 	aliasMapMu.Unlock()
 }
 

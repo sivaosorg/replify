@@ -51,7 +51,7 @@ func (e Expression) IsDue(at time.Time) bool {
 
 // MustParse is like Parse but panics instead of returning an error when the
 // expression is invalid. It is intended for use in package-level variable
-// initialisers where the expression is a compile-time constant.
+// initializers where the expression is a compile-time constant.
 //
 // Example:
 //

@@ -63,7 +63,9 @@ func Explain(expr string) (string, error) {
 	clean := trimmed
 	if strings.HasPrefix(clean, "TZ=") {
 		idx := strings.Index(clean, " ")
-		clean = strings.TrimSpace(clean[idx+1:])
+		if idx >= 0 {
+			clean = strings.TrimSpace(clean[idx+1:])
+		}
 	}
 
 	// @every interval expressions.

@@ -169,6 +169,84 @@ type JobError struct {
 	Err error
 }
 
+// JobContext carries structured metadata about a single job invocation. It is
+// populated by the executor and passed to advanced hook types that implement
+// the optional RetryHook or PanicHook interfaces. The fields available depend
+// on the hook method being called:
+//
+//   - JobID and Duration are always populated.
+//   - Error is non-nil only in failure and retry contexts.
+//   - Attempt is set for retry callbacks; it is zero in success/complete callbacks.
+//   - Expression, ScheduledAt, StartedAt, and FinishedAt are populated when
+//     full job context is available (e.g., via custom job wrappers).
+type JobContext struct {
+	// JobID is the unique identifier of the executing job.
+	JobID string
+
+	// Expression is the raw cron expression string for the job.
+	Expression string
+
+	// ScheduledAt is the time the job was originally scheduled to fire.
+	ScheduledAt time.Time
+
+	// StartedAt is the time the job function was first invoked.
+	StartedAt time.Time
+
+	// FinishedAt is the time the job invocation completed (or panicked).
+	FinishedAt time.Time
+
+	// Attempt is the one-based attempt number for retry callbacks (1 = first
+	// try, 2 = first retry, etc.). Zero for non-retry callbacks.
+	Attempt int
+
+	// Error is the error from the most recent attempt, or nil on success.
+	Error error
+
+	// Duration is the elapsed time of the invocation.
+	Duration time.Duration
+}
+
+// RetryHook is an optional extension to the Hooks interface. If a Hooks
+// implementation also satisfies RetryHook, the executor calls OnRetry after
+// each failed attempt that will be retried (i.e., not the final attempt). This
+// allows retry-specific logging and alerting without polling OnFailure.
+//
+// Example:
+//
+//	type MyHooks struct {
+//	    crontask.NoopHooks
+//	}
+//
+//	func (h *MyHooks) OnRetry(_ context.Context, id string, attempt int, err error) {
+//	    log.Printf("job %s: attempt %d failed, will retry: %v", id, attempt, err)
+//	}
+type RetryHook interface {
+	// OnRetry is called after a failed attempt when at least one retry remains.
+	// attempt is the one-based attempt number that just failed.
+	OnRetry(ctx context.Context, jobID string, attempt int, err error)
+}
+
+// PanicHook is an optional extension to the Hooks interface. If a Hooks
+// implementation also satisfies PanicHook, the executor calls OnPanic when
+// the job function panics, before re-recording the result. This enables
+// structured panic reporting without crashing the process.
+//
+// Example:
+//
+//	type MyHooks struct {
+//	    crontask.NoopHooks
+//	}
+//
+//	func (h *MyHooks) OnPanic(_ context.Context, id string, recovered any) {
+//	    log.Printf("CRITICAL: job %s panicked: %v", id, recovered)
+//	    sentry.CaptureException(fmt.Errorf("panic in job %s: %v", id, recovered))
+//	}
+type PanicHook interface {
+	// OnPanic is called when the job function panics. recovered is the value
+	// passed to panic(). The job is marked as failed after OnPanic returns.
+	OnPanic(ctx context.Context, jobID string, recovered any)
+}
+
 // BackoffPolicy is a function that receives the one-based attempt number and
 // returns the duration to wait before the next attempt. Returning zero means
 // the retry fires immediately.
@@ -225,9 +303,10 @@ type jobConfig struct {
 // schedulerConfig holds the configuration fields resolved from the applied
 // SchedulerOptions.
 type schedulerConfig struct {
-	loc      *time.Location
-	withSecs bool
-	onError  func(id string, err error)
+	loc          *time.Location
+	withSecs     bool
+	onError      func(id string, err error)
+	defaultHooks Hooks // applied to jobs that do not supply their own hooks
 }
 
 // entry is the internal mutable state for a single registered job. Access

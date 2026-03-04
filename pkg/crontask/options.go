@@ -139,17 +139,33 @@ func WithJitter(max time.Duration) JobOption {
 	}
 }
 
-// WithHooks attaches a Hooks implementation to the job. The hook methods are
-// called by the executor at the appropriate points in the job lifecycle.
+// WithHooks attaches one or more Hooks implementations to the job. When
+// multiple hooks are supplied they are composed into a chain that dispatches
+// each hook method to all members in order. Nil values are silently ignored.
+//
+// Backward-compatible: existing callers that supply a single Hooks value
+// continue to work without modification.
 //
 // Example:
 //
 //	s.Register("@daily", fn, crontask.WithHooks(myHooks))
-func WithHooks(h Hooks) JobOption {
+//	s.Register("@daily", fn, crontask.WithHooks(crontask.LoggingHook(), crontask.MetricsHook()))
+func WithHooks(hooks ...Hooks) JobOption {
 	return func(c *jobConfig) {
-		if h != nil {
-			c.hooks = h
+		active := make([]Hooks, 0, len(hooks))
+		for _, h := range hooks {
+			if h != nil {
+				active = append(active, h)
+			}
 		}
+		if len(active) == 0 {
+			return
+		}
+		if len(active) == 1 {
+			c.hooks = active[0]
+			return
+		}
+		c.hooks = ChainHooks(active...)
 	}
 }
 
@@ -165,6 +181,44 @@ func WithContext(ctx context.Context) JobOption {
 		if ctx != nil {
 			c.ctx = ctx
 		}
+	}
+}
+
+// WithSchedulerHooks registers one or more default Hooks that are applied to
+// every job that does not supply its own per-job hooks via WithHooks. This
+// provides a convenient way to enable logging, metrics, or other observability
+// for all jobs in one place at scheduler construction time.
+//
+// When multiple hooks are supplied they are composed into a chain (equivalent
+// to calling ChainHooks). Nil values are silently ignored.
+//
+// Per-job hooks set via WithHooks always take precedence over the scheduler-
+// level default. To combine both, call ChainHooks explicitly:
+//
+//	s.Register("@daily", fn, crontask.WithHooks(
+//	    crontask.ChainHooks(schedulerDefaultHooks, myJobSpecificHook),
+//	))
+//
+// Example:
+//
+//	s, _ := crontask.New(
+//	    crontask.WithSchedulerHooks(
+//	        crontask.LoggingHook(),
+//	        crontask.MetricsHook(),
+//	    ),
+//	)
+func WithSchedulerHooks(hooks ...Hooks) SchedulerOption {
+	return func(c *schedulerConfig) {
+		active := make([]Hooks, 0, len(hooks))
+		for _, h := range hooks {
+			if h != nil {
+				active = append(active, h)
+			}
+		}
+		if len(active) == 0 {
+			return
+		}
+		c.defaultHooks = ChainHooks(active...)
 	}
 }
 

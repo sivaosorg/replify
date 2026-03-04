@@ -8,6 +8,97 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
+// Parse converts a cron expression string into a Schedule that can be used
+// to compute successive activation times.
+//
+// Supported formats
+//
+//   - Five fields:  "minute hour day-of-month month day-of-week"
+//   - Six fields:   "second minute hour day-of-month month day-of-week"
+//   - @alias:       see the Alias constants for the full list
+//   - @every <d>:   interval expression, e.g. "@every 5m"
+//
+// Field syntax (per field)
+//
+//   - *                — every value in the valid range
+//   - n                — exact value
+//   - n-m              — inclusive range
+//   - n-m/step         — range with step
+//   - */step           — every step values across the full range
+//   - a,b,c            — comma-separated list (each element may itself use
+//     any of the above forms)
+//
+// Month and day-of-week fields additionally accept three-letter English
+// abbreviations (jan-dec and sun-sat respectively), case-insensitive.
+//
+// # Timezone
+//
+// An optional IANA timezone specifier may appear at the front of the
+// expression, separated from the fields by a space:
+//
+//	"TZ=America/New_York 0 9 * * 1-5"
+//
+// When a timezone is provided, the returned Schedule activates at the
+// specified local time. When omitted, UTC is used.
+func Parse(expr string) (Schedule, error) {
+	expr = strings.TrimSpace(expr)
+	if expr == "" {
+		return nil, &ExpressionError{Expression: expr, Field: -1, Reason: "expression is empty"}
+	}
+
+	// Extract optional leading TZ= specifier.
+	loc := time.UTC
+	if strings.HasPrefix(expr, "TZ=") {
+		idx := strings.Index(expr, " ")
+		if idx < 0 {
+			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: "missing fields after TZ specifier"}
+		}
+		tzName := expr[3:idx]
+		var err error
+		loc, err = time.LoadLocation(tzName)
+		if err != nil {
+			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: fmt.Sprintf("unknown timezone %q: %v", tzName, err)}
+		}
+		expr = strings.TrimSpace(expr[idx+1:])
+	}
+
+	// Handle @every interval expressions.
+	if strings.HasPrefix(expr, "@every ") {
+		durationStr := strings.TrimPrefix(expr, "@every ")
+		d, err := time.ParseDuration(strings.TrimSpace(durationStr))
+		if err != nil {
+			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: fmt.Sprintf("invalid duration %q: %v", durationStr, err)}
+		}
+		if d <= 0 {
+			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: "interval duration must be positive"}
+		}
+		return &intervalSchedule{interval: d}, nil
+	}
+
+	// Handle @alias expressions.
+	if strings.HasPrefix(expr, "@") {
+		expanded, ok := lookupAlias(strings.ToLower(expr))
+		if !ok {
+			return nil, &ExpressionError{Expression: expr, Field: -1, Reason: fmt.Sprintf("unknown alias %q", expr)}
+		}
+		expr = expanded
+	}
+
+	// Split into fields.
+	fields := strings.Fields(expr)
+	switch len(fields) {
+	case 5:
+		return parseFiveField(expr, fields, loc)
+	case 6:
+		return parseSixField(expr, fields, loc)
+	default:
+		return nil, &ExpressionError{
+			Expression: expr, Field: -1,
+			Reason: fmt.Sprintf("expected 5 or 6 fields, got %d", len(fields)),
+		}
+	}
+}
+
 // MustParse is like Parse but panics instead of returning an error when the
 // expression is invalid. It is intended for use in package-level variable
 // initializers where the expression is a compile-time constant.
@@ -21,6 +112,17 @@ func MustParse(expr string) Expression {
 		panic(fmt.Sprintf("crontask.MustParse: %v", err))
 	}
 	return Expression{raw: expr, schedule: s}
+}
+
+// Validate reports whether the given expression is syntactically and
+// semantically valid. It returns nil on success or a typed *ExpressionError
+// (which also satisfies errors.Is(err, ErrInvalidExpression)).
+func Validate(expr string) error {
+	if strutil.IsEmpty(expr) {
+		return &ExpressionError{Expression: expr, Field: -1, Reason: "expression is empty"}
+	}
+	_, err := Parse(expr)
+	return err
 }
 
 // IsValidCronExpr reports whether expr is a syntactically and semantically

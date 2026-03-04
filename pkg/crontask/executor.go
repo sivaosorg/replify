@@ -2,6 +2,7 @@ package crontask
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -14,7 +15,8 @@ func (ex *executor) dispatch(e *entry, scheduledAt time.Time) {
 
 // run is the goroutine body for a single job invocation. It applies jitter,
 // derives the execution context, runs the retry loop, calls hooks, and
-// records the result.
+// records the result. A deferred recovery captures any panic in the job
+// function and routes it through the optional PanicHook interface.
 func (ex *executor) run(e *entry, scheduledAt time.Time) {
 	// Determine the base context. Fall back to Background when none is
 	// configured.
@@ -43,12 +45,36 @@ func (ex *executor) run(e *entry, scheduledAt time.Time) {
 		defer cancel()
 	}
 
+	// Track start time here so the panic recovery deferred below can compute
+	// elapsed time even if the panic occurs before the normal start assignment.
+	var start time.Time
+
+	// Panic recovery: capture any panic in the job function, route through
+	// the optional PanicHook, and record the outcome so the scheduler loop
+	// and metrics consumers see a failed run rather than an uncaught panic.
+	defer func() {
+		if r := recover(); r != nil {
+			elapsed := time.Duration(0)
+			if !start.IsZero() {
+				elapsed = time.Since(start)
+			}
+			if e.cfg.hooks != nil {
+				if ph, ok := e.cfg.hooks.(PanicHook); ok {
+					ph.OnPanic(ctx, e.id, r)
+				}
+				e.cfg.hooks.OnComplete(ctx, e.id, elapsed)
+			}
+			panicErr := fmt.Errorf("crontask: job %q panicked: %v", e.id, r)
+			recordResult(e, scheduledAt, panicErr)
+		}
+	}()
+
 	// Dispatch hook.
 	if e.cfg.hooks != nil {
 		e.cfg.hooks.OnStart(ctx, e.id)
 	}
 
-	start := time.Now()
+	start = time.Now()
 	var finalErr error
 
 	// Retry loop.
@@ -71,6 +97,13 @@ func (ex *executor) run(e *entry, scheduledAt time.Time) {
 		finalErr = &JobError{JobID: e.id, Attempt: attempt, Err: err}
 
 		if attempt <= e.cfg.maxRetries {
+			// Notify retry hook if the hooks implementation supports it.
+			if e.cfg.hooks != nil {
+				if rh, ok := e.cfg.hooks.(RetryHook); ok {
+					rh.OnRetry(ctx, e.id, attempt, err)
+				}
+			}
+
 			// Compute backoff delay.
 			if e.cfg.backoff != nil {
 				delay := e.cfg.backoff(attempt)

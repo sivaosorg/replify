@@ -7,6 +7,10 @@
 reliable, expressive, and observable periodic job execution built on a
 clean four-layer architecture.
 
+> 📖 **Looking for real-world integration examples?**
+> See [EXAMPLE.md](./EXAMPLE.md) for a senior-level, production-oriented guide covering
+> REST service integration, hook patterns, graceful shutdown, distributed locking, and more.
+
 ---
 
 ## Table of Contents
@@ -495,7 +499,81 @@ func (h *metricsHooks) OnFailure(_ context.Context, id string, _ time.Duration, 
 }
 ```
 
-### 9.2 Persistence Hook Pattern
+### 9.2 Optional Hook Interfaces
+
+Two optional extensions are automatically dispatched by the executor when
+the attached `Hooks` implementation also satisfies them:
+
+**`RetryHook`** — called after each failed attempt that will be retried:
+
+```go
+type RetryHook interface {
+    OnRetry(ctx context.Context, jobID string, attempt int, err error)
+}
+```
+
+**`PanicHook`** — called when the job function panics (the panic is recovered
+automatically; the job is marked as failed):
+
+```go
+type PanicHook interface {
+    OnPanic(ctx context.Context, jobID string, recovered any)
+}
+```
+
+### 9.3 Built-in Base Hooks
+
+`crontask` ships a set of ready-to-use hooks that cover the most common
+production needs. Enable them individually or in any combination.
+
+| Hook | Constructor | Description |
+|------|-------------|-------------|
+| Logging | `LoggingHook()` | Logs lifecycle events via `log.Printf` |
+| Metrics | `MetricsHook()` | Atomic success/failure/duration counters |
+| Panic recovery | `RecoverPanicHook()` | Recovers panics; custom handler via `RecoverPanicHookWithHandler` |
+| Retry logger | `RetryLoggerHook()` | Logs each retry attempt (`RetryHook`) |
+| Timeout logger | `TimeoutLoggerHook()` | Warns on `context.DeadlineExceeded` failures |
+| Concurrency limiter | `ConcurrencyLimiterHook(n)` | Caps simultaneous executions to `n` |
+| Chaining | `ChainHooks(hooks...)` | Composes any number of hooks into one |
+
+**Scheduler-level defaults** — applied to every job that does not supply its own hooks:
+
+```go
+s, _ := crontask.New(
+    crontask.WithSchedulerHooks(
+        crontask.LoggingHook(),
+        crontask.MetricsHook(),
+        crontask.RecoverPanicHook(),
+    ),
+)
+```
+
+**Per-job hooks** — override the scheduler defaults for a specific job:
+
+```go
+s.Register("@daily", fn,
+    crontask.WithHooks(
+        crontask.LoggingHook(),
+        crontask.RetryLoggerHook(),
+        crontask.TimeoutLoggerHook(),
+    ),
+)
+```
+
+**Composing multiple hooks** with `ChainHooks`:
+
+```go
+hooks := crontask.ChainHooks(
+    crontask.LoggingHook(),
+    crontask.MetricsHook(),
+    &myCustomHook{},
+)
+s.Register("@hourly", fn, crontask.WithHooks(hooks))
+```
+
+See [EXAMPLE.md](./EXAMPLE.md) for production-grade integration examples.
+
+### 9.4 Persistence Hook Pattern
 
 `crontask` is in-memory by default. To persist job state across
 restarts, define a persistence adapter around the `Hooks` interface:
@@ -523,7 +601,7 @@ func (h *DatabaseHook) OnComplete(_ context.Context, id string, elapsed time.Dur
 }
 ```
 
-### 9.3 Distributed Lock Middleware
+### 9.5 Distributed Lock Middleware
 
 In a multi-instance deployment every scheduler fires the same jobs.
 Wrap each job with a distributed lock to ensure single-execution:

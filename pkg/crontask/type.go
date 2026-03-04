@@ -140,6 +140,36 @@ type Hooks interface {
 //	}
 type NoopHooks struct{}
 
+// MetricsHookInstance is the concrete type returned by MetricsHook. It
+// accumulates counters and duration totals using atomic operations and exposes
+// them through accessor methods that are safe for concurrent use.
+//
+// Typical usage is to retain a reference to the instance so that metrics can
+// be scraped periodically (e.g. by a Prometheus collector or a /metrics HTTP
+// handler):
+//
+//	m := crontask.MetricsHook()
+//	s.Register("@hourly", fn, crontask.WithHooks(m))
+//
+//	// Elsewhere, in a metrics handler:
+//	successes := m.SuccessCount()
+//	failures  := m.FailureCount()
+type MetricsHookInstance struct {
+	NoopHooks
+	successCount int64
+	failureCount int64
+	panicCount   int64
+	totalDurNs   int64 // cumulative nanoseconds across all invocations
+}
+
+// ConcurrencyLimiterHookInstance is the concrete type returned by
+// ConcurrencyLimiterHook. It exposes a Hooks-compatible API and can also be
+// interrogated for current concurrency at runtime.
+type ConcurrencyLimiterHookInstance struct {
+	NoopHooks
+	sem chan struct{}
+}
+
 // ExpressionError describes a parse or validation error for a specific cron
 // expression. It implements the error interface and can be unwrapped to
 // ErrInvalidExpression for sentinel matching.
@@ -167,6 +197,100 @@ type JobError struct {
 
 	// Err is the underlying error returned by the job function.
 	Err error
+}
+
+// JobContext carries structured metadata about a single job invocation. It is
+// a reference type for authors of custom hook wrappers and job middleware. The
+// fields available depend on how and where the context is populated:
+//
+//   - JobID and Duration are always populated by the executor.
+//   - Error is non-nil only in failure and retry contexts.
+//   - Attempt is set for retry callbacks; it is zero in success/complete callbacks.
+//   - Expression, ScheduledAt, StartedAt, and FinishedAt are populated by custom
+//     job wrappers that assemble this struct before calling downstream services.
+//
+// The built-in hook interfaces (RetryHook, PanicHook) and the core Hooks
+// interface use individual parameters rather than JobContext for backward
+// compatibility. Use JobContext in your own custom job wrappers when you need
+// to pass a richer snapshot through a middleware chain:
+//
+//	func instrumentedJob(meta crontask.JobContext, fn crontask.JobFunc) crontask.JobFunc {
+//	    return func(ctx context.Context) error {
+//	        meta.StartedAt = time.Now()
+//	        err := fn(ctx)
+//	        meta.FinishedAt = time.Now()
+//	        meta.Duration   = meta.FinishedAt.Sub(meta.StartedAt)
+//	        meta.Error      = err
+//	        myCustomMiddleware(ctx, meta)
+//	        return err
+//	    }
+//	}
+type JobContext struct {
+	// JobID is the unique identifier of the executing job.
+	JobID string
+
+	// Expression is the raw cron expression string for the job.
+	Expression string
+
+	// ScheduledAt is the time the job was originally scheduled to fire.
+	ScheduledAt time.Time
+
+	// StartedAt is the time the job function was first invoked.
+	StartedAt time.Time
+
+	// FinishedAt is the time the job invocation completed (or panicked).
+	FinishedAt time.Time
+
+	// Attempt is the one-based attempt number for retry callbacks (1 = first
+	// try, 2 = first retry, etc.). Zero for non-retry callbacks.
+	Attempt int
+
+	// Error is the error from the most recent attempt, or nil on success.
+	Error error
+
+	// Duration is the elapsed time of the invocation.
+	Duration time.Duration
+}
+
+// RetryHook is an optional extension to the Hooks interface. If a Hooks
+// implementation also satisfies RetryHook, the executor calls OnRetry after
+// each failed attempt that will be retried (i.e., not the final attempt). This
+// allows retry-specific logging and alerting without polling OnFailure.
+//
+// Example:
+//
+//	type MyHooks struct {
+//	    crontask.NoopHooks
+//	}
+//
+//	func (h *MyHooks) OnRetry(_ context.Context, id string, attempt int, err error) {
+//	    log.Printf("job %s: attempt %d failed, will retry: %v", id, attempt, err)
+//	}
+type RetryHook interface {
+	// OnRetry is called after a failed attempt when at least one retry remains.
+	// attempt is the one-based attempt number that just failed.
+	OnRetry(ctx context.Context, jobID string, attempt int, err error)
+}
+
+// PanicHook is an optional extension to the Hooks interface. If a Hooks
+// implementation also satisfies PanicHook, the executor calls OnPanic when
+// the job function panics, before re-recording the result. This enables
+// structured panic reporting without crashing the process.
+//
+// Example:
+//
+//	type MyHooks struct {
+//	    crontask.NoopHooks
+//	}
+//
+//	func (h *MyHooks) OnPanic(_ context.Context, id string, recovered any) {
+//	    log.Printf("CRITICAL: job %s panicked: %v", id, recovered)
+//	    sentry.CaptureException(fmt.Errorf("panic in job %s: %v", id, recovered))
+//	}
+type PanicHook interface {
+	// OnPanic is called when the job function panics. recovered is the value
+	// passed to panic(). The job is marked as failed after OnPanic returns.
+	OnPanic(ctx context.Context, jobID string, recovered any)
 }
 
 // BackoffPolicy is a function that receives the one-based attempt number and
@@ -225,9 +349,10 @@ type jobConfig struct {
 // schedulerConfig holds the configuration fields resolved from the applied
 // SchedulerOptions.
 type schedulerConfig struct {
-	loc      *time.Location
-	withSecs bool
-	onError  func(id string, err error)
+	loc          *time.Location
+	withSecs     bool
+	onError      func(id string, err error)
+	defaultHooks Hooks // applied to jobs that do not supply their own hooks
 }
 
 // entry is the internal mutable state for a single registered job. Access
@@ -284,4 +409,35 @@ type executor struct {
 type registry struct {
 	mu      sync.RWMutex
 	entries map[string]*entry
+}
+
+// chainedHooks dispatches each Hooks method to all members. It also implements
+// the optional RetryHook and PanicHook interfaces so that any member that
+// supports them receives the call.
+type chainedHooks struct {
+	hooks []Hooks
+}
+
+// loggingHook writes structured log lines for every stage of a job lifecycle
+// using the standard library's log package.
+type loggingHook struct {
+	NoopHooks
+}
+
+// recoverPanicHook routes panics through a caller-supplied handler. It embeds
+// NoopHooks to satisfy the Hooks interface and adds PanicHook support.
+type recoverPanicHook struct {
+	NoopHooks
+	handler func(ctx context.Context, jobID string, recovered any)
+}
+
+// retryLoggerHook logs each retry attempt using the standard log package.
+type retryLoggerHook struct {
+	NoopHooks
+}
+
+// timeoutLoggerHook logs job failures that are caused by context deadline
+// exceeded or explicit job-timeout errors.
+type timeoutLoggerHook struct {
+	NoopHooks
 }

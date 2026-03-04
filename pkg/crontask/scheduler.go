@@ -110,6 +110,12 @@ func (s *Scheduler) Register(expr string, fn JobFunc, opts ...JobOption) (string
 		o(&cfg)
 	}
 
+	// Fall back to the scheduler-level default hooks when the job does not
+	// supply its own. Per-job hooks always take precedence.
+	if cfg.hooks == nil && s.cfg.defaultHooks != nil {
+		cfg.hooks = s.cfg.defaultHooks
+	}
+
 	// Assign an ID if not provided.
 	if cfg.id == "" {
 		id, err := randn.UUID()

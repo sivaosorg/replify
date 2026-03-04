@@ -182,6 +182,33 @@ type SchedulerOption func(*schedulerConfig)
 // time via Register.
 type JobOption func(*jobConfig)
 
+// Scheduler is the primary type exposed by the crontask package. It manages
+// job registration, the scheduler loop, and graceful shutdown.
+//
+// Create a Scheduler with New; do not use the zero value directly.
+//
+// All methods on Scheduler are safe for concurrent use from multiple
+// goroutines.
+type Scheduler struct {
+	// configuration
+	cfg      schedulerConfig
+	registry *registry
+	exec     *executor
+
+	// running is 1 when the scheduler loop is active, 0 otherwise.
+	running int32
+
+	// stopped is 1 after Shutdown has been called; once stopped a Scheduler
+	// cannot be restarted.
+	stopped int32
+
+	// channels
+	stopCh chan struct{} // closed by Stop or Shutdown to terminate the loop
+	doneCh chan struct{} // closed by the loop goroutine when it exits
+
+	mu sync.Mutex // guards stopCh/doneCh replacement on Start
+}
+
 // jobConfig holds the per-job configuration resolved from the applied
 // JobOptions.
 type jobConfig struct {

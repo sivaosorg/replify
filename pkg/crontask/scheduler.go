@@ -3,69 +3,11 @@ package crontask
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/randn"
 )
-
-// Scheduler is the primary type exposed by the crontask package. It manages
-// job registration, the scheduler loop, and graceful shutdown.
-//
-// Create a Scheduler with New; do not use the zero value directly.
-//
-// All methods on Scheduler are safe for concurrent use from multiple
-// goroutines.
-type Scheduler struct {
-	cfg      schedulerConfig
-	registry *registry
-	exec     *executor
-
-	// running is 1 when the scheduler loop is active, 0 otherwise.
-	running int32
-
-	// stopped is 1 after Shutdown has been called; once stopped a Scheduler
-	// cannot be restarted.
-	stopped int32
-
-	stopCh chan struct{} // closed by Stop or Shutdown to terminate the loop
-	doneCh chan struct{} // closed by the loop goroutine when it exits
-
-	mu sync.Mutex // guards stopCh/doneCh replacement on Start
-}
-
-// New constructs and returns a new Scheduler configured by the supplied
-// SchedulerOptions.
-//
-// The scheduler is created in a stopped state; call Start to begin processing
-// jobs.
-//
-// Example:
-//
-//	s, err := crontask.New(
-//	    crontask.WithLocation(time.UTC),
-//	    crontask.WithSeconds(),
-//	)
-func New(opts ...SchedulerOption) (*Scheduler, error) {
-	cfg := schedulerConfig{
-		loc: time.UTC,
-	}
-	for _, o := range opts {
-		o(&cfg)
-	}
-	s := &Scheduler{
-		cfg:      cfg,
-		registry: newRegistry(),
-		exec:     &executor{onError: cfg.onError},
-		stopCh:   make(chan struct{}),
-		doneCh:   make(chan struct{}),
-	}
-	// Pre-close doneCh so that callers blocking on it before Start get an
-	// immediate return.
-	close(s.doneCh)
-	return s, nil
-}
 
 // Start begins the scheduler loop in a background goroutine. It returns
 // ErrSchedulerRunning if the scheduler is already active or

@@ -184,19 +184,19 @@ fmt.Println(sched.Next(t)) // 2024-03-11 02:30:00 EDT
                     │ delegates to
         ┌───────────┴────────────────────────┐
         │                                    │
-┌───────▼──────────┐          ┌─────────────▼──────────┐
+┌───────▼──────────┐          ┌─────────────▼────────────┐
 │  Expression      │          │  Scheduler (scheduler.go)│
 │  Layer           │          │  owns main goroutine     │
 │  expression.go   │          │  tick · dispatch · stop  │
-│  parser.go       │          └─────────────┬────────────┘
-│  explain.go      │                        │
+│                  │          └─────────────┬────────────┘
+│                  │                        │
 └───────┬──────────┘          ┌─────────────▼────────────┐
-        │                     │  Job Layer (job.go)       │
-        │                     │  registry · JobInfo       │
-        │                     │  RWMutex-guarded           │
+        │                     │  Job Layer (job.go)      │
+        │                     │  registry · JobInfo      │
+        │                     │  RWMutex-guarded         │
         │                     └─────────────┬────────────┘
         │                                   │
-        │                     ┌─────────────▼────────────┐
+        │                     ┌─────────────▼─────────────┐
         │                     │  Execution Layer          │
         └─────────────────────│  executor.go              │
                               │  timeout · retry · hooks  │
@@ -208,7 +208,7 @@ fmt.Println(sched.Next(t)) // 2024-03-11 02:30:00 EDT
 | Layer | Files | Responsibility |
 |-------|-------|---------------|
 | Public API | `entry.go` | All exported top-level functions |
-| Expression | `expression.go`, `parser.go`, `explain.go` | Parse, validate, explain |
+| Expression | `expression.go` | Parse, validate, explain |
 | Job | `job.go` | Registry, metadata, statistics |
 | Execution | `executor.go` | Goroutine dispatch, retry, backoff |
 | Scheduler | `scheduler.go` | Main loop, tick, graceful shutdown |

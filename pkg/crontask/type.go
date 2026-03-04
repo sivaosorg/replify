@@ -170,15 +170,31 @@ type JobError struct {
 }
 
 // JobContext carries structured metadata about a single job invocation. It is
-// populated by the executor and passed to advanced hook types that implement
-// the optional RetryHook or PanicHook interfaces. The fields available depend
-// on the hook method being called:
+// a reference type for authors of custom hook wrappers and job middleware. The
+// fields available depend on how and where the context is populated:
 //
-//   - JobID and Duration are always populated.
+//   - JobID and Duration are always populated by the executor.
 //   - Error is non-nil only in failure and retry contexts.
 //   - Attempt is set for retry callbacks; it is zero in success/complete callbacks.
-//   - Expression, ScheduledAt, StartedAt, and FinishedAt are populated when
-//     full job context is available (e.g., via custom job wrappers).
+//   - Expression, ScheduledAt, StartedAt, and FinishedAt are populated by custom
+//     job wrappers that assemble this struct before calling downstream services.
+//
+// The built-in hook interfaces (RetryHook, PanicHook) and the core Hooks
+// interface use individual parameters rather than JobContext for backward
+// compatibility. Use JobContext in your own custom job wrappers when you need
+// to pass a richer snapshot through a middleware chain:
+//
+//	func instrumentedJob(meta crontask.JobContext, fn crontask.JobFunc) crontask.JobFunc {
+//	    return func(ctx context.Context) error {
+//	        meta.StartedAt = time.Now()
+//	        err := fn(ctx)
+//	        meta.FinishedAt = time.Now()
+//	        meta.Duration   = meta.FinishedAt.Sub(meta.StartedAt)
+//	        meta.Error      = err
+//	        myCustomMiddleware(ctx, meta)
+//	        return err
+//	    }
+//	}
 type JobContext struct {
 	// JobID is the unique identifier of the executing job.
 	JobID string

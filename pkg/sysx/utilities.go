@@ -9,16 +9,6 @@ import (
 // Section: Internal string helpers
 // ///////////////////////////
 
-// isZero reports whether s is empty or consists entirely of whitespace.
-func isZero(s string) bool {
-	return len(strings.TrimSpace(s)) == 0
-}
-
-// trimSpace returns s with all leading and trailing whitespace removed.
-func trimSpace(s string) string {
-	return strings.TrimSpace(s)
-}
-
 // parseBoolString parses a lowercase, trimmed string as a boolean.
 //
 // Recognised true  values: "1", "true", "yes", "on"

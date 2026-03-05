@@ -36,6 +36,43 @@ func parseBoolString(s string) (bool, bool) {
 	return false, false
 }
 
+// splitLines splits s into individual lines by "\n", stripping any trailing
+// "\r" (to handle "\r\n" line endings). A single trailing newline is consumed
+// so that "a\nb\n" returns ["a","b"] rather than ["a","b",""]. An empty input
+// returns nil.
+func splitLines(s string) []string {
+	if s == "" {
+		return nil
+	}
+	s = strings.TrimRight(s, "\n")
+	parts := strings.Split(s, "\n")
+	result := make([]string, len(parts))
+	for i, p := range parts {
+		result[i] = strings.TrimRight(p, "\r")
+	}
+	return result
+}
+
+// ///////////////////////////
+// Section: Internal I/O helpers
+// ///////////////////////////
+
+// commandBuffer is a minimal zero-allocation-friendly byte accumulator used
+// internally by Execute to capture stdout and stderr. It satisfies io.Writer.
+type commandBuffer struct {
+	buf strings.Builder
+}
+
+// Write appends p to the buffer.
+func (b *commandBuffer) Write(p []byte) (int, error) {
+	return b.buf.Write(p)
+}
+
+// String returns the accumulated content as a string.
+func (b *commandBuffer) String() string {
+	return b.buf.String()
+}
+
 // ///////////////////////////
 // Section: Exported composite helpers
 // ///////////////////////////

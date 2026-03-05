@@ -43,16 +43,37 @@
 //
 // # Command Execution
 //
-//	sysx.ExecCommand(name, args...)                            // run command
-//	sysx.ExecOutput(name, args...)                             // run and capture combined output
+// The command subsystem offers two API layers.
+//
+// Builder API – configure once, execute cleanly:
+//
+//	sysx.NewCommand("bash").
+//	    WithArgs("-c", "echo hello").
+//	    WithTimeout(5 * time.Second).
+//	    WithEnv("APP_ENV=prod").
+//	    WithDir("/tmp").
+//	    Execute()       // returns *CommandResult with Stdout, Stderr, ExitCode, Duration
+//
+// Convenience functions – one-liners for common patterns:
+//
+//	sysx.RunCommand(name, args...)                             // structured *CommandResult
+//	sysx.ExecCommand(name, args...)                            // run, discard output
+//	sysx.ExecCommandContext(ctx, name, args...)                // run under context
+//	sysx.ExecOutput(name, args...)                             // run, capture combined output
+//	sysx.ExecOutputLines(name, args...)                        // run, capture stdout as []string
+//	sysx.ExecStreaming(stdout, stderr, name, args...)           // stream output in real time
+//	sysx.ExecAsync(name, args...)                              // start without waiting
+//	sysx.ExecPipeline([]string{...}, []string{...})            // shell-style pipe chain
 //	sysx.ExecCommandWithTimeout(timeout, name, args...)        // run with deadline
-//	sysx.ExecOutputWithTimeout(timeout, name, args...)         // run with deadline, capture output
+//	sysx.ExecOutputWithTimeout(timeout, name, args...)         // run with deadline, capture
 //	sysx.ExecCommandInDir(dir, name, args...)                  // run in directory
-//	sysx.ExecOutputInDir(dir, name, args...)                   // run in directory, capture output
+//	sysx.ExecOutputInDir(dir, name, args...)                   // run in directory, capture
 //
 // # File System Utilities
 //
-//	sysx.FileExists(path)    // true when a file exists at path
+// Existence and type checks:
+//
+//	sysx.FileExists(path)    // true when a file system entry exists at path
 //	sysx.DirExists(path)     // true when a directory exists at path
 //	sysx.IsFile(path)        // true when path is a regular file
 //	sysx.IsDir(path)         // true when path is a directory
@@ -63,6 +84,27 @@
 //	sysx.FileSize(path)      // size of file in bytes
 //	sysx.HomeDir()           // user's home directory
 //	sysx.WorkingDir()        // current working directory
+//
+// File reading:
+//
+//	sysx.ReadFile(path)                     // []byte contents
+//	sysx.ReadFileString(path)               // string contents
+//	sysx.ReadLines(path)                    // []string, one element per line
+//	sysx.StreamLines(path, handler)         // line-by-line callback, memory-efficient
+//
+// File writing:
+//
+//	sysx.WriteFile(path, data)              // create/truncate, write bytes
+//	sysx.WriteFileString(path, content)     // create/truncate, write string
+//	sysx.AppendFile(path, data)             // append bytes
+//	sysx.AppendString(path, content)        // append string
+//	sysx.WriteLines(path, lines)            // write slice as newline-terminated lines
+//
+// Concurrency-safe and atomic writes:
+//
+//	sysx.AtomicWriteFile(path, data)        // temp-file + rename, prevents partial reads
+//	sysx.WriteFileLocked(path, data)        // per-path in-process mutex, serialises writers
+//	sysx.NewSafeFileWriter(path)            // reusable mutex-protected writer for one path
 //
 // All functions in this package are safe for concurrent use.
 package sysx

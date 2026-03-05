@@ -54,26 +54,6 @@ func splitLines(s string) []string {
 }
 
 // ///////////////////////////
-// Section: Internal I/O helpers
-// ///////////////////////////
-
-// commandBuffer is a minimal zero-allocation-friendly byte accumulator used
-// internally by Execute to capture stdout and stderr. It satisfies io.Writer.
-type commandBuffer struct {
-	buf strings.Builder
-}
-
-// Write appends p to the buffer.
-func (b *commandBuffer) Write(p []byte) (int, error) {
-	return b.buf.Write(p)
-}
-
-// String returns the accumulated content as a string.
-func (b *commandBuffer) String() string {
-	return b.buf.String()
-}
-
-// ///////////////////////////
 // Section: Exported composite helpers
 // ///////////////////////////
 

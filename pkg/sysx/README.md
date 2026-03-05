@@ -28,14 +28,16 @@ The `sysx` package eliminates the boilerplate of writing low-level system querie
 
 | File | Responsibility |
 |------|----------------|
+| `type.go` | Struct definitions (`Command`, `CommandResult`, `SafeFileWriter`) with unexported fields; getter/accessor methods; package-level globals |
 | `doc.go` | Package-level godoc documentation |
 | `os.go` | OS and architecture detection (`IsLinux`, `IsDarwin`, `IsWindows`, `OSVersion`, …) |
 | `runtime.go` | Runtime information (`Hostname`, `PID`, `UID`, `GoVersion`, `MemStats`, …) |
 | `env.go` | Environment variable helpers (`GetEnv`, `MustGetEnv`, `HasEnv`, typed getters, `EnvMap`) |
 | `process.go` | Process utilities (`ProcessExists`, `KillProcess`, `FindProcessByPID`, …) |
-| `command.go` | Command execution — `Command` builder, `CommandResult`, and all convenience functions |
+| `command.go` | Command builder (`NewCommand`, `With*` methods, `Execute`, `Run`, `Output`) and all convenience functions |
 | `file.go` | File system helpers — existence/type/permission checks, read/write functions, atomic and concurrency-safe writers |
-| `utilities.go` | Internal helpers (`isZero`, `trimSpace`, `parseBoolString`, `splitLines`, `commandBuffer`) and exported `UserInfo()` |
+| `net.go` | Network utilities — IP classification, port probing, address resolution, connectivity helpers |
+| `utilities.go` | Internal helpers (`isZero`, `trimSpace`, `parseBoolString`, `splitLines`) and exported `UserInfo()` |
 | `entry.go` | Top-level convenience (`SystemInfo`, `IsPrivileged`) |
 
 ## Installation
@@ -129,6 +131,7 @@ sysx.FindProcessByPID(pid int) (*os.Process, error)  // os.FindProcess
 ### Command Execution (`command.go`)
 
 The command subsystem has two API layers that share a single implementation.
+All `CommandResult` fields are **unexported**; always use the accessor methods.
 
 #### Builder API — `Command` and `CommandResult`
 
@@ -145,19 +148,31 @@ cmd := sysx.NewCommand("bash").
 
 // Execute and get a structured result:
 res := cmd.Execute()
-// res.Stdout   string         — captured stdout (empty when WithStdout was used)
-// res.Stderr   string         — captured stderr (empty when WithStderr was used)
-// res.ExitCode int            — 0 on success, -1 when undetermined
-// res.Duration time.Duration  — wall-clock execution time
-// res.Error    error          — nil on success
+
+// Read results via accessor methods:
+res.Stdout()   string         // captured stdout (empty when WithStdout was used)
+res.Stderr()   string         // captured stderr (empty when WithStderr was used)
+res.ExitCode() int            // 0 on success, -1 when undetermined
+res.Duration() time.Duration  // wall-clock execution time
+res.Err()      error          // nil on success
 
 // Convenience methods on *CommandResult:
-res.Success()   bool   // true when Error == nil
-res.Combined()  string // Stdout + Stderr
+res.Success()   bool   // true when Err() == nil
+res.Combined()  string // Stdout() + Stderr()
 
 // Shorter variants on *Command:
-cmd.Run()           error          // Execute().Error
-cmd.Output()        (string, error) // Execute().Combined(), Execute().Error
+cmd.Run()           error           // Execute().Err()
+cmd.Output()        (string, error) // Execute().Combined(), Execute().Err()
+```
+
+#### Command Getters
+
+```go
+cmd.Name()     string         // program name or path
+cmd.Args()     []string       // positional arguments
+cmd.Dir()      string         // working directory
+cmd.Env()      []string       // extra KEY=VALUE bindings
+cmd.Timeout()  time.Duration  // configured timeout (0 = none)
 ```
 
 #### Convenience Functions
@@ -254,6 +269,52 @@ w := sysx.NewSafeFileWriter(path).WithPerm(0o600)
 w.Write(data []byte) error
 w.WriteString(s string) error
 w.Overwrite(data []byte) error  // atomic replace
+// Accessors:
+w.Path() string        // the file path
+w.Perm() os.FileMode   // file permission
+```
+
+### Network Utilities (`net.go`)
+
+#### IP Classification
+
+```go
+sysx.IsIPv4("192.168.1.1")  bool  // true for valid dotted-decimal IPv4
+sysx.IsIPv6("::1")          bool  // true for valid IPv6 (non-IPv4)
+sysx.IsLocalIP("10.0.0.1")  bool  // true for loopback, link-local, RFC 1918
+```
+
+Recognised local ranges: `127.0.0.0/8`, `169.254.0.0/16`, `10.0.0.0/8`,
+`172.16.0.0/12`, `192.168.0.0/16`, `::1`, `fe80::/10`, `fc00::/7`.
+
+#### Port Probing
+
+```go
+sysx.IsPortOpen("db.internal", 5432) bool    // TCP connect attempt, 3s timeout
+sysx.IsPortAvailable(8080)           bool    // true when port can be bound
+```
+
+#### Network Address Helpers
+
+```go
+sysx.GetLocalIP()         (string, error)    // first non-loopback IPv4
+sysx.GetPublicIP()        (string, error)    // via https://api.ipify.org (needs internet)
+sysx.GetInterfaceIPs()    ([]string, error)  // all IPs across all interfaces
+```
+
+#### URL and Host Helpers
+
+```go
+sysx.IsValidHost("localhost")          bool             // DNS resolve or valid IP
+sysx.ParseHostPort("host:8080")        (host, port, error)
+sysx.IsValidURL("https://example.com") bool             // valid scheme + host
+```
+
+#### Connectivity
+
+```go
+sysx.PingHost("google.com")                       error  // TCP port 80, 5s timeout
+sysx.CheckTCPConnection("db", 5432, 3*time.Second) error  // any port, custom timeout
 ```
 
 ### Entry-Point Helpers (`entry.go`)
@@ -665,380 +726,115 @@ func reloadConfig(newCfg []byte) error {
 }
 ```
 
+## Network Utilities
 
-## Overview
+The `net.go` file provides helpers for common network operations used in
+production backend services. All functions use only the Go standard library
+and are safe for concurrent use.
 
-The `sysx` package eliminates the boilerplate of writing low-level system queries from scratch. It addresses common pain points like:
-
-- **OS / Architecture detection** – know at runtime whether you are on Linux, macOS, Windows, 64-bit, or ARM
-- **Runtime introspection** – read hostname, PID, UID, GID, number of CPUs, goroutine count, Go version, and memory stats in a single call
-- **Environment management** – read, write, and parse environment variables with typed helpers (int, bool, slice) and sensible fallbacks
-- **Process utilities** – check whether a PID is alive, send signals, look up processes by PID
-- **Command execution** – run external programs with optional timeout, working-directory override, and combined output capture
-- **File system helpers** – existence checks, type checks, permission checks, size queries, and directory lookups
-
-**Problem Solved:** Querying the operating system involves a patchwork of `os`, `os/exec`, `runtime`, `syscall`, and `os/user` calls scattered across many packages. `sysx` unifies these into a single, coherent API with uniform error handling and well-documented behaviour.
-
-## Design Philosophy
-
-- **Zero external dependencies** — only the Go standard library is used
-- **Safe for concurrent use** — all exported functions are stateless or read-only with respect to shared state
-- **Explicit errors, not silent failures** — functions return errors rather than hiding them; `Must*` variants are provided where panicking on failure is a deliberate choice
-- **Platform-aware** — differences between Linux, macOS, and Windows are documented and handled gracefully
-- **No shell interpolation** — command execution helpers use `os/exec` directly, never `sh -c`, to avoid injection risks
-
-## Package Architecture
-
-| File | Responsibility |
-|------|----------------|
-| `doc.go` | Package-level godoc documentation |
-| `os.go` | OS and architecture detection (`IsLinux`, `IsDarwin`, `IsWindows`, `OSVersion`, …) |
-| `runtime.go` | Runtime information (`Hostname`, `PID`, `UID`, `GoVersion`, `MemStats`, …) |
-| `env.go` | Environment variable helpers (`GetEnv`, `MustGetEnv`, `HasEnv`, typed getters, `EnvMap`) |
-| `process.go` | Process utilities (`ProcessExists`, `KillProcess`, `FindProcessByPID`, …) |
-| `command.go` | Command execution (`ExecCommand`, `ExecOutput`, timeout and directory variants) |
-| `file.go` | File system helpers (`FileExists`, `DirExists`, permission checks, `FileSize`, `HomeDir`, …) |
-| `utilities.go` | Internal helpers (`isZero`, `trimSpace`, `parseBoolString`) and exported `UserInfo()` |
-| `entry.go` | Top-level convenience (`SystemInfo`, `IsPrivileged`) |
-
-## Installation
-
-```bash
-go get github.com/sivaosorg/replify
-```
-
-Import the package:
+### IP and Address Utilities
 
 ```go
-import "github.com/sivaosorg/replify/pkg/sysx"
+// Classify IP addresses
+sysx.IsIPv4("192.168.1.1")   // true
+sysx.IsIPv6("::1")           // true
+sysx.IsLocalIP("10.0.0.1")   // true (RFC 1918 private range)
+sysx.IsLocalIP("8.8.8.8")    // false (public)
+
+// Get machine addresses
+localIP, _ := sysx.GetLocalIP()           // first non-loopback IPv4
+publicIP, _ := sysx.GetPublicIP()         // via api.ipify.org
+allIPs, _ := sysx.GetInterfaceIPs()       // all IPs from all interfaces
 ```
 
-**Requirements:** Go 1.24.0 or higher
-
-## API Reference
-
-### OS Detection (`os.go`)
+### Port Probing
 
 ```go
-sysx.IsLinux()   bool   // true on Linux
-sysx.IsDarwin()  bool   // true on macOS
-sysx.IsWindows() bool   // true on Windows
+// Check whether a remote port is reachable (production service health check)
+if !sysx.IsPortOpen("postgres.internal", 5432) {
+    log.Fatal("database unreachable")
+}
 
-sysx.OSName()    string // runtime.GOOS  ("linux", "darwin", "windows", …)
-sysx.Arch()      string // runtime.GOARCH ("amd64", "arm64", "386", …)
-sysx.Is64Bit()   bool   // true for amd64, arm64, ppc64, …
-sysx.IsArm()     bool   // true for arm and arm64
-
-sysx.OSVersion() string // best-effort OS version string
-```
-
-**OSVersion resolution:**
-
-| Platform | Source |
-|----------|--------|
-| Linux | `PRETTY_NAME` field from `/etc/os-release` |
-| macOS | Output of `sw_vers -productVersion` |
-| Windows | `runtime.GOOS + "/" + runtime.GOARCH` |
-| Other | `runtime.GOOS` |
-
-### Runtime Information (`runtime.go`)
-
-```go
-sysx.Hostname()          (string, error) // os.Hostname()
-sysx.MustHostname()      string          // panics on error
-sysx.PID()               int             // os.Getpid()
-sysx.PPID()              int             // os.Getppid()
-sysx.UID()               int             // os.Getuid()  (-1 on Windows)
-sysx.GID()               int             // os.Getgid()  (-1 on Windows)
-sysx.ExecutablePath()    (string, error) // os.Executable()
-sysx.MustExecutablePath() string         // panics on error
-sysx.NumCPU()            int             // runtime.NumCPU()
-sysx.NumGoroutine()      int             // runtime.NumGoroutine()
-sysx.GoVersion()         string          // runtime.Version() — e.g. "go1.24.0"
-sysx.MemStats()          runtime.MemStats
-```
-
-### Environment Utilities (`env.go`)
-
-```go
-sysx.GetEnv(key, fallback string) string          // env var or fallback
-sysx.MustGetEnv(key string) string                // panics if absent/empty
-sysx.HasEnv(key string) bool                      // true when set and non-empty
-sysx.SetEnv(key, value string) error              // os.Setenv
-sysx.UnsetEnv(key string) error                   // os.Unsetenv
-sysx.GetEnvInt(key string, fallback int) int      // parsed int or fallback
-sysx.GetEnvBool(key string, fallback bool) bool   // parsed bool or fallback
-sysx.GetEnvSlice(key, sep string) []string        // split by sep, nil if unset
-sysx.Environ() []string                           // os.Environ()
-sysx.EnvMap() map[string]string                   // all env vars as map
-```
-
-**Bool string recognition (case-insensitive):**
-
-| Truthy | Falsy |
-|--------|-------|
-| `1`, `true`, `yes`, `on` | `0`, `false`, `no`, `off` |
-
-### Process Utilities (`process.go`)
-
-```go
-sysx.ProcessExists(pid int) bool                     // true when process is running
-sysx.KillProcess(pid int) error                      // SIGTERM
-sysx.KillProcessForcefully(pid int) error            // SIGKILL
-sysx.CurrentProcessName() string                     // filepath.Base of executable
-sysx.FindProcessByPID(pid int) (*os.Process, error)  // os.FindProcess
-```
-
-### Command Execution (`command.go`)
-
-```go
-sysx.ExecCommand(name string, args ...string) error
-sysx.ExecOutput(name string, args ...string) (string, error)
-
-sysx.ExecCommandWithTimeout(timeout time.Duration, name string, args ...string) error
-sysx.ExecOutputWithTimeout(timeout time.Duration, name string, args ...string) (string, error)
-
-sysx.ExecCommandInDir(dir, name string, args ...string) error
-sysx.ExecOutputInDir(dir, name string, args ...string) (string, error)
-```
-
-All `ExecOutput*` functions capture **combined** stdout and stderr. None of the helpers perform shell interpolation; `name` is always passed directly to `os/exec`.
-
-### File System Utilities (`file.go`)
-
-```go
-// Existence
-sysx.FileExists(path string) bool
-sysx.DirExists(path string) bool
-
-// Type checks (follow symlinks)
-sysx.IsFile(path string) bool
-sysx.IsDir(path string) bool
-sysx.IsSymlink(path string) bool  // does NOT follow symlinks
-
-// Permission checks (mode-bit based; Windows is approximate)
-sysx.IsExecutable(path string) bool  // owner execute bit (0100)
-sysx.IsReadable(path string) bool    // owner read bit    (0400)
-sysx.IsWritable(path string) bool    // tries os.O_WRONLY open
-
-// Metadata
-sysx.FileSize(path string) (int64, error)
-
-// Special directories
-sysx.TempDir() string
-sysx.HomeDir() (string, error)
-sysx.MustHomeDir() string
-sysx.WorkingDir() (string, error)
-sysx.MustWorkingDir() string
-```
-
-### Entry-Point Helpers (`entry.go`)
-
-```go
-sysx.SystemInfo() map[string]string
-// keys: "os", "arch", "hostname", "pid", "go_version", "executable", "num_cpu"
-
-sysx.IsPrivileged() bool  // true when UID() == 0 (root on Unix)
-```
-
-### Utility Helpers (`utilities.go`)
-
-```go
-sysx.UserInfo() string  // "uid=1000 gid=1000"
-```
-
-## Usage Examples
-
-### Basic OS / Architecture Check
-
-```go
-package main
-
-import (
-    "fmt"
-    "github.com/sivaosorg/replify/pkg/sysx"
-)
-
-func main() {
-    fmt.Println("OS:      ", sysx.OSName())
-    fmt.Println("Arch:    ", sysx.Arch())
-    fmt.Println("Version: ", sysx.OSVersion())
-    fmt.Println("64-bit:  ", sysx.Is64Bit())
-    fmt.Println("ARM:     ", sysx.IsArm())
+// Check whether a local port is free before binding
+if !sysx.IsPortAvailable(8080) {
+    log.Fatal("port 8080 already in use")
 }
 ```
 
-### Environment Configuration
+### URL and Host Validation
 
 ```go
-host  := sysx.GetEnv("DB_HOST", "localhost")
-port  := sysx.GetEnvInt("DB_PORT", 5432)
-debug := sysx.GetEnvBool("DEBUG", false)
-tags  := sysx.GetEnvSlice("TAGS", ",")
-
-// Panics at startup if DATABASE_URL is not configured
-dsn := sysx.MustGetEnv("DATABASE_URL")
-```
-
-### System Information Snapshot
-
-```go
-info := sysx.SystemInfo()
-for k, v := range info {
-    fmt.Printf("%-12s = %s\n", k, v)
-}
-// os           = linux
-// arch         = amd64
-// hostname     = myserver
-// pid          = 12345
-// go_version   = go1.24.0
-// executable   = /usr/local/bin/myapp
-// num_cpu      = 8
-```
-
-### Running External Commands
-
-```go
-// Fire and forget
-if err := sysx.ExecCommand("go", "generate", "./..."); err != nil {
-    log.Fatal(err)
+// Validate URLs before making requests
+if !sysx.IsValidURL(webhookURL) {
+    return fmt.Errorf("invalid webhook URL: %q", webhookURL)
 }
 
-// Capture combined output
-out, err := sysx.ExecOutput("git", "log", "--oneline", "-5")
+// Parse host:port strings from configuration
+host, port, err := sysx.ParseHostPort(config.DBAddr)
+// host == "db.internal", port == 5432
+
+// Verify a host is DNS-resolvable before connecting
+if !sysx.IsValidHost(host) {
+    return fmt.Errorf("cannot resolve host: %q", host)
+}
+```
+
+### Connectivity Checks
+
+```go
+// Quick reachability probe (TCP port 80)
+if err := sysx.PingHost("api.internal"); err != nil {
+    log.Printf("API host unreachable: %v", err)
+}
+
+// Explicit TCP connection check with custom timeout
+err := sysx.CheckTCPConnection("redis.cache", 6379, 2*time.Second)
 if err != nil {
-    log.Fatal(err)
+    log.Printf("Redis unavailable: %v", err)
 }
-fmt.Print(out)
-
-// With timeout
-out, err = sysx.ExecOutputWithTimeout(10*time.Second, "curl", "-s", "http://localhost/health")
-
-// In a specific directory
-err = sysx.ExecCommandInDir("/opt/myapp", "make", "build")
 ```
 
-### Process Management
+### Real-World: Startup Dependency Check
 
 ```go
-pid := sysx.PID()
-fmt.Println("I am running, PID:", pid)
-
-if sysx.ProcessExists(pid) {
-    fmt.Println("confirmed: still alive")
-}
-
-// Graceful then forceful termination
-if err := sysx.KillProcess(targetPID); err != nil {
-    sysx.KillProcessForcefully(targetPID)
+func checkDependencies() error {
+    deps := []struct{ name, host string; port int }{
+        {"PostgreSQL", "db.internal", 5432},
+        {"Redis",      "cache.internal", 6379},
+        {"Kafka",      "broker.internal", 9092},
+    }
+    for _, dep := range deps {
+        if err := sysx.CheckTCPConnection(dep.host, dep.port, 5*time.Second); err != nil {
+            return fmt.Errorf("%s is not reachable: %w", dep.name, err)
+        }
+        log.Printf("✓ %s (%s:%d) reachable", dep.name, dep.host, dep.port)
+    }
+    return nil
 }
 ```
 
-### File System Checks
+### Real-World: Dynamic Port Selection
 
 ```go
-if !sysx.FileExists("/etc/myapp/config.yaml") {
-    log.Fatal("configuration file not found")
+func findFreePort(start, end int) (int, error) {
+    for port := start; port <= end; port++ {
+        if sysx.IsPortAvailable(port) {
+            return port, nil
+        }
+    }
+    return 0, fmt.Errorf("no free port in range %d-%d", start, end)
 }
-
-if sysx.DirExists("/var/cache/myapp") {
-    size, _ := sysx.FileSize("/var/cache/myapp/data.bin")
-    fmt.Printf("cache size: %d bytes\n", size)
-}
-
-home := sysx.MustHomeDir()
-fmt.Println("home:", home)
 ```
 
-## Best Practices
-
-1. **Prefer `Must*` only at startup** — use the error-returning variants in library code; reserve `Must*` for `main()` or `init()` where a missing resource is fatal.
-2. **Check `ProcessExists` before signalling** — `os.FindProcess` on Unix always succeeds; pair it with `ProcessExists` to avoid signalling phantom PIDs.
-3. **Use `ExecOutput` for diagnostics, not pipelines** — both stdout and stderr are merged; if you need them separated, use `os/exec` directly.
-4. **Timeouts protect production code** — always use `ExecCommandWithTimeout` / `ExecOutputWithTimeout` when calling external programs in long-running services.
-5. **`EnvMap` is a snapshot** — the returned map is not updated when the environment changes; call again if you need fresh values.
-
-## Platform Caveats
+### Platform Notes for Network Utilities
 
 | Feature | Linux | macOS | Windows |
 |---------|-------|-------|---------|
-| `UID()` / `GID()` | numeric | numeric | always -1 |
-| `PPID()` | supported | supported | always 0 |
-| `ProcessExists` | signal(0) | signal(0) | FindProcess (unreliable for dead PIDs) |
-| `KillProcess` | SIGTERM | SIGTERM | limited |
-| `KillProcessForcefully` | SIGKILL | SIGKILL | limited |
-| `IsExecutable` / `IsReadable` | mode bits | mode bits | approximation |
-| `IsWritable` | open test | open test | open test |
-| `OSVersion` | `/etc/os-release` | `sw_vers` | GOOS/GOARCH string |
-| `IsPrivileged` | UID==0 | UID==0 | always false |
+| `GetLocalIP` | supported | supported | supported |
+| `GetPublicIP` | needs internet | needs internet | needs internet |
+| `IsPortAvailable` | TCP listen | TCP listen | TCP listen |
+| `PingHost` | TCP port 80 | TCP port 80 | TCP port 80 |
+| `CheckTCPConnection` | full support | full support | full support |
 
-## When to Use `sysx` vs stdlib
-
-| Task | Prefer |
-|------|--------|
-| Quick OS check | `sysx.IsLinux()` vs `runtime.GOOS == "linux"` — both work; sysx adds readability |
-| Env var with fallback | `sysx.GetEnv` — stdlib requires a conditional around `os.LookupEnv` |
-| Typed env vars | `sysx.GetEnvInt` / `sysx.GetEnvBool` — no stdlib equivalent |
-| Running a command and capturing output | `sysx.ExecOutput` — stdlib requires wiring up `cmd.Stdout`, `cmd.Stderr` |
-| Command with timeout | `sysx.ExecCommandWithTimeout` — saves boilerplate `context.WithTimeout` setup |
-| Checking if a file exists | `sysx.FileExists` — stdlib `os.Stat` + error check |
-| Checking if a process is alive | `sysx.ProcessExists` — stdlib requires `syscall.Kill(pid, 0)` and error type assertion |
-| Complex I/O piping | `os/exec` directly — `sysx` does not expose stdin or fine-grained output splitting |
-| Watching the file system | `fsnotify` or stdlib — outside `sysx` scope |
-
-## Real-World Integration Examples
-
-### Health-Check Endpoint
-
-```go
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-    info := sysx.SystemInfo()
-    json.NewEncoder(w).Encode(map[string]any{
-        "status":     "ok",
-        "hostname":   info["hostname"],
-        "pid":        info["pid"],
-        "go_version": info["go_version"],
-        "num_cpu":    info["num_cpu"],
-    })
-}
-```
-
-### Startup Configuration Validation
-
-```go
-func mustLoadConfig() Config {
-    return Config{
-        DSN:     sysx.MustGetEnv("DATABASE_URL"),
-        Port:    sysx.GetEnvInt("PORT", 8080),
-        Debug:   sysx.GetEnvBool("DEBUG", false),
-        Origins: sysx.GetEnvSlice("CORS_ORIGINS", ","),
-    }
-}
-```
-
-### Conditional Platform Logic
-
-```go
-func configureLogging() {
-    if sysx.IsLinux() {
-        // Use journald integration
-    } else if sysx.IsDarwin() {
-        // Use os_log
-    } else {
-        // Fallback to stderr
-    }
-}
-```
-
-### Run a Build and Capture Output
-
-```go
-out, err := sysx.ExecOutputWithTimeout(
-    2*time.Minute,
-    "go", "build", "-o", "/tmp/myapp", "./cmd/myapp",
-)
-if err != nil {
-    log.Printf("build failed:\n%s\n%v", out, err)
-    os.Exit(1)
-}
-```
+> **Note:** `GetPublicIP` requires outbound internet access. It will fail in
+> air-gapped environments. Always handle its error gracefully in production code.

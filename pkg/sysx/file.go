@@ -661,18 +661,6 @@ func AtomicWriteFile(path string, data []byte) error {
 // Section: SafeFileWriter
 // ///////////////////////////
 
-// SafeFileWriter provides concurrency-safe append and overwrite operations
-// targeting a single file path. A single SafeFileWriter instance can be shared
-// across goroutines; all write operations are serialised by an internal mutex.
-//
-// Create a SafeFileWriter with NewSafeFileWriter and optionally adjust the
-// file permission with WithPerm before sharing across goroutines.
-type SafeFileWriter struct {
-	mu   sync.Mutex
-	path string
-	perm os.FileMode
-}
-
 // NewSafeFileWriter creates a SafeFileWriter targeting path with the default
 // file permission of 0644.
 //
@@ -760,9 +748,6 @@ func (w *SafeFileWriter) Overwrite(data []byte) error {
 // ///////////////////////////
 // Section: Path-level in-process locking
 // ///////////////////////////
-
-// fileMutexes is the package-level registry of per-path in-process mutexes.
-var fileMutexes sync.Map // map[string]*sync.Mutex
 
 // getFileMutex returns the mutex associated with path, creating one if necessary.
 func getFileMutex(path string) *sync.Mutex {

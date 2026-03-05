@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"net"
 	"os"
 	"runtime"
 	"strings"
@@ -532,12 +533,12 @@ if res == nil {
 t.Fatal("Execute() returned nil")
 }
 if !res.Success() {
-t.Errorf("Success() = false, want true; err=%v", res.Error)
+t.Errorf("Success() = false, want true; err=%v", res.Err())
 }
-if res.ExitCode != 0 {
-t.Errorf("ExitCode = %d, want 0", res.ExitCode)
+if res.ExitCode() != 0 {
+t.Errorf("ExitCode = %d, want 0", res.ExitCode())
 }
-if res.Duration <= 0 {
+if res.Duration() <= 0 {
 t.Error("Duration should be positive")
 }
 }
@@ -548,8 +549,8 @@ res := sysx.NewCommand("").Execute()
 if res.Success() {
 t.Error("Execute() on empty name should fail")
 }
-if res.ExitCode != -1 {
-t.Errorf("ExitCode = %d, want -1 for empty name", res.ExitCode)
+if res.ExitCode() != -1 {
+t.Errorf("ExitCode = %d, want -1 for empty name", res.ExitCode())
 }
 }
 
@@ -580,10 +581,10 @@ t.Fatal(err)
 defer os.RemoveAll(tmp)
 res := sysx.NewCommand("pwd").WithDir(tmp).Execute()
 if !res.Success() {
-t.Fatalf("pwd failed: %v", res.Error)
+t.Fatalf("pwd failed: %v", res.Err())
 }
-if !strings.Contains(strings.TrimSpace(res.Stdout), tmp) {
-t.Errorf("pwd output %q does not contain %q", res.Stdout, tmp)
+if !strings.Contains(strings.TrimSpace(res.Stdout()), tmp) {
+t.Errorf("pwd output %q does not contain %q", res.Stdout(), tmp)
 }
 }
 
@@ -597,10 +598,10 @@ WithArgs("-c", "echo $SYSX_CMD_ENV_TEST").
 WithEnv("SYSX_CMD_ENV_TEST=injected").
 Execute()
 if !res.Success() {
-t.Fatalf("command failed: %v", res.Error)
+t.Fatalf("command failed: %v", res.Err())
 }
-if !strings.Contains(res.Stdout, "injected") {
-t.Errorf("env not injected: stdout=%q", res.Stdout)
+if !strings.Contains(res.Stdout(), "injected") {
+t.Errorf("env not injected: stdout=%q", res.Stdout())
 }
 }
 
@@ -617,7 +618,7 @@ args = []string{"fast"}
 }
 res := sysx.NewCommand(cmd).WithArgs(args...).WithTimeout(5 * time.Second).Execute()
 if !res.Success() {
-t.Errorf("WithTimeout fast command failed: %v", res.Error)
+t.Errorf("WithTimeout fast command failed: %v", res.Err())
 }
 }
 
@@ -659,10 +660,10 @@ t.Skip("skipping on Windows")
 var buf bytes.Buffer
 res := sysx.NewCommand("echo").WithArgs("streaming").WithStdout(&buf).Execute()
 if !res.Success() {
-t.Fatalf("command failed: %v", res.Error)
+t.Fatalf("command failed: %v", res.Err())
 }
-if res.Stdout != "" {
-t.Errorf("Stdout should be empty when custom writer is set, got %q", res.Stdout)
+if res.Stdout() != "" {
+t.Errorf("Stdout should be empty when custom writer is set, got %q", res.Stdout())
 }
 if !strings.Contains(buf.String(), "streaming") {
 t.Errorf("custom writer did not receive output: %q", buf.String())
@@ -719,7 +720,7 @@ if res == nil {
 t.Fatal("RunCommand returned nil")
 }
 if !res.Success() {
-t.Errorf("RunCommand(%q) failed: %v", cmd, res.Error)
+t.Errorf("RunCommand(%q) failed: %v", cmd, res.Err())
 }
 }
 
@@ -1324,4 +1325,358 @@ path := f.Name()
 f.Close()
 os.Remove(path) // remove so tests that create the file start fresh
 return path
+}
+
+
+// ///////////////////////////
+// Section: Command accessor tests
+// ///////////////////////////
+
+func TestSysx_Command_Accessors(t *testing.T) {
+t.Parallel()
+cmd := sysx.NewCommand("go").
+WithArgs("build", "./...").
+WithDir("/tmp").
+WithEnv("GOOS=linux").
+WithTimeout(10 * time.Second)
+
+if cmd.Name() != "go" {
+t.Errorf("Name() = %q, want %q", cmd.Name(), "go")
+}
+if len(cmd.Args()) != 2 || cmd.Args()[0] != "build" {
+t.Errorf("Args() = %v, want [build ./...]", cmd.Args())
+}
+if cmd.Dir() != "/tmp" {
+t.Errorf("Dir() = %q, want %q", cmd.Dir(), "/tmp")
+}
+if len(cmd.Env()) != 1 || cmd.Env()[0] != "GOOS=linux" {
+t.Errorf("Env() = %v, want [GOOS=linux]", cmd.Env())
+}
+if cmd.Timeout() != 10*time.Second {
+t.Errorf("Timeout() = %v, want 10s", cmd.Timeout())
+}
+}
+
+// ///////////////////////////
+// Section: CommandResult accessor tests
+// ///////////////////////////
+
+func TestSysx_CommandResult_Accessors(t *testing.T) {
+t.Parallel()
+if runtime.GOOS == "windows" {
+t.Skip("skipping on Windows")
+}
+res := sysx.NewCommand("bash").WithArgs("-c", "echo stdout; echo stderr >&2").Execute()
+
+if res.Stdout() == "" {
+t.Error("Stdout() should not be empty")
+}
+if res.Stderr() == "" {
+t.Error("Stderr() should not be empty")
+}
+if res.ExitCode() != 0 {
+t.Errorf("ExitCode() = %d, want 0", res.ExitCode())
+}
+if res.Duration() <= 0 {
+t.Error("Duration() should be positive")
+}
+if res.Err() != nil {
+t.Errorf("Err() = %v, want nil", res.Err())
+}
+if !res.Success() {
+t.Error("Success() should be true")
+}
+combined := res.Combined()
+if !strings.Contains(combined, "stdout") || !strings.Contains(combined, "stderr") {
+t.Errorf("Combined() = %q; should contain both 'stdout' and 'stderr'", combined)
+}
+}
+
+func TestSysx_CommandResult_ErrorAccessor(t *testing.T) {
+t.Parallel()
+res := sysx.NewCommand("").Execute()
+if res.Err() == nil {
+t.Error("Err() should not be nil for empty command name")
+}
+if res.ExitCode() != -1 {
+t.Errorf("ExitCode() = %d, want -1 for empty command", res.ExitCode())
+}
+if res.Success() {
+t.Error("Success() should be false when Err() is non-nil")
+}
+}
+
+// ///////////////////////////
+// Section: SafeFileWriter accessor tests
+// ///////////////////////////
+
+func TestSysx_SafeFileWriter_Accessors(t *testing.T) {
+t.Parallel()
+path := tmpPath(t, "sfw_accessor")
+defer os.Remove(path)
+
+w := sysx.NewSafeFileWriter(path).WithPerm(0o600)
+if w.Path() != path {
+t.Errorf("Path() = %q, want %q", w.Path(), path)
+}
+if w.Perm() != 0o600 {
+t.Errorf("Perm() = %o, want %o", w.Perm(), 0o600)
+}
+}
+
+// ///////////////////////////
+// Section: Network utility tests
+// ///////////////////////////
+
+func TestSysx_IsIPv4(t *testing.T) {
+t.Parallel()
+tests := []struct {
+ip   string
+want bool
+}{
+{"192.168.1.1", true},
+{"10.0.0.1", true},
+{"0.0.0.0", true},
+{"255.255.255.255", true},
+{"::1", false},
+{"2001:db8::1", false},
+{"not-an-ip", false},
+{"", false},
+{"300.1.1.1", false},
+}
+for _, tt := range tests {
+t.Run(tt.ip, func(t *testing.T) {
+got := sysx.IsIPv4(tt.ip)
+if got != tt.want {
+t.Errorf("IsIPv4(%q) = %v, want %v", tt.ip, got, tt.want)
+}
+})
+}
+}
+
+func TestSysx_IsIPv6(t *testing.T) {
+t.Parallel()
+tests := []struct {
+ip   string
+want bool
+}{
+{"::1", true},
+{"2001:db8::1", true},
+{"fe80::1", true},
+{"192.168.1.1", false},
+{"not-an-ip", false},
+{"", false},
+}
+for _, tt := range tests {
+t.Run(tt.ip, func(t *testing.T) {
+got := sysx.IsIPv6(tt.ip)
+if got != tt.want {
+t.Errorf("IsIPv6(%q) = %v, want %v", tt.ip, got, tt.want)
+}
+})
+}
+}
+
+func TestSysx_IsLocalIP(t *testing.T) {
+t.Parallel()
+tests := []struct {
+ip   string
+want bool
+}{
+{"127.0.0.1", true},
+{"127.0.0.2", true},
+{"::1", true},
+{"10.0.0.1", true},
+{"10.255.255.255", true},
+{"172.16.0.1", true},
+{"172.31.255.255", true},
+{"192.168.0.1", true},
+{"192.168.255.255", true},
+{"169.254.1.1", true},
+{"fc00::1", true},
+{"8.8.8.8", false},
+{"1.1.1.1", false},
+{"not-an-ip", false},
+}
+for _, tt := range tests {
+t.Run(tt.ip, func(t *testing.T) {
+got := sysx.IsLocalIP(tt.ip)
+if got != tt.want {
+t.Errorf("IsLocalIP(%q) = %v, want %v", tt.ip, got, tt.want)
+}
+})
+}
+}
+
+func TestSysx_IsPortAvailable(t *testing.T) {
+t.Parallel()
+// Bind a port then verify IsPortAvailable reports it as taken.
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+t.Skip("could not bind local port:", err)
+}
+defer ln.Close()
+port := ln.Addr().(*net.TCPAddr).Port
+if sysx.IsPortAvailable(port) {
+t.Errorf("IsPortAvailable(%d) = true for an already-bound port; want false", port)
+}
+}
+
+func TestSysx_IsPortAvailable_FreePort(t *testing.T) {
+t.Parallel()
+// Find a free port by binding then releasing.
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+t.Skip("could not bind local port:", err)
+}
+port := ln.Addr().(*net.TCPAddr).Port
+ln.Close()
+// After closing, the port should be free.
+if !sysx.IsPortAvailable(port) {
+t.Logf("IsPortAvailable(%d) = false after close; OS may be holding TIME_WAIT state", port)
+}
+}
+
+func TestSysx_IsPortOpen_Localhost(t *testing.T) {
+t.Parallel()
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+t.Skip("could not bind local port:", err)
+}
+defer ln.Close()
+port := ln.Addr().(*net.TCPAddr).Port
+if !sysx.IsPortOpen("127.0.0.1", port) {
+t.Errorf("IsPortOpen(127.0.0.1, %d) = false; want true for a bound port", port)
+}
+}
+
+func TestSysx_GetLocalIP(t *testing.T) {
+t.Parallel()
+ip, err := sysx.GetLocalIP()
+if err != nil {
+// Some CI environments have no non-loopback interfaces.
+t.Skipf("GetLocalIP returned error (may be expected in CI): %v", err)
+}
+if !sysx.IsIPv4(ip) {
+t.Errorf("GetLocalIP() = %q; want a valid IPv4 address", ip)
+}
+}
+
+func TestSysx_GetInterfaceIPs(t *testing.T) {
+t.Parallel()
+ips, err := sysx.GetInterfaceIPs()
+if err != nil {
+t.Fatalf("GetInterfaceIPs() error = %v", err)
+}
+_ = ips // may be empty in minimal containers
+}
+
+func TestSysx_ParseHostPort(t *testing.T) {
+t.Parallel()
+tests := []struct {
+addr     string
+wantHost string
+wantPort int
+wantErr  bool
+}{
+{"localhost:8080", "localhost", 8080, false},
+{"192.168.1.1:443", "192.168.1.1", 443, false},
+{"[::1]:80", "::1", 80, false},
+{"example.com:0", "example.com", 0, false},
+{"no-port", "", 0, true},
+{"host:notanumber", "", 0, true},
+}
+for _, tt := range tests {
+t.Run(tt.addr, func(t *testing.T) {
+host, port, err := sysx.ParseHostPort(tt.addr)
+if (err != nil) != tt.wantErr {
+t.Errorf("ParseHostPort(%q) err = %v, wantErr %v", tt.addr, err, tt.wantErr)
+return
+}
+if !tt.wantErr {
+if host != tt.wantHost {
+t.Errorf("ParseHostPort(%q) host = %q, want %q", tt.addr, host, tt.wantHost)
+}
+if port != tt.wantPort {
+t.Errorf("ParseHostPort(%q) port = %d, want %d", tt.addr, port, tt.wantPort)
+}
+}
+})
+}
+}
+
+func TestSysx_IsValidHost(t *testing.T) {
+t.Parallel()
+if !sysx.IsValidHost("127.0.0.1") {
+t.Error("IsValidHost(127.0.0.1) = false; want true")
+}
+if !sysx.IsValidHost("::1") {
+t.Error("IsValidHost(::1) = false; want true")
+}
+if !sysx.IsValidHost("localhost") {
+t.Skip("localhost DNS resolution failed; skipping")
+}
+if sysx.IsValidHost("this.host.definitely.does.not.exist.invalid") {
+t.Error("IsValidHost for nonexistent host = true; want false")
+}
+}
+
+func TestSysx_IsValidURL(t *testing.T) {
+t.Parallel()
+tests := []struct {
+url  string
+want bool
+}{
+{"https://example.com", true},
+{"http://localhost:8080/path", true},
+{"ftp://files.example.com", true},
+{"not-a-url", false},
+{"//missing-scheme.com", false},
+{"", false},
+}
+for _, tt := range tests {
+t.Run(tt.url, func(t *testing.T) {
+got := sysx.IsValidURL(tt.url)
+if got != tt.want {
+t.Errorf("IsValidURL(%q) = %v, want %v", tt.url, got, tt.want)
+}
+})
+}
+}
+
+func TestSysx_CheckTCPConnection_InvalidPort(t *testing.T) {
+t.Parallel()
+if err := sysx.CheckTCPConnection("localhost", 0, time.Second); err == nil {
+t.Error("CheckTCPConnection with port 0 should return error")
+}
+if err := sysx.CheckTCPConnection("localhost", 65536, time.Second); err == nil {
+t.Error("CheckTCPConnection with port 65536 should return error")
+}
+}
+
+func TestSysx_CheckTCPConnection_Success(t *testing.T) {
+t.Parallel()
+ln, err := net.Listen("tcp", "127.0.0.1:0")
+if err != nil {
+t.Skip("could not bind local port:", err)
+}
+defer ln.Close()
+port := ln.Addr().(*net.TCPAddr).Port
+if err := sysx.CheckTCPConnection("127.0.0.1", port, 3*time.Second); err != nil {
+t.Errorf("CheckTCPConnection(127.0.0.1, %d) error = %v; want nil", port, err)
+}
+}
+
+func TestSysx_CheckTCPConnection_Failure(t *testing.T) {
+t.Parallel()
+err := sysx.CheckTCPConnection("127.0.0.1", 1, 500*time.Millisecond)
+if err == nil {
+t.Skip("port 1 appears open (unexpected); skipping failure test")
+}
+}
+
+func TestSysx_PingHost_DoesNotPanic(t *testing.T) {
+t.Parallel()
+// Just verify the function doesn't panic.
+_ = sysx.PingHost("127.0.0.1")
 }

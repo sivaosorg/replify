@@ -393,7 +393,7 @@ scenarios, binary-level calculations, efficiency analysis, VLSM vs. FLSM
 comparison, route summarization, multi-VLAN design, and algorithm pseudocode
 for all major subnetting operations, see:
 
-**[SUBNETTING_GUIDE.md](./SUBNETTING_GUIDE.md)**
+**[SUBNETTING_GUIDE.md](./enterprise-grades/SUBNETTING_GUIDE.md)**
 
 Topics covered in the guide:
 
@@ -411,35 +411,3 @@ Topics covered in the guide:
 | API mapping | Every concept mapped to the corresponding `netx` Go function |
 
 ---
-
-## Cross-Package Architecture
-
-### Duplication Analysis
-
-`netx` operates exclusively on Go's `net.IP`, `net.IPNet`, and `math/big.Int`
-types. No other sub-package within `pkg/` handles these types; therefore there
-are no duplicate utilities to eliminate.
-
-A cross-package scan produced the following findings:
-
-| Area | Finding |
-|------|---------|
-| String utilities | Not used — all input is `net.IP` / `net.IPNet`, never raw strings |
-| Encoding/JSON | Not used — no marshalling in the core subnetting API |
-| Numeric conversion | Not used — arithmetic is performed directly on `*big.Int` |
-| Validation helpers | Not used — CIDR validation is delegated to `net.ParseCIDR` |
-
-### Dependency Relationships
-
-```
-pkg/netx        — zero imports from other pkg/* sub-packages (stdlib only)
-pkg/sysx        — zero imports from other pkg/* sub-packages (stdlib only)
-pkg/conv        — imports pkg/strutil
-pkg/crontask    — imports pkg/strutil, pkg/ref
-```
-
-`netx` intentionally maintains zero intra-pkg dependencies. Network
-subnetting logic is purely mathematical (bitwise IP arithmetic over
-`*big.Int`) and requires no string, JSON, or validation helpers from the
-rest of the ecosystem. Keeping `netx` self-contained means it can be used
-in any context without pulling in unrelated packages.

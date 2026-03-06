@@ -849,7 +849,6 @@ func TestSlogger_MultiWriter(t *testing.T) {
 func TestSlogger_EntryAccessors(t *testing.T) {
 t.Parallel()
 var buf bytes.Buffer
-var capturedEntry *slogger.Entry
 
 log := slogger.New(func(o *slogger.Options) {
 o.Level     = slogger.TraceLevel
@@ -875,7 +874,6 @@ hook.mu.Lock()
 e := hook.fired[0]
 hook.mu.Unlock()
 
-_ = capturedEntry
 
 // Logger accessor
 if e.Logger() == nil {

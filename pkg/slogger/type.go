@@ -137,7 +137,7 @@ type JSONFormatter struct {
 }
 
 // entryPool is the package-level sync.Pool for recycling Entry objects.
-var entryPool = sync.Pool{New: func() interface{} { return &Entry{fields: make([]Field, 0, 8)} }}
+var entryPool = sync.Pool{New: func() any { return &Entry{fields: make([]Field, 0, 8)} }}
 
 // global holds the package-level logger pointer.
 // Access is guarded by atomic operations so callers need no external lock.

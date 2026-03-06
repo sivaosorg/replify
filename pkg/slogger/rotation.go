@@ -76,7 +76,7 @@ func (h *LevelWriterHook) Fire(e *Entry) error {
 	if err != nil {
 		return err
 	}
-	_, err = h.writer.WriteLevel(e.level, data)
+	_, err = h.writer.WriteLevel(e.GetLevel(), data)
 	return err
 }
 

@@ -10,11 +10,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-)
 
-// ///////////////////////////
-// Section: IP classification
-// ///////////////////////////
+	"github.com/sivaosorg/replify/pkg/strutil"
+)
 
 // IsIPv4 reports whether the given string is a valid IPv4 address.
 //
@@ -103,6 +101,25 @@ func IsLocalIP(ip string) bool {
 	if parsed.IsLinkLocalUnicast() {
 		return true
 	}
+
+	// localCIDRs holds the parsed private/unique-local IP ranges used by IsLocalIP.
+	var localCIDRs = func() []*net.IPNet {
+		blocks := []string{
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+			"fc00::/7",
+		}
+		nets := make([]*net.IPNet, 0, len(blocks))
+		for _, b := range blocks {
+			_, ipNet, err := net.ParseCIDR(b)
+			if err == nil {
+				nets = append(nets, ipNet)
+			}
+		}
+		return nets
+	}()
+
 	// Private IPv4 ranges (RFC 1918) and IPv6 unique-local (fc00::/7)
 	for _, cidr := range localCIDRs {
 		if cidr.Contains(parsed) {
@@ -111,28 +128,6 @@ func IsLocalIP(ip string) bool {
 	}
 	return false
 }
-
-// localCIDRs holds the parsed private/unique-local IP ranges used by IsLocalIP.
-var localCIDRs = func() []*net.IPNet {
-	blocks := []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fc00::/7",
-	}
-	nets := make([]*net.IPNet, 0, len(blocks))
-	for _, b := range blocks {
-		_, ipNet, err := net.ParseCIDR(b)
-		if err == nil {
-			nets = append(nets, ipNet)
-		}
-	}
-	return nets
-}()
-
-// ///////////////////////////
-// Section: Port utilities
-// ///////////////////////////
 
 // IsPortOpen reports whether the given TCP port is reachable on host.
 //
@@ -155,7 +150,7 @@ var localCIDRs = func() []*net.IPNet {
 //	    fmt.Println("PostgreSQL is reachable")
 //	}
 func IsPortOpen(host string, port int) bool {
-	return CheckTCPConnection(host, port, 3*time.Second) == nil
+	return CheckTCPConn(host, port, 3*time.Second) == nil
 }
 
 // IsPortAvailable reports whether the given TCP port is available for binding
@@ -186,10 +181,6 @@ func IsPortAvailable(port int) bool {
 	ln.Close()
 	return true
 }
-
-// ///////////////////////////
-// Section: Network address utilities
-// ///////////////////////////
 
 // GetLocalIP returns the first non-loopback, non-link-local IPv4 address
 // found on the machine's network interfaces.
@@ -322,10 +313,6 @@ func GetInterfaceIPs() ([]string, error) {
 	return result, nil
 }
 
-// ///////////////////////////
-// Section: URL and host helpers
-// ///////////////////////////
-
 // IsValidHost reports whether the given string is a resolvable host name or a
 // valid IP address.
 //
@@ -347,11 +334,41 @@ func GetInterfaceIPs() ([]string, error) {
 //	sysx.IsValidHost("8.8.8.8")    // true (valid IP)
 //	sysx.IsValidHost("invalid..x") // false
 func IsValidHost(host string) bool {
+	if strutil.IsEmpty(host) {
+		return false
+	}
 	if net.ParseIP(host) != nil {
 		return true
 	}
 	_, err := net.LookupHost(host)
 	return err == nil
+}
+
+// IsValidURL reports whether the given string is a syntactically valid URL
+// with a non-empty scheme and host component.
+//
+// The function uses url.Parse for parsing. It does not perform DNS resolution
+// or check whether the URL is reachable.
+//
+// Parameters:
+//   - `rawURL`: the URL string to validate.
+//
+// Returns:
+//
+//	A boolean value:
+//	 - true  when rawURL has a valid scheme and non-empty host;
+//	 - false otherwise.
+//
+// Example:
+//
+//	sysx.IsValidURL("https://example.com/path") // true
+//	sysx.IsValidURL("not-a-url")                // false
+func IsValidURL(rawURL string) bool {
+	if strutil.IsEmpty(rawURL) {
+		return false
+	}
+	u, err := url.Parse(rawURL)
+	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
 // ParseHostPort splits a network address of the form "host:port" into its
@@ -389,34 +406,6 @@ func ParseHostPort(addr string) (host string, port int, err error) {
 	return h, p, nil
 }
 
-// IsValidURL reports whether the given string is a syntactically valid URL
-// with a non-empty scheme and host component.
-//
-// The function uses url.Parse for parsing. It does not perform DNS resolution
-// or check whether the URL is reachable.
-//
-// Parameters:
-//   - `rawURL`: the URL string to validate.
-//
-// Returns:
-//
-//	A boolean value:
-//	 - true  when rawURL has a valid scheme and non-empty host;
-//	 - false otherwise.
-//
-// Example:
-//
-//	sysx.IsValidURL("https://example.com/path") // true
-//	sysx.IsValidURL("not-a-url")                // false
-func IsValidURL(rawURL string) bool {
-	u, err := url.Parse(rawURL)
-	return err == nil && u.Scheme != "" && u.Host != ""
-}
-
-// ///////////////////////////
-// Section: Connectivity helpers
-// ///////////////////////////
-
 // PingHost checks whether the given host is reachable by attempting a TCP
 // connection to port 80 with a 5-second timeout.
 //
@@ -425,7 +414,7 @@ func IsValidURL(rawURL string) bool {
 // systems); instead it verifies TCP-layer reachability to the standard HTTP
 // port.
 //
-// For probing arbitrary ports, use CheckTCPConnection.
+// For probing arbitrary ports, use CheckTCPConn.
 //
 // Parameters:
 //   - `host`: the host name or IP address to probe.
@@ -441,10 +430,10 @@ func IsValidURL(rawURL string) bool {
 //	    fmt.Println("host unreachable:", err)
 //	}
 func PingHost(host string) error {
-	return CheckTCPConnection(host, 80, 5*time.Second)
+	return CheckTCPConn(host, 80, 5*time.Second)
 }
 
-// CheckTCPConnection verifies that a TCP connection can be established to
+// CheckTCPConn verifies that a TCP connection can be established to
 // host:port within the specified timeout duration.
 //
 // The connection is closed immediately after being established; no data is
@@ -462,13 +451,13 @@ func PingHost(host string) error {
 //
 // Example:
 //
-//	err := sysx.CheckTCPConnection("db.internal", 5432, 3*time.Second)
+//	err := sysx.CheckTCPConn("db.internal", 5432, 3*time.Second)
 //	if err != nil {
 //	    log.Printf("database unreachable: %v", err)
 //	}
-func CheckTCPConnection(host string, port int, timeout time.Duration) error {
+func CheckTCPConn(host string, port int, timeout time.Duration) error {
 	if port < 1 || port > 65535 {
-		return fmt.Errorf("sysx: CheckTCPConnection: port %d is out of range (1-65535)", port)
+		return fmt.Errorf("sysx: CheckTCPConn: port %d is out of range (1-65535)", port)
 	}
 	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	conn, err := net.DialTimeout("tcp", addr, timeout)

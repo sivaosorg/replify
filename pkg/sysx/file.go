@@ -6,12 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
-	"sync"
 )
-
-// ///////////////////////////
-// Section: Existence checks
-// ///////////////////////////
 
 // FileExists reports whether a file exists at the given path.
 //
@@ -134,10 +129,6 @@ func IsSymlink(path string) bool {
 	return err == nil && fi.Mode()&os.ModeSymlink != 0
 }
 
-// ///////////////////////////
-// Section: Permission checks
-// ///////////////////////////
-
 // IsExecutable reports whether the file at the given path is executable by
 // its owner.
 //
@@ -217,10 +208,6 @@ func IsWritable(path string) bool {
 	return true
 }
 
-// ///////////////////////////
-// Section: File metadata
-// ///////////////////////////
-
 // FileSize returns the size of the file at the given path in bytes.
 //
 // Parameters:
@@ -245,10 +232,6 @@ func FileSize(path string) (int64, error) {
 	}
 	return fi.Size(), nil
 }
-
-// ///////////////////////////
-// Section: Special directories
-// ///////////////////////////
 
 // TempDir returns the default directory to use for temporary files.
 //
@@ -346,10 +329,6 @@ func MustWorkingDir() string {
 	}
 	return wd
 }
-
-// ///////////////////////////
-// Section: File reading
-// ///////////////////////////
 
 // ReadFile reads the entire contents of the file at path and returns them as
 // a byte slice.
@@ -479,10 +458,6 @@ func StreamLines(path string, handler func(string) error) error {
 	return scanner.Err()
 }
 
-// ///////////////////////////
-// Section: File writing
-// ///////////////////////////
-
 // WriteFile writes data to the file at path, creating the file if it does not
 // exist or truncating it if it does. The file is created with permission 0644.
 //
@@ -521,6 +496,34 @@ func WriteFile(path string, data []byte) error {
 //	}
 func WriteFileString(path string, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+// WriteFileLocked writes data to path using a per-path in-process mutex,
+// ensuring that concurrent calls with the same path value are serialised. The
+// file is created with permission 0644 if it does not exist, or truncated if
+// it does.
+//
+// Note: this provides in-process synchronisation only. For cross-process
+// safety, use AtomicWriteFile or a platform-specific file locking mechanism.
+//
+// Parameters:
+//   - `path`: the destination file path.
+//   - `data`: the bytes to write.
+//
+// Returns:
+//
+//	An error if the write failed; nil on success.
+//
+// Example:
+//
+//	// Safe to call concurrently from multiple goroutines targeting the same path.
+//	go sysx.WriteFileLocked("/tmp/shared.json", data1)
+//	go sysx.WriteFileLocked("/tmp/shared.json", data2)
+func WriteFileLocked(path string, data []byte) error {
+	mu := getFileMutex(path)
+	mu.Lock()
+	defer mu.Unlock()
+	return os.WriteFile(path, data, 0o644)
 }
 
 // AppendFile appends data to the file at path, creating it with permission
@@ -601,10 +604,6 @@ func WriteLines(path string, lines []string) error {
 	return w.Flush()
 }
 
-// ///////////////////////////
-// Section: Atomic and concurrency-safe writes
-// ///////////////////////////
-
 // AtomicWriteFile writes data to path atomically using the
 // temporary-file-and-rename pattern: data is first flushed to a temporary
 // file located in the same directory as path, then the temporary file is
@@ -656,10 +655,6 @@ func AtomicWriteFile(path string, data []byte) error {
 	renamed = true
 	return nil
 }
-
-// ///////////////////////////
-// Section: SafeFileWriter
-// ///////////////////////////
 
 // NewSafeFileWriter creates a SafeFileWriter targeting path with the default
 // file permission of 0644.
@@ -745,40 +740,16 @@ func (w *SafeFileWriter) Overwrite(data []byte) error {
 	return AtomicWriteFile(w.path, data)
 }
 
-// ///////////////////////////
-// Section: Path-level in-process locking
-// ///////////////////////////
-
-// getFileMutex returns the mutex associated with path, creating one if necessary.
-func getFileMutex(path string) *sync.Mutex {
-	v, _ := fileMutexes.LoadOrStore(path, &sync.Mutex{})
-	return v.(*sync.Mutex)
-}
-
-// WriteFileLocked writes data to path using a per-path in-process mutex,
-// ensuring that concurrent calls with the same path value are serialised. The
-// file is created with permission 0644 if it does not exist, or truncated if
-// it does.
-//
-// Note: this provides in-process synchronisation only. For cross-process
-// safety, use AtomicWriteFile or a platform-specific file locking mechanism.
-//
-// Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to write.
+// Path returns the file path targeted by this SafeFileWriter.
 //
 // Returns:
 //
-//	An error if the write failed; nil on success.
+//	A string containing the file path.
+func (w *SafeFileWriter) Path() string { return w.path }
+
+// Perm returns the file permission used when creating the file.
 //
-// Example:
+// Returns:
 //
-//	// Safe to call concurrently from multiple goroutines targeting the same path.
-//	go sysx.WriteFileLocked("/tmp/shared.json", data1)
-//	go sysx.WriteFileLocked("/tmp/shared.json", data2)
-func WriteFileLocked(path string, data []byte) error {
-	mu := getFileMutex(path)
-	mu.Lock()
-	defer mu.Unlock()
-	return os.WriteFile(path, data, 0o644)
-}
+//	An os.FileMode representing the file permission.
+func (w *SafeFileWriter) Perm() os.FileMode { return w.perm }

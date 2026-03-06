@@ -1,18 +1,17 @@
 package sysx
 
 import (
-"context"
-"errors"
-"fmt"
-"io"
-"os"
-"os/exec"
-"time"
-)
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"time"
 
-// ///////////////////////////
-// Section: Command builder methods
-// ///////////////////////////
+	"github.com/sivaosorg/replify/pkg/conv"
+	"github.com/sivaosorg/replify/pkg/strutil"
+)
 
 // NewCommand creates a new Command for the program identified by name.
 //
@@ -25,20 +24,71 @@ import (
 //
 // Returns:
 //
-//A pointer to a new Command ready for configuration.
+// A pointer to a new Command ready for configuration.
 //
 // Example:
 //
-//result := sysx.NewCommand("git").
-//    WithArgs("rev-parse", "HEAD").
-//    WithDir("/path/to/repo").
-//    Execute()
-//if result.Success() {
-//    fmt.Println(strings.TrimSpace(result.Stdout()))
-//}
+// result := sysx.NewCommand("git").
+//
+//	WithArgs("rev-parse", "HEAD").
+//	WithDir("/path/to/repo").
+//	Execute()
+//
+//	if result.IsSuccess() {
+//	   fmt.Println(strings.TrimSpace(result.Stdout()))
+//	}
 func NewCommand(name string) *Command {
-return &Command{name: name}
+	return &Command{name: name}
 }
+
+// Name returns the program name or path configured on the Command.
+//
+// Returns:
+//
+//	A string containing the program name or path.
+//
+// Example:
+//
+//	cmd := sysx.NewCommand("git")
+//	fmt.Println(cmd.Name()) // "git"
+func (c *Command) Name() string { return c.name }
+
+// Args returns the positional arguments configured on the Command.
+//
+// Returns:
+//
+//	A slice of strings containing the command-line arguments.
+//
+// Example:
+//
+//	cmd := sysx.NewCommand("git").WithArgs("log", "--oneline")
+//	fmt.Println(cmd.Args()) // ["log", "--oneline"]
+func (c *Command) Args() []string { return c.args }
+
+// Dir returns the working directory configured on the Command.
+// An empty string means the child process inherits the caller's directory.
+//
+// Returns:
+//
+//	A string containing the working directory path, or empty if not set.
+func (c *Command) Dir() string { return c.dir }
+
+// Env returns the extra environment variable bindings ("KEY=VALUE") that
+// will be merged on top of the calling process environment when the command
+// is executed.
+//
+// Returns:
+//
+//	A slice of "KEY=VALUE" strings; nil if no extra bindings were added.
+func (c *Command) Env() []string { return c.env }
+
+// Timeout returns the maximum execution duration configured on the Command.
+// A zero duration means no timeout is applied.
+//
+// Returns:
+//
+//	A time.Duration; zero if no timeout was set.
+func (c *Command) Timeout() time.Duration { return c.timeout }
 
 // WithArgs sets the positional arguments passed to the program.
 // Calling WithArgs replaces any previously set arguments.
@@ -48,10 +98,10 @@ return &Command{name: name}
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithArgs(args ...string) *Command {
-c.args = args
-return c
+	c.args = args
+	return c
 }
 
 // WithDir sets the working directory for the command.
@@ -63,10 +113,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithDir(dir string) *Command {
-c.dir = dir
-return c
+	c.dir = dir
+	return c
 }
 
 // WithEnv appends one or more environment variable bindings in "KEY=VALUE"
@@ -79,17 +129,46 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 //
 // Example:
 //
-//sysx.NewCommand("go").
-//    WithArgs("build", "./...").
-//    WithEnv("GOOS=linux", "GOARCH=amd64").
-//    Execute()
+// sysx.NewCommand("go").
+//
+//	WithArgs("build", "./...").
+//	WithEnv("GOOS=linux", "GOARCH=amd64").
+//	Execute()
 func (c *Command) WithEnv(env ...string) *Command {
-c.env = append(c.env, env...)
-return c
+	c.env = append(c.env, env...)
+	return c
+}
+
+// WithEnvCast sets a single environment variable binding.
+// This is a convenience method that is equivalent to calling WithEnv(fmt.Sprintf("%s=%s", key, value)).
+//
+// Parameters:
+//   - `key`: the environment variable key.
+//   - `value`: the environment variable value.
+//
+// Returns:
+//
+// The receiver, enabling method chaining.
+func (c *Command) WithEnvCast(key, value any) *Command {
+	return c.WithEnv(fmt.Sprintf("%s=%s", key, conv.StringOrEmpty(value)))
+}
+
+// WithEnvf appends an environment variable binding created from a format string.
+// This is a convenience method that is equivalent to calling WithEnv(fmt.Sprintf(format, args...)).
+//
+// Parameters:
+//   - `format`: the format string.
+//   - `args`: the arguments to format.
+//
+// Returns:
+//
+// The receiver, enabling method chaining.
+func (c *Command) WithEnvf(format string, args ...any) *Command {
+	return c.WithEnv(fmt.Sprintf(format, args...))
 }
 
 // WithTimeout sets a maximum duration for the command. If the command does not
@@ -103,10 +182,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithTimeout(d time.Duration) *Command {
-c.timeout = d
-return c
+	c.timeout = d
+	return c
 }
 
 // WithContext attaches an existing context to the command, enabling external
@@ -118,10 +197,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithContext(ctx context.Context) *Command {
-c.ctx = ctx
-return c
+	c.ctx = ctx
+	return c
 }
 
 // WithStdin sets the reader that supplies the command's standard input.
@@ -131,10 +210,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithStdin(r io.Reader) *Command {
-c.stdin = r
-return c
+	c.stdin = r
+	return c
 }
 
 // WithStdout sets the writer to which the command's standard output is
@@ -146,10 +225,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithStdout(w io.Writer) *Command {
-c.stdout = w
-return c
+	c.stdout = w
+	return c
 }
 
 // WithStderr sets the writer to which the command's standard error is
@@ -161,10 +240,10 @@ return c
 //
 // Returns:
 //
-//The receiver, enabling method chaining.
+// The receiver, enabling method chaining.
 func (c *Command) WithStderr(w io.Writer) *Command {
-c.stderr = w
-return c
+	c.stderr = w
+	return c
 }
 
 // Execute runs the command and returns a CommandResult containing captured
@@ -177,60 +256,62 @@ return c
 //
 // Returns:
 //
-//A non-nil *CommandResult describing the outcome of the command.
+// A non-nil *CommandResult describing the outcome of the command.
 //
 // Example:
 //
-//res := sysx.NewCommand("bash").
-//    WithArgs("-c", "echo hello").
-//    WithTimeout(5 * time.Second).
-//    WithEnv("APP_ENV=prod").
-//    WithDir("/tmp").
-//    Execute()
-//fmt.Printf("exit=%d stdout=%q duration=%v\n", res.ExitCode(), res.Stdout(), res.Duration())
+// res := sysx.NewCommand("bash").
+//
+//	WithArgs("-c", "echo hello").
+//	WithTimeout(5 * time.Second).
+//	WithEnv("APP_ENV=prod").
+//	WithDir("/tmp").
+//	Execute()
+//
+// fmt.Printf("exit=%d stdout=%q duration=%v\n", res.ExitCode(), res.Stdout(), res.Duration())
 func (c *Command) Execute() *CommandResult {
-if c.name == "" {
-return &CommandResult{
-err:      errors.New("sysx: command name must not be empty"),
-exitCode: -1,
-}
-}
-cmd, cancel := c.buildCmd()
-defer cancel()
+	if strutil.IsEmpty(c.name) {
+		return &CommandResult{
+			err:      errors.New("sysx: command name must not be empty"),
+			exitCode: -1,
+		}
+	}
+	cmd, cancel := c.buildCmd()
+	defer cancel()
 
-var outBuf, errBuf commandBuffer
-if c.stdout != nil {
-cmd.Stdout = c.stdout
-} else {
-cmd.Stdout = &outBuf
-}
-if c.stderr != nil {
-cmd.Stderr = c.stderr
-} else {
-cmd.Stderr = &errBuf
-}
+	var outBuf, errBuf commandBuffer
+	if c.stdout != nil {
+		cmd.Stdout = c.stdout
+	} else {
+		cmd.Stdout = &outBuf
+	}
+	if c.stderr != nil {
+		cmd.Stderr = c.stderr
+	} else {
+		cmd.Stderr = &errBuf
+	}
 
-start := time.Now()
-runErr := cmd.Run()
-dur := time.Since(start)
+	start := time.Now()
+	runErr := cmd.Run()
+	dur := time.Since(start)
 
-res := &CommandResult{duration: dur}
-if c.stdout == nil {
-res.stdout = outBuf.String()
-}
-if c.stderr == nil {
-res.stderr = errBuf.String()
-}
-if runErr != nil {
-res.err = runErr
-var exitErr *exec.ExitError
-if errors.As(runErr, &exitErr) {
-res.exitCode = exitErr.ExitCode()
-} else {
-res.exitCode = -1
-}
-}
-return res
+	res := &CommandResult{duration: dur}
+	if c.stdout == nil {
+		res.stdout = outBuf.String()
+	}
+	if c.stderr == nil {
+		res.stderr = errBuf.String()
+	}
+	if runErr != nil {
+		res.err = runErr
+		var exitErr *exec.ExitError
+		if errors.As(runErr, &exitErr) {
+			res.exitCode = exitErr.ExitCode()
+		} else {
+			res.exitCode = -1
+		}
+	}
+	return res
 }
 
 // Run runs the command, discarding all output, and returns only the error.
@@ -239,9 +320,9 @@ return res
 //
 // Returns:
 //
-//An error if the command could not be started or exited non-zero; nil on success.
+// An error if the command could not be started or exited non-zero; nil on success.
 func (c *Command) Run() error {
-return c.Execute().Err()
+	return c.Execute().Err()
 }
 
 // Output runs the command and returns the combined stdout+stderr as a string
@@ -249,412 +330,99 @@ return c.Execute().Err()
 //
 // Returns:
 //
-//(string, error): the combined output and nil on success, or combined
-//partial output and a non-nil error on failure.
+// (string, error): the combined output and nil on success, or combined
+// partial output and a non-nil error on failure.
 func (c *Command) Output() (string, error) {
-r := c.Execute()
-return r.Combined(), r.Err()
+	r := c.Execute()
+	return r.Combined(), r.Err()
 }
 
 // buildCmd constructs the underlying *exec.Cmd from the Command fields.
 // The returned CancelFunc must always be called to release context resources.
 func (c *Command) buildCmd() (*exec.Cmd, context.CancelFunc) {
-base := c.ctx
-if base == nil {
-base = context.Background()
-}
-var cancel context.CancelFunc
-if c.timeout > 0 {
-base, cancel = context.WithTimeout(base, c.timeout)
-} else {
-cancel = func() {}
-}
-cmd := exec.CommandContext(base, c.name, c.args...)
-if c.dir != "" {
-cmd.Dir = c.dir
-}
-if len(c.env) > 0 {
-cmd.Env = append(os.Environ(), c.env...)
-}
-if c.stdin != nil {
-cmd.Stdin = c.stdin
-}
-return cmd, cancel
+	base := c.ctx
+	if base == nil {
+		base = context.Background()
+	}
+	var cancel context.CancelFunc
+	if c.timeout > 0 {
+		base, cancel = context.WithTimeout(base, c.timeout)
+	} else {
+		cancel = func() {}
+	}
+	cmd := exec.CommandContext(base, c.name, c.args...)
+	if strutil.IsNotEmpty(c.dir) {
+		cmd.Dir = c.dir
+	}
+	if len(c.env) > 0 {
+		cmd.Env = append(os.Environ(), c.env...)
+	}
+	if c.stdin != nil {
+		cmd.Stdin = c.stdin
+	}
+	return cmd, cancel
 }
 
-// ///////////////////////////
-// Section: Top-level convenience functions
-// ///////////////////////////
-
-// RunCommand creates a Command for name, runs it with the provided args, and
-// returns the structured CommandResult.
-//
-// It is the single-call equivalent of:
-//
-//NewCommand(name).WithArgs(args...).Execute()
-//
-// Parameters:
-//   - `name`: the program name or path.
-//   - `args`: optional arguments.
+// Stdout returns the captured standard output of the command.
+// Returns an empty string when a custom io.Writer was provided via WithStdout.
 //
 // Returns:
 //
-//A non-nil *CommandResult.
-//
-// Example:
-//
-//res := sysx.RunCommand("git", "status")
-//if !res.Success() {
-//    log.Printf("exit %d: %s", res.ExitCode(), res.Stderr())
-//}
-func RunCommand(name string, args ...string) *CommandResult {
-return NewCommand(name).WithArgs(args...).Execute()
-}
+//	A string containing the captured stdout of the command.
+func (r *CommandResult) Stdout() string { return r.stdout }
 
-// ExecCommand runs the named program with the provided arguments and waits
-// for it to complete. Both stdout and stderr are discarded.
-//
-// The function does not use shell interpolation; name must be a program name
-// or absolute path. An error is returned if name is empty, if the program
-// cannot be found, or if the program exits with a non-zero status.
-//
-// Parameters:
-//   - `name`: the program name or path to execute.
-//   - `args`: optional arguments to pass to the program.
+// Stderr returns the captured standard error of the command.
+// Returns an empty string when a custom io.Writer was provided via WithStderr.
 //
 // Returns:
 //
-//An error if the command could not be started or exited non-zero, or nil on success.
-//
-// Example:
-//
-//if err := sysx.ExecCommand("go", "build", "./..."); err != nil {
-//    log.Fatal(err)
-//}
-func ExecCommand(name string, args ...string) error {
-if name == "" {
-return errors.New("sysx: command name must not be empty")
-}
-return NewCommand(name).WithArgs(args...).Run()
-}
+//	A string containing the captured stderr of the command.
+func (r *CommandResult) Stderr() string { return r.stderr }
 
-// ExecCommandContext runs the named program under the provided context.
-// The command is cancelled when ctx is cancelled or its deadline expires.
-//
-// Parameters:
-//   - `ctx`:  the context controlling cancellation and deadline.
-//   - `name`: the program name or path.
-//   - `args`: optional arguments.
+// ExitCode returns the process exit code; 0 indicates success.
+// -1 indicates that the exit code could not be determined
+// (e.g. the process was killed by a signal or a context was cancelled).
 //
 // Returns:
 //
-//An error if the command failed, was cancelled, or timed out; nil on success.
-//
-// Example:
-//
-//ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-//defer cancel()
-//if err := sysx.ExecCommandContext(ctx, "go", "test", "./..."); err != nil {
-//    log.Fatal(err)
-//}
-func ExecCommandContext(ctx context.Context, name string, args ...string) error {
-if name == "" {
-return errors.New("sysx: command name must not be empty")
-}
-return NewCommand(name).WithArgs(args...).WithContext(ctx).Run()
-}
+//	An int representing the process exit code.
+func (r *CommandResult) ExitCode() int { return r.exitCode }
 
-// ExecOutput runs the named program with the provided arguments, waits for it
-// to complete, and returns the combined stdout and stderr output as a string.
-//
-// The function does not use shell interpolation. An error is returned if name
-// is empty, if the program cannot be found, or if the program exits with a
-// non-zero status.
-//
-// Parameters:
-//   - `name`: the program name or path to execute.
-//   - `args`: optional arguments to pass to the program.
+// Duration returns the wall-clock time spent waiting for the command to complete.
 //
 // Returns:
 //
-//(string, error): the combined output and nil on success, or the partial
-//output and a non-nil error on failure.
-//
-// Example:
-//
-//out, err := sysx.ExecOutput("git", "rev-parse", "HEAD")
-//if err != nil {
-//    log.Fatal(err)
-//}
-//fmt.Println(strings.TrimSpace(out))
-func ExecOutput(name string, args ...string) (string, error) {
-if name == "" {
-return "", errors.New("sysx: command name must not be empty")
-}
-r := NewCommand(name).WithArgs(args...).Execute()
-return r.Combined(), r.Err()
-}
+//	A time.Duration representing the execution time.
+func (r *CommandResult) Duration() time.Duration { return r.duration }
 
-// ExecOutputLines runs the named program and returns its stdout split into
-// individual lines. Line endings are stripped; empty lines are preserved.
-// Stderr is captured but discarded on success. On failure, the error from the
-// command is returned.
-//
-// Parameters:
-//   - `name`: the program name or path.
-//   - `args`: optional arguments.
+// Err returns the error from command execution.
+// A non-nil value indicates the command could not be started or exited non-zero.
 //
 // Returns:
 //
-//([]string, error): lines of stdout and nil on success, or nil and a
-//non-nil error on failure.
-//
-// Example:
-//
-//lines, err := sysx.ExecOutputLines("git", "log", "--oneline", "-5")
-//for _, l := range lines {
-//    fmt.Println(l)
-//}
-func ExecOutputLines(name string, args ...string) ([]string, error) {
-if name == "" {
-return nil, errors.New("sysx: command name must not be empty")
-}
-r := NewCommand(name).WithArgs(args...).Execute()
-if r.Err() != nil {
-return nil, r.Err()
-}
-return splitLines(r.Stdout()), nil
-}
+//	An error describing the failure, or nil on success.
+func (r *CommandResult) Err() error { return r.err }
 
-// ExecStreaming runs the named program, forwarding its stdout and stderr to
-// the provided writers in real time as the command executes. Either writer
-// may be nil to discard the corresponding stream.
-//
-// Parameters:
-//   - `stdout`: writer receiving standard output; nil to discard.
-//   - `stderr`: writer receiving standard error; nil to discard.
-//   - `name`:   the program name or path.
-//   - `args`:   optional arguments.
+// Success reports whether the command completed without error.
 //
 // Returns:
 //
-//An error if the command failed or could not be started; nil on success.
-//
-// Example:
-//
-//err := sysx.ExecStreaming(os.Stdout, os.Stderr, "go", "build", "./...")
-func ExecStreaming(stdout, stderr io.Writer, name string, args ...string) error {
-if name == "" {
-return errors.New("sysx: command name must not be empty")
-}
-c := NewCommand(name).WithArgs(args...)
-if stdout != nil {
-c = c.WithStdout(stdout)
-}
-if stderr != nil {
-c = c.WithStderr(stderr)
-}
-return c.Run()
-}
+//	true when Err() is nil; false otherwise.
+func (r *CommandResult) IsSuccess() bool { return r.err == nil }
 
-// ExecAsync starts the named program asynchronously and returns the underlying
-// *exec.Cmd without waiting for it to finish. The caller is responsible for
-// calling cmd.Wait() to release associated resources and obtain the exit status.
-//
-// Parameters:
-//   - `name`: the program name or path.
-//   - `args`: optional arguments.
+// Combined returns the concatenation of Stdout followed by Stderr.
 //
 // Returns:
 //
-//(*exec.Cmd, error): the started command handle and nil on success, or nil
-//and a non-nil error if the command could not be started.
-//
-// Example:
-//
-//cmd, err := sysx.ExecAsync("long-running-server", "--port", "8080")
-//if err != nil {
-//    log.Fatal(err)
-//}
-//// ... do other work ...
-//cmd.Wait()
-func ExecAsync(name string, args ...string) (*exec.Cmd, error) {
-if name == "" {
-return nil, errors.New("sysx: command name must not be empty")
-}
-cmd := exec.Command(name, args...)
-if err := cmd.Start(); err != nil {
-return nil, err
-}
-return cmd, nil
+//	A string containing the combined output of the command.
+func (r *CommandResult) Combined() string { return r.stdout + r.stderr }
+
+// Write appends p to the buffer.
+func (b *commandBuffer) Write(p []byte) (int, error) {
+	return b.buf.Write(p)
 }
 
-// ExecPipeline executes a sequence of commands as a shell pipeline: the
-// standard output of each command is connected to the standard input of the
-// next. The stdout of the final command is returned as a string.
-//
-// Each element of commands is a []string where the first element is the
-// program name and the remaining elements are its arguments. An error is
-// returned if any command in the pipeline fails to start or exits non-zero.
-//
-// Parameters:
-//   - `commands`: one or more [name, arg...] command descriptors.
-//
-// Returns:
-//
-//(string, error): the stdout of the last command and nil on success, or
-//partial output and a non-nil error on failure.
-//
-// Example:
-//
-//out, err := sysx.ExecPipeline(
-//    []string{"cat", "/etc/passwd"},
-//    []string{"grep", "root"},
-//    []string{"cut", "-d:", "-f1"},
-//)
-func ExecPipeline(commands ...[]string) (string, error) {
-if len(commands) == 0 {
-return "", errors.New("sysx: pipeline requires at least one command")
-}
-cmds := make([]*exec.Cmd, len(commands))
-for i, args := range commands {
-if len(args) == 0 {
-return "", fmt.Errorf("sysx: pipeline command at index %d has no name", i)
-}
-cmds[i] = exec.Command(args[0], args[1:]...)
-}
-// Wire stdout of each command to stdin of the next.
-for i := 0; i < len(cmds)-1; i++ {
-pipe, err := cmds[i].StdoutPipe()
-if err != nil {
-return "", fmt.Errorf("sysx: pipeline pipe error at index %d: %w", i, err)
-}
-cmds[i+1].Stdin = pipe
-}
-var outBuf commandBuffer
-cmds[len(cmds)-1].Stdout = &outBuf
-
-// Start all commands in order.
-for i, cmd := range cmds {
-if err := cmd.Start(); err != nil {
-return "", fmt.Errorf("sysx: pipeline start error at index %d: %w", i, err)
-}
-}
-// Wait for all commands in order so pipes drain correctly.
-for i, cmd := range cmds {
-if err := cmd.Wait(); err != nil {
-return outBuf.String(), fmt.Errorf("sysx: pipeline wait error at index %d: %w", i, err)
-}
-}
-return outBuf.String(), nil
-}
-
-// ///////////////////////////
-// Section: Timeout variants
-// ///////////////////////////
-
-// ExecCommandWithTimeout runs the named program with the provided arguments
-// and a deadline of timeout. If the command does not finish within the
-// deadline the process is killed and a context deadline-exceeded error is
-// returned.
-//
-// Parameters:
-//   - `timeout`: maximum duration to wait for the command to complete.
-//   - `name`:    the program name or path to execute.
-//   - `args`:    optional arguments to pass to the program.
-//
-// Returns:
-//
-//An error if the command timed out, could not be started, or exited non-zero, or nil on success.
-//
-// Example:
-//
-//err := sysx.ExecCommandWithTimeout(5*time.Second, "ping", "-c", "1", "localhost")
-func ExecCommandWithTimeout(timeout time.Duration, name string, args ...string) error {
-if name == "" {
-return errors.New("sysx: command name must not be empty")
-}
-return NewCommand(name).WithArgs(args...).WithTimeout(timeout).Run()
-}
-
-// ExecOutputWithTimeout runs the named program with the provided arguments
-// and a deadline of timeout, returning the combined stdout and stderr.
-//
-// If the command does not finish within the deadline the process is killed and
-// a context deadline-exceeded error is returned along with any output produced
-// before the timeout.
-//
-// Parameters:
-//   - `timeout`: maximum duration to wait for the command to complete.
-//   - `name`:    the program name or path to execute.
-//   - `args`:    optional arguments to pass to the program.
-//
-// Returns:
-//
-//(string, error): the combined output and nil on success, or partial output
-//and a non-nil error on failure or timeout.
-//
-// Example:
-//
-//out, err := sysx.ExecOutputWithTimeout(3*time.Second, "curl", "-s", "http://localhost")
-func ExecOutputWithTimeout(timeout time.Duration, name string, args ...string) (string, error) {
-if name == "" {
-return "", errors.New("sysx: command name must not be empty")
-}
-r := NewCommand(name).WithArgs(args...).WithTimeout(timeout).Execute()
-return r.Combined(), r.Err()
-}
-
-// ///////////////////////////
-// Section: Directory-scoped execution
-// ///////////////////////////
-
-// ExecCommandInDir runs the named program with the provided arguments from
-// the specified working directory and waits for it to complete.
-//
-// stdout and stderr are discarded. The function does not use shell
-// interpolation.
-//
-// Parameters:
-//   - `dir`:  the working directory in which to run the command.
-//   - `name`: the program name or path to execute.
-//   - `args`: optional arguments to pass to the program.
-//
-// Returns:
-//
-//An error if the command could not be started or exited non-zero, or nil on success.
-//
-// Example:
-//
-//err := sysx.ExecCommandInDir("/tmp/myproject", "go", "test", "./...")
-func ExecCommandInDir(dir, name string, args ...string) error {
-if name == "" {
-return errors.New("sysx: command name must not be empty")
-}
-return NewCommand(name).WithArgs(args...).WithDir(dir).Run()
-}
-
-// ExecOutputInDir runs the named program with the provided arguments from
-// the specified working directory, waits for it to complete, and returns the
-// combined stdout and stderr output.
-//
-// Parameters:
-//   - `dir`:  the working directory in which to run the command.
-//   - `name`: the program name or path to execute.
-//   - `args`: optional arguments to pass to the program.
-//
-// Returns:
-//
-//(string, error): the combined output and nil on success, or the partial
-//output and a non-nil error on failure.
-//
-// Example:
-//
-//out, err := sysx.ExecOutputInDir("/tmp/myproject", "git", "status")
-func ExecOutputInDir(dir, name string, args ...string) (string, error) {
-if name == "" {
-return "", errors.New("sysx: command name must not be empty")
-}
-r := NewCommand(name).WithArgs(args...).WithDir(dir).Execute()
-return r.Combined(), r.Err()
+// String returns the accumulated content as a string.
+func (b *commandBuffer) String() string {
+	return b.buf.String()
 }

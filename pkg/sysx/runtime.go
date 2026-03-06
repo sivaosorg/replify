@@ -5,10 +5,6 @@ import (
 	"runtime"
 )
 
-// ///////////////////////////
-// Section: Host and process identity
-// ///////////////////////////
-
 // Hostname returns the host name reported by the kernel.
 //
 // It delegates directly to os.Hostname and propagates any error returned by
@@ -114,10 +110,6 @@ func GID() int {
 	return os.Getgid()
 }
 
-// ///////////////////////////
-// Section: Executable path
-// ///////////////////////////
-
 // ExecutablePath returns the path name for the executable that started the
 // current process.
 //
@@ -158,10 +150,6 @@ func MustExecutablePath() string {
 	}
 	return p
 }
-
-// ///////////////////////////
-// Section: Runtime statistics
-// ///////////////////////////
 
 // NumCPU returns the number of logical CPUs usable by the current process.
 //

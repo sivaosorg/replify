@@ -1,16 +1,9 @@
 package sysx
 
 import (
-	"bufio"
-	"os"
-	"os/exec"
+	"fmt"
 	"runtime"
-	"strings"
 )
-
-// ///////////////////////////
-// Section: OS detection
-// ///////////////////////////
 
 // IsLinux reports whether the current operating system is Linux.
 //
@@ -74,10 +67,6 @@ func IsDarwin() bool {
 func IsWindows() bool {
 	return runtime.GOOS == "windows"
 }
-
-// ///////////////////////////
-// Section: Architecture / platform info
-// ///////////////////////////
 
 // OSName returns the operating system name as reported by the Go runtime.
 //
@@ -158,10 +147,6 @@ func IsArm() bool {
 	return runtime.GOARCH == "arm" || runtime.GOARCH == "arm64"
 }
 
-// ///////////////////////////
-// Section: OS version
-// ///////////////////////////
-
 // OSVersion returns a best-effort human-readable operating system version
 // string.
 //
@@ -191,42 +176,9 @@ func OSVersion() string {
 	case "darwin":
 		return darwinOSVersion()
 	case "windows":
-		return runtime.GOOS + "/" + runtime.GOARCH
+		// return runtime.GOOS + "/" + runtime.GOARCH
+		return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
 	default:
 		return runtime.GOOS
 	}
-}
-
-// linuxOSVersion reads /etc/os-release and returns the PRETTY_NAME value.
-func linuxOSVersion() string {
-	f, err := os.Open("/etc/os-release")
-	if err != nil {
-		return runtime.GOOS
-	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "PRETTY_NAME=") {
-			val := strings.TrimPrefix(line, "PRETTY_NAME=")
-			val = strings.Trim(val, `"`)
-			if val != "" {
-				return val
-			}
-		}
-	}
-	return runtime.GOOS
-}
-
-// darwinOSVersion runs sw_vers to retrieve the macOS product version.
-func darwinOSVersion() string {
-	out, err := exec.Command("sw_vers", "-productVersion").Output()
-	if err != nil {
-		return runtime.GOOS
-	}
-	v := strings.TrimSpace(string(out))
-	if v == "" {
-		return runtime.GOOS
-	}
-	return v
 }

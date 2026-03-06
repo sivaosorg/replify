@@ -32,7 +32,7 @@ The `sysx` package eliminates the boilerplate of writing low-level system querie
 | `doc.go` | Package-level godoc documentation |
 | `os.go` | OS and architecture detection (`IsLinux`, `IsDarwin`, `IsWindows`, `OSVersion`, …) |
 | `runtime.go` | Runtime information (`Hostname`, `PID`, `UID`, `GoVersion`, `MemStats`, …) |
-| `env.go` | Environment variable helpers (`GetEnv`, `MustGetEnv`, `HasEnv`, typed getters, `EnvMap`) |
+| `env.go` | Environment variable helpers (`Getenv`, `MustGetenv`, `Hasenv`, typed getters, `EnvMap`) |
 | `process.go` | Process utilities (`ProcessExists`, `KillProcess`, `FindProcessByPID`, …) |
 | `command.go` | Command builder (`NewCommand`, `With*` methods, `Execute`, `Run`, `Output`) and all convenience functions |
 | `file.go` | File system helpers — existence/type/permission checks, read/write functions, atomic and concurrency-safe writers |
@@ -100,14 +100,14 @@ sysx.MemStats()          runtime.MemStats
 ### Environment Utilities (`env.go`)
 
 ```go
-sysx.GetEnv(key, fallback string) string          // env var or fallback
-sysx.MustGetEnv(key string) string                // panics if absent/empty
-sysx.HasEnv(key string) bool                      // true when set and non-empty
-sysx.SetEnv(key, value string) error              // os.Setenv
-sysx.UnsetEnv(key string) error                   // os.Unsetenv
-sysx.GetEnvInt(key string, fallback int) int      // parsed int or fallback
-sysx.GetEnvBool(key string, fallback bool) bool   // parsed bool or fallback
-sysx.GetEnvSlice(key, sep string) []string        // split by sep, nil if unset
+sysx.Getenv(key, fallback string) string          // env var or fallback
+sysx.MustGetenv(key string) string                // panics if absent/empty
+sysx.Hasenv(key string) bool                      // true when set and non-empty
+sysx.Setenv(key, value any) error              // os.Setenv
+sysx.Unsetenv(key string) error                   // os.Unsetenv
+sysx.GetenvInt(key string, fallback int) int      // parsed int or fallback
+sysx.GetenvBool(key string, fallback bool) bool   // parsed bool or fallback
+sysx.GetenvSlice(key, sep string) []string        // split by sep, nil if unset
 sysx.Environ() []string                           // os.Environ()
 sysx.EnvMap() map[string]string                   // all env vars as map
 ```
@@ -157,7 +157,7 @@ res.Duration() time.Duration  // wall-clock execution time
 res.Err()      error          // nil on success
 
 // Convenience methods on *CommandResult:
-res.Success()   bool   // true when Err() == nil
+res.IsSuccess()   bool   // true when Err() == nil
 res.Combined()  string // Stdout() + Stderr()
 
 // Shorter variants on *Command:
@@ -314,7 +314,7 @@ sysx.IsValidURL("https://example.com") bool             // valid scheme + host
 
 ```go
 sysx.PingHost("google.com")                       error  // TCP port 80, 5s timeout
-sysx.CheckTCPConnection("db", 5432, 3*time.Second) error  // any port, custom timeout
+sysx.CheckTCPConn("db", 5432, 3*time.Second) error  // any port, custom timeout
 ```
 
 ### Entry-Point Helpers (`entry.go`)
@@ -347,13 +347,13 @@ fmt.Println("ARM:     ", sysx.IsArm())
 ### Environment Configuration
 
 ```go
-host  := sysx.GetEnv("DB_HOST", "localhost")
-port  := sysx.GetEnvInt("DB_PORT", 5432)
-debug := sysx.GetEnvBool("DEBUG", false)
-tags  := sysx.GetEnvSlice("TAGS", ",")
+host  := sysx.Getenv("DB_HOST", "localhost")
+port  := sysx.GetenvInt("DB_PORT", 5432)
+debug := sysx.GetenvBool("DEBUG", false)
+tags  := sysx.GetenvSlice("TAGS", ",")
 
 // Panics at startup if DATABASE_URL is not configured
-dsn := sysx.MustGetEnv("DATABASE_URL")
+dsn := sysx.MustGetenv("DATABASE_URL")
 ```
 
 ### System Information Snapshot
@@ -405,7 +405,7 @@ res := sysx.NewCommand("bash").
     WithDir("/tmp").
     Execute()
 
-if !res.Success() {
+if !res.IsSuccess() {
     log.Printf("command failed (exit %d, %.2fs):\nstdout: %s\nstderr: %s",
         res.ExitCode, res.Duration.Seconds(), res.Stdout, res.Stderr)
 }
@@ -457,7 +457,7 @@ if err := sysx.ExecCommandContext(ctx, "go", "test", "-race", "./..."); err != n
 ```go
 res := sysx.RunCommand("golangci-lint", "run", "./...")
 fmt.Printf("exit=%d duration=%v\n", res.ExitCode, res.Duration.Round(time.Millisecond))
-if !res.Success() {
+if !res.IsSuccess() {
     fmt.Println("--- stdout ---")
     fmt.Print(res.Stdout)
     fmt.Println("--- stderr ---")
@@ -619,8 +619,8 @@ w.Overwrite(updatedConfig) // temp-file + rename under the mutex
 | Task | Prefer |
 |------|--------|
 | Quick OS check | `sysx.IsLinux()` vs `runtime.GOOS == "linux"` — both work; sysx adds readability |
-| Env var with fallback | `sysx.GetEnv` — stdlib requires a conditional around `os.LookupEnv` |
-| Typed env vars | `sysx.GetEnvInt` / `sysx.GetEnvBool` — no stdlib equivalent |
+| Env var with fallback | `sysx.Getenv` — stdlib requires a conditional around `os.LookupEnv` |
+| Typed env vars | `sysx.GetenvInt` / `sysx.GetenvBool` — no stdlib equivalent |
 | Run command and capture output | `sysx.ExecOutput` — saves wiring `cmd.Stdout`, `cmd.Stderr` |
 | Command with timeout | `sysx.ExecCommandWithTimeout` — saves `context.WithTimeout` boilerplate |
 | Stream command output | `sysx.ExecStreaming` — pass any `io.Writer` |
@@ -654,10 +654,10 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 ```go
 func mustLoadConfig() Config {
     return Config{
-        DSN:     sysx.MustGetEnv("DATABASE_URL"),
-        Port:    sysx.GetEnvInt("PORT", 8080),
-        Debug:   sysx.GetEnvBool("DEBUG", false),
-        Origins: sysx.GetEnvSlice("CORS_ORIGINS", ","),
+        DSN:     sysx.MustGetenv("DATABASE_URL"),
+        Port:    sysx.GetenvInt("PORT", 8080),
+        Debug:   sysx.GetenvBool("DEBUG", false),
+        Origins: sysx.GetenvSlice("CORS_ORIGINS", ","),
     }
 }
 ```
@@ -689,7 +689,7 @@ for _, step := range steps {
     res := sysx.RunCommand(step[0], step[1:]...)
     fmt.Printf("$ %s => exit=%d (%.2fs)\n",
         strings.Join(step, " "), res.ExitCode, res.Duration.Seconds())
-    if !res.Success() {
+    if !res.IsSuccess() {
         fmt.Fprintln(os.Stderr, res.Combined())
         os.Exit(1)
     }
@@ -788,7 +788,7 @@ if err := sysx.PingHost("api.internal"); err != nil {
 }
 
 // Explicit TCP connection check with custom timeout
-err := sysx.CheckTCPConnection("redis.cache", 6379, 2*time.Second)
+err := sysx.CheckTCPConn("redis.cache", 6379, 2*time.Second)
 if err != nil {
     log.Printf("Redis unavailable: %v", err)
 }
@@ -804,7 +804,7 @@ func checkDependencies() error {
         {"Kafka",      "broker.internal", 9092},
     }
     for _, dep := range deps {
-        if err := sysx.CheckTCPConnection(dep.host, dep.port, 5*time.Second); err != nil {
+        if err := sysx.CheckTCPConn(dep.host, dep.port, 5*time.Second); err != nil {
             return fmt.Errorf("%s is not reachable: %w", dep.name, err)
         }
         log.Printf("✓ %s (%s:%d) reachable", dep.name, dep.host, dep.port)
@@ -834,7 +834,7 @@ func findFreePort(start, end int) (int, error) {
 | `GetPublicIP` | needs internet | needs internet | needs internet |
 | `IsPortAvailable` | TCP listen | TCP listen | TCP listen |
 | `PingHost` | TCP port 80 | TCP port 80 | TCP port 80 |
-| `CheckTCPConnection` | full support | full support | full support |
+| `CheckTCPConn` | full support | full support | full support |
 
 > **Note:** `GetPublicIP` requires outbound internet access. It will fail in
 > air-gapped environments. Always handle its error gracefully in production code.

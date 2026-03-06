@@ -97,8 +97,7 @@ writeJSONKey(&b, f.messageKey)
 b.WriteByte(':')
 writeJSONString(&b, e.Message())
 
-for i, fld := range e.Fields() {
-_ = i
+for _, fld := range e.Fields() {
 b.WriteByte(',')
 writeJSONKey(&b, fld.Key)
 b.WriteByte(':')

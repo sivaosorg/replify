@@ -770,7 +770,7 @@ func TestSlogger_Fatal_Hook(t *testing.T) {
 	log.AddHook(panicHook)
 
 	func() {
-		defer func() { recover() }() //nolint:errcheck
+		defer func() { _ = recover() }()
 		log.Panic("fatal-level-proxy panic")
 	}()
 

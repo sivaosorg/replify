@@ -1,0 +1,843 @@
+package test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"errors"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/sivaosorg/replify/pkg/slogger"
+)
+
+// ///////////////////////////
+// Section: Level parsing tests
+// ///////////////////////////
+
+func TestSlogger_LevelParsing(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		input   string
+		want    slogger.Level
+		wantErr bool
+	}{
+		{"trace", slogger.TraceLevel, false},
+		{"TRACE", slogger.TraceLevel, false},
+		{"debug", slogger.DebugLevel, false},
+		{"DEBUG", slogger.DebugLevel, false},
+		{"info", slogger.InfoLevel, false},
+		{"INFO", slogger.InfoLevel, false},
+		{"warn", slogger.WarnLevel, false},
+		{"WARN", slogger.WarnLevel, false},
+		{"warning", slogger.WarnLevel, false},
+		{"WARNING", slogger.WarnLevel, false},
+		{"error", slogger.ErrorLevel, false},
+		{"ERROR", slogger.ErrorLevel, false},
+		{"fatal", slogger.FatalLevel, false},
+		{"FATAL", slogger.FatalLevel, false},
+		{"panic", slogger.PanicLevel, false},
+		{"PANIC", slogger.PanicLevel, false},
+		{"unknown", slogger.TraceLevel, true},
+		{"", slogger.TraceLevel, true},
+		{"verbose", slogger.TraceLevel, true},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.input, func(t *testing.T) {
+			t.Parallel()
+			got, err := slogger.ParseLevel(tc.input)
+			if tc.wantErr {
+				if err == nil {
+					t.Errorf("ParseLevel(%q) expected error, got nil", tc.input)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("ParseLevel(%q) unexpected error: %v", tc.input, err)
+			}
+			if got != tc.want {
+				t.Errorf("ParseLevel(%q) = %v; want %v", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+// ///////////////////////////
+// Section: Level string tests
+// ///////////////////////////
+
+func TestSlogger_LevelString(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		level slogger.Level
+		want  string
+	}{
+		{slogger.TraceLevel, "TRACE"},
+		{slogger.DebugLevel, "DEBUG"},
+		{slogger.InfoLevel, "INFO"},
+		{slogger.WarnLevel, "WARN"},
+		{slogger.ErrorLevel, "ERROR"},
+		{slogger.FatalLevel, "FATAL"},
+		{slogger.PanicLevel, "PANIC"},
+	}
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.want, func(t *testing.T) {
+			t.Parallel()
+			got := tc.level.String()
+			if got != tc.want {
+				t.Errorf("Level.String() = %q; want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// ///////////////////////////
+// Section: Level IsEnabled tests
+// ///////////////////////////
+
+func TestSlogger_LevelIsEnabled(t *testing.T) {
+	t.Parallel()
+	if !slogger.InfoLevel.IsEnabled(slogger.InfoLevel) {
+		t.Error("InfoLevel.IsEnabled(InfoLevel) should be true")
+	}
+	if !slogger.ErrorLevel.IsEnabled(slogger.InfoLevel) {
+		t.Error("ErrorLevel.IsEnabled(InfoLevel) should be true")
+	}
+	if slogger.DebugLevel.IsEnabled(slogger.InfoLevel) {
+		t.Error("DebugLevel.IsEnabled(InfoLevel) should be false")
+	}
+	if slogger.TraceLevel.IsEnabled(slogger.WarnLevel) {
+		t.Error("TraceLevel.IsEnabled(WarnLevel) should be false")
+	}
+}
+
+// ///////////////////////////
+// Section: Field constructor tests
+// ///////////////////////////
+
+func TestSlogger_FieldConstructors(t *testing.T) {
+	t.Parallel()
+
+	t.Run("String", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.String("k", "hello world")
+		if f.Key != "k" {
+			t.Errorf("Key = %q; want %q", f.Key, "k")
+		}
+		if f.Value() != "hello world" {
+			t.Errorf("Value() = %q; want %q", f.Value(), "hello world")
+		}
+	})
+
+	t.Run("Int", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Int("n", 42)
+		if f.Value() != "42" {
+			t.Errorf("Int.Value() = %q; want %q", f.Value(), "42")
+		}
+	})
+
+	t.Run("Int64", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Int64("n", 9876543210)
+		if f.Value() != "9876543210" {
+			t.Errorf("Int64.Value() = %q; want %q", f.Value(), "9876543210")
+		}
+	})
+
+	t.Run("Float64", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Float64("ratio", 3.14)
+		if f.Value() != "3.14" {
+			t.Errorf("Float64.Value() = %q; want %q", f.Value(), "3.14")
+		}
+	})
+
+	t.Run("Bool_true", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Bool("ok", true)
+		if f.Value() != "true" {
+			t.Errorf("Bool(true).Value() = %q; want true", f.Value())
+		}
+	})
+
+	t.Run("Bool_false", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Bool("ok", false)
+		if f.Value() != "false" {
+			t.Errorf("Bool(false).Value() = %q; want false", f.Value())
+		}
+	})
+
+	t.Run("Err_non_nil", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Err(errors.New("boom"))
+		if f.Key != "error" {
+			t.Errorf("Err key = %q; want %q", f.Key, "error")
+		}
+		if f.Value() != "boom" {
+			t.Errorf("Err.Value() = %q; want %q", f.Value(), "boom")
+		}
+	})
+
+	t.Run("Err_nil", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Err(nil)
+		if f.Value() != "<nil>" {
+			t.Errorf("Err(nil).Value() = %q; want <nil>", f.Value())
+		}
+	})
+
+	t.Run("Time", func(t *testing.T) {
+		t.Parallel()
+		ts := time.Date(2024, 1, 15, 10, 30, 0, 0, time.UTC)
+		f := slogger.Time("at", ts)
+		if f.Value() != "2024-01-15T10:30:00Z" {
+			t.Errorf("Time.Value() = %q; want 2024-01-15T10:30:00Z", f.Value())
+		}
+	})
+
+	t.Run("Duration", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Duration("took", 500*time.Millisecond)
+		if f.Value() != "500ms" {
+			t.Errorf("Duration.Value() = %q; want 500ms", f.Value())
+		}
+	})
+
+	t.Run("Any", func(t *testing.T) {
+		t.Parallel()
+		f := slogger.Any("meta", []int{1, 2, 3})
+		if f.Value() != "[1 2 3]" {
+			t.Errorf("Any.Value() = %q; want [1 2 3]", f.Value())
+		}
+	})
+}
+
+// ///////////////////////////
+// Section: TextFormatter tests
+// ///////////////////////////
+
+func TestSlogger_TextFormatter(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+
+	log.Info("hello world", slogger.String("key", "val"))
+	out := buf.String()
+
+	if !strings.Contains(out, "INFO") {
+		t.Errorf("expected INFO in output, got: %s", out)
+	}
+	if !strings.Contains(out, "hello world") {
+		t.Errorf("expected message in output, got: %s", out)
+	}
+	if !strings.Contains(out, "key=val") {
+		t.Errorf("expected key=val in output, got: %s", out)
+	}
+	if !strings.HasSuffix(strings.TrimRight(out, "\n"), "key=val") {
+		// ends with key=val before newline
+	}
+	if !strings.HasSuffix(out, "\n") {
+		t.Error("expected output to end with newline")
+	}
+}
+
+func TestSlogger_TextFormatter_QuotedValues(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	log.Info("msg", slogger.String("msg", "hello world"))
+	out := buf.String()
+	if !strings.Contains(out, `"hello world"`) {
+		t.Errorf("expected quoted string value in output, got: %s", out)
+	}
+}
+
+// ///////////////////////////
+// Section: JSONFormatter tests
+// ///////////////////////////
+
+func TestSlogger_JSONFormatter(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Info("json test", slogger.String("env", "prod"), slogger.Int("count", 3))
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
+	}
+	if m["level"] != "INFO" {
+		t.Errorf("level = %v; want INFO", m["level"])
+	}
+	if m["msg"] != "json test" {
+		t.Errorf("msg = %v; want json test", m["msg"])
+	}
+	if m["env"] != "prod" {
+		t.Errorf("env = %v; want prod", m["env"])
+	}
+	if m["count"] != float64(3) {
+		t.Errorf("count = %v; want 3", m["count"])
+	}
+}
+
+func TestSlogger_JSONFormatter_CustomKeys(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.InfoLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter().
+			WithTimeKey("timestamp").
+			WithLevelKey("severity").
+			WithMessageKey("message")
+	})
+	log.Info("custom keys")
+	out := strings.TrimSpace(buf.String())
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
+	}
+	if _, ok := m["timestamp"]; !ok {
+		t.Error("expected timestamp key in JSON output")
+	}
+	if m["severity"] != "INFO" {
+		t.Errorf("severity = %v; want INFO", m["severity"])
+	}
+	if m["message"] != "custom keys" {
+		t.Errorf("message = %v; want 'custom keys'", m["message"])
+	}
+}
+
+// ///////////////////////////
+// Section: Logger construction tests
+// ///////////////////////////
+
+func TestSlogger_Logger_New(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	log.Info("startup complete")
+	if !strings.Contains(buf.String(), "startup complete") {
+		t.Errorf("expected message in output, got: %s", buf.String())
+	}
+}
+
+// ///////////////////////////
+// Section: Logger With tests
+// ///////////////////////////
+
+func TestSlogger_Logger_With(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	child := log.With(slogger.String("component", "auth"))
+	child.Info("login attempt")
+	out := buf.String()
+	if !strings.Contains(out, "component=auth") {
+		t.Errorf("expected component=auth in output, got: %s", out)
+	}
+}
+
+// ///////////////////////////
+// Section: Logger Named tests
+// ///////////////////////////
+
+func TestSlogger_Logger_Named(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	db := log.Named("db")
+	rw := db.Named("reader")
+	rw.Info("query executed")
+	out := buf.String()
+	if !strings.Contains(out, "[db.reader]") {
+		t.Errorf("expected [db.reader] in output, got: %s", out)
+	}
+}
+
+func TestSlogger_Logger_Named_NoParent(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	named := log.Named("api")
+	named.Info("route registered")
+	out := buf.String()
+	if !strings.Contains(out, "[api]") {
+		t.Errorf("expected [api] in output, got: %s", out)
+	}
+}
+
+// ///////////////////////////
+// Section: Logger SetLevel tests
+// ///////////////////////////
+
+func TestSlogger_Logger_SetLevel(t *testing.T) {
+	t.Parallel()
+	log := slogger.New()
+	log.SetLevel(slogger.DebugLevel)
+	if log.GetLevel() != slogger.DebugLevel {
+		t.Errorf("GetLevel() = %v; want DebugLevel", log.GetLevel())
+	}
+	log.SetLevel(slogger.WarnLevel)
+	if log.GetLevel() != slogger.WarnLevel {
+		t.Errorf("GetLevel() = %v; want WarnLevel", log.GetLevel())
+	}
+}
+
+// ///////////////////////////
+// Section: Logger IsLevelEnabled tests
+// ///////////////////////////
+
+func TestSlogger_Logger_IsLevelEnabled(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.WarnLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	if log.IsLevelEnabled(slogger.DebugLevel) {
+		t.Error("IsLevelEnabled(DebugLevel) should be false when min=WarnLevel")
+	}
+	if !log.IsLevelEnabled(slogger.WarnLevel) {
+		t.Error("IsLevelEnabled(WarnLevel) should be true when min=WarnLevel")
+	}
+	if !log.IsLevelEnabled(slogger.ErrorLevel) {
+		t.Error("IsLevelEnabled(ErrorLevel) should be true when min=WarnLevel")
+	}
+
+	// debug message should not appear in output
+	log.Debug("this should not appear")
+	if strings.Contains(buf.String(), "this should not appear") {
+		t.Error("debug message was written despite WarnLevel minimum")
+	}
+
+	// warn message should appear
+	log.Warn("this should appear")
+	if !strings.Contains(buf.String(), "this should appear") {
+		t.Error("warn message was not written")
+	}
+}
+
+// ///////////////////////////
+// Section: Logger SetOutput tests
+// ///////////////////////////
+
+func TestSlogger_Logger_SetOutput(t *testing.T) {
+	t.Parallel()
+	var buf1, buf2 bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf1
+		o.Formatter = slogger.NewTextFormatter(&buf1).WithDisableColors()
+	})
+	log.Info("first destination")
+	if !strings.Contains(buf1.String(), "first destination") {
+		t.Errorf("expected message in buf1, got: %s", buf1.String())
+	}
+
+	log.SetOutput(&buf2)
+	log.Info("second destination")
+	if !strings.Contains(buf2.String(), "second destination") {
+		t.Errorf("expected message in buf2, got: %s", buf2.String())
+	}
+}
+
+// ///////////////////////////
+// Section: Logger SetFormatter tests
+// ///////////////////////////
+
+func TestSlogger_Logger_SetFormatter(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	log.SetFormatter(slogger.NewJSONFormatter())
+	log.Info("formatted as json")
+	out := strings.TrimSpace(buf.String())
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("SetFormatter: invalid JSON after switch: %v\noutput: %s", err, out)
+	}
+}
+
+// ///////////////////////////
+// Section: Hooks tests
+// ///////////////////////////
+
+type testHook struct {
+	mu     sync.Mutex
+	levels []slogger.Level
+	fired  []*slogger.Entry
+}
+
+func (h *testHook) Levels() []slogger.Level { return h.levels }
+func (h *testHook) Fire(e *slogger.Entry) error {
+	h.mu.Lock()
+	// capture a copy since entry will be released
+	cp := *e
+	h.fired = append(h.fired, &cp)
+	h.mu.Unlock()
+	return nil
+}
+
+func TestSlogger_Hooks(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	hook := &testHook{levels: []slogger.Level{slogger.ErrorLevel, slogger.WarnLevel}}
+	log.AddHook(hook)
+
+	log.Info("info msg")
+	log.Warn("warn msg")
+	log.Error("error msg")
+
+	hook.mu.Lock()
+	n := len(hook.fired)
+	hook.mu.Unlock()
+
+	if n != 2 {
+		t.Errorf("expected 2 hook firings (warn+error), got %d", n)
+	}
+}
+
+func TestSlogger_Hooks_Len(t *testing.T) {
+	t.Parallel()
+	hooks := slogger.NewHooks()
+	h := &testHook{levels: []slogger.Level{slogger.InfoLevel, slogger.ErrorLevel}}
+	hooks.Add(h)
+	if hooks.Len(slogger.InfoLevel) != 1 {
+		t.Errorf("Len(InfoLevel) = %d; want 1", hooks.Len(slogger.InfoLevel))
+	}
+	if hooks.Len(slogger.DebugLevel) != 0 {
+		t.Errorf("Len(DebugLevel) = %d; want 0", hooks.Len(slogger.DebugLevel))
+	}
+}
+
+// ///////////////////////////
+// Section: Context tests
+// ///////////////////////////
+
+func TestSlogger_Context(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	fields := slogger.FieldsFromContext(ctx)
+	if fields != nil {
+		t.Error("FieldsFromContext on empty context should return nil")
+	}
+
+	ctx = slogger.WithContextFields(ctx,
+		slogger.String("trace_id", "abc123"),
+		slogger.String("span_id", "def456"),
+	)
+	fields = slogger.FieldsFromContext(ctx)
+	if len(fields) != 2 {
+		t.Fatalf("expected 2 fields, got %d", len(fields))
+	}
+	if fields[0].Key != "trace_id" {
+		t.Errorf("fields[0].Key = %q; want trace_id", fields[0].Key)
+	}
+
+	// Append more fields preserving existing
+	ctx = slogger.WithContextFields(ctx, slogger.Int("attempt", 1))
+	fields = slogger.FieldsFromContext(ctx)
+	if len(fields) != 3 {
+		t.Fatalf("expected 3 fields after append, got %d", len(fields))
+	}
+}
+
+func TestSlogger_Context_Logging(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	ctx := slogger.WithContextFields(context.Background(), slogger.String("req_id", "xyz"))
+	log.WithContext(ctx).Info("handling request")
+	out := buf.String()
+	if !strings.Contains(out, "req_id=xyz") {
+		t.Errorf("expected req_id=xyz in output, got: %s", out)
+	}
+}
+
+// ///////////////////////////
+// Section: Sampling tests
+// ///////////////////////////
+
+func TestSlogger_Sampling(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level  = slogger.InfoLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors().WithDisableTimestamp()
+		o.SamplingOpts = &slogger.SamplingOptions{
+			First:      3,
+			Period:     10 * time.Second,
+			Thereafter: 0, // drop all after first 3
+		}
+	})
+
+	for i := 0; i < 10; i++ {
+		log.Info("sampled message")
+	}
+
+	count := strings.Count(buf.String(), "sampled message")
+	if count != 3 {
+		t.Errorf("expected exactly 3 log lines, got %d\noutput:\n%s", count, buf.String())
+	}
+}
+
+func TestSlogger_Sampling_Thereafter(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level  = slogger.InfoLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors().WithDisableTimestamp()
+		o.SamplingOpts = &slogger.SamplingOptions{
+			First:      2,
+			Period:     10 * time.Second,
+			Thereafter: 2, // every 2nd after first 2
+		}
+	})
+	// 2 always + msgs 3,4,5,6,7,8,9,10 = 8 more; allow at positions (count-first-1)%2==0 => 0,2,4,6 => 4 more
+	// total expected: 2 + 4 = 6
+	for i := 0; i < 10; i++ {
+		log.Info("thereafter message")
+	}
+	count := strings.Count(buf.String(), "thereafter message")
+	if count != 6 {
+		t.Errorf("expected 6 log lines with thereafter=2, got %d\noutput:\n%s", count, buf.String())
+	}
+}
+
+// ///////////////////////////
+// Section: Global logger tests
+// ///////////////////////////
+
+func TestSlogger_GlobalLogger(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+
+	original := slogger.GetGlobalLogger()
+	slogger.SetGlobalLogger(log)
+	defer slogger.SetGlobalLogger(original)
+
+	slogger.Info("global info message")
+	if !strings.Contains(buf.String(), "global info message") {
+		t.Errorf("expected global info message in output, got: %s", buf.String())
+	}
+
+	slogger.SetGlobalLogger(nil) // should be a no-op
+	if slogger.GetGlobalLogger() != log {
+		t.Error("SetGlobalLogger(nil) should not replace the current logger")
+	}
+}
+
+// ///////////////////////////
+// Section: Entry methods tests
+// ///////////////////////////
+
+func TestSlogger_EntryMethods(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+
+	ctx := context.Background()
+	entry := log.WithContext(ctx)
+
+	entry.Trace("trace via entry")
+	entry.Debug("debug via entry")
+	entry.Info("info via entry")
+	entry.Warn("warn via entry")
+	entry.Error("error via entry")
+
+	out := buf.String()
+	for _, want := range []string{
+		"trace via entry",
+		"debug via entry",
+		"info via entry",
+		"warn via entry",
+		"error via entry",
+	} {
+		if !strings.Contains(out, want) {
+			t.Errorf("expected %q in output, got: %s", want, out)
+		}
+	}
+}
+
+func TestSlogger_EntryMethods_Panic(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+
+	defer func() {
+		r := recover()
+		if r == nil {
+			t.Error("expected panic, got none")
+		}
+		if !strings.Contains(buf.String(), "panic via entry") {
+			t.Errorf("expected panic message in output, got: %s", buf.String())
+		}
+	}()
+
+	log.WithContext(context.Background()).Panic("panic via entry")
+}
+
+// ///////////////////////////
+// Section: Fatal hook tests
+// ///////////////////////////
+
+func TestSlogger_Fatal_Hook(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.TraceLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+	hook := &testHook{levels: []slogger.Level{slogger.FatalLevel}}
+	log.AddHook(hook)
+
+	// Directly invoke the internal log dispatch at FatalLevel without triggering os.Exit
+	// by using a hook to capture it. We test that the hook fires for fatal level.
+	// We cannot call log.Fatal() in tests as it calls os.Exit(1).
+	// Instead, we verify hook fires by using ErrorLevel as a proxy test for hook wiring.
+	// For FatalLevel hook count we add a hook and call Panic and recover:
+	panicHook := &testHook{levels: []slogger.Level{slogger.PanicLevel}}
+	log.AddHook(panicHook)
+
+	func() {
+		defer func() { recover() }() //nolint:errcheck
+		log.Panic("fatal-level-proxy panic")
+	}()
+
+	panicHook.mu.Lock()
+	n := len(panicHook.fired)
+	panicHook.mu.Unlock()
+	if n != 1 {
+		t.Errorf("expected 1 panic hook firing, got %d", n)
+	}
+}
+
+// ///////////////////////////
+// Section: Concurrent logging tests
+// ///////////////////////////
+
+func TestSlogger_Concurrent(t *testing.T) {
+	t.Parallel()
+	var buf bytes.Buffer
+	var mu sync.Mutex
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+	})
+
+	const goroutines = 50
+	const messages = 20
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < messages; j++ {
+				log.Info("concurrent message", slogger.Int("goroutine", id), slogger.Int("msg", j))
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	mu.Lock()
+	out := buf.String()
+	mu.Unlock()
+
+	count := strings.Count(out, "concurrent message")
+	if count != goroutines*messages {
+		t.Errorf("expected %d log lines, got %d", goroutines*messages, count)
+	}
+}
+
+// ///////////////////////////
+// Section: MultiWriter tests
+// ///////////////////////////
+
+func TestSlogger_MultiWriter(t *testing.T) {
+	t.Parallel()
+	var buf1, buf2 bytes.Buffer
+	mw := slogger.NewMultiWriter(&buf1, &buf2)
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level     = slogger.InfoLevel
+		o.Output    = mw
+		o.Formatter = slogger.NewTextFormatter(mw).WithDisableColors()
+	})
+	log.Info("multiwriter test")
+	if !strings.Contains(buf1.String(), "multiwriter test") {
+		t.Errorf("expected message in buf1, got: %s", buf1.String())
+	}
+	if !strings.Contains(buf2.String(), "multiwriter test") {
+		t.Errorf("expected message in buf2, got: %s", buf2.String())
+	}
+}

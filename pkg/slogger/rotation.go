@@ -76,8 +76,10 @@ func (h *LevelWriterHook) Fire(e *Entry) error {
 	if err != nil {
 		return err
 	}
-	_, err = h.writer.WriteLevel(e.GetLevel(), data)
-	return err
+	if _, err = h.writer.WriteLevel(e.level, data); err != nil {
+		return fmt.Errorf("slogger: LevelWriterHook write failed for level %s: %w", e.level, err)
+	}
+	return nil
 }
 
 // NewLevelFileWriter creates a LevelFileWriter with the given options.
@@ -100,6 +102,8 @@ func NewLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
 		writers: make(map[Level]*rotatingFile),
 	}
 
+	// Four files are created: debug, info, warn, and error.
+	// Trace routes to debug; Fatal and Panic route to error (see WriteLevel).
 	for _, lvl := range []Level{DebugLevel, InfoLevel, WarnLevel, ErrorLevel} {
 		rf, err := newRotatingFile(opts, lvl)
 		if err != nil {

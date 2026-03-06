@@ -39,11 +39,14 @@ if o.SamplingOpts != nil {
 l.sampling = newSampler(*o.SamplingOpts)
 }
 if o.RotationOpts != nil {
-lfw, err := NewLevelFileWriter(*o.RotationOpts)
-if err == nil {
-hook := NewLevelWriterHook(lfw, o.Formatter)
-l.hooks.Add(hook)
-}
+	lfw, err := NewLevelFileWriter(*o.RotationOpts)
+	if err != nil {
+		// Rotation setup failed; write diagnostic to stderr and continue
+		// without rotation so the logger remains usable.
+		_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
+	} else {
+		l.hooks.Add(NewLevelWriterHook(lfw, o.Formatter))
+	}
 }
 return l
 }

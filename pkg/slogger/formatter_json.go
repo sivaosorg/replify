@@ -78,37 +78,40 @@ b.WriteByte('{')
 
 writeJSONKey(&b, f.timeKey)
 b.WriteByte(':')
-writeJSONString(&b, e.time.Format(f.timeFormat))
+writeJSONString(&b, e.Time().Format(f.timeFormat))
 
 b.WriteByte(',')
 writeJSONKey(&b, f.levelKey)
 b.WriteByte(':')
-writeJSONString(&b, e.level.String())
+writeJSONString(&b, e.GetLevel().String())
 
-if e.logger != nil && e.logger.name != "" {
+if l := e.Logger(); l != nil && l.name != "" {
 b.WriteByte(',')
 writeJSONKey(&b, f.nameKey)
 b.WriteByte(':')
-writeJSONString(&b, e.logger.name)
+writeJSONString(&b, l.name)
 }
 
 b.WriteByte(',')
 writeJSONKey(&b, f.messageKey)
 b.WriteByte(':')
-writeJSONString(&b, e.message)
+writeJSONString(&b, e.Message())
 
-for i := range e.fields {
+for i, fld := range e.Fields() {
+_ = i
 b.WriteByte(',')
-writeJSONKey(&b, e.fields[i].Key)
+writeJSONKey(&b, fld.Key)
 b.WriteByte(':')
-writeJSONValue(&b, &e.fields[i])
+writeJSONValue(&b, &fld)
 }
 
-if f.enableCaller && e.caller != nil {
+if f.enableCaller {
+if c := e.Caller(); c != nil {
 b.WriteByte(',')
 writeJSONKey(&b, f.callerKey)
 b.WriteByte(':')
-writeJSONString(&b, e.caller.file+":"+itoa(e.caller.line))
+writeJSONString(&b, c.File()+":"+itoa(c.Line()))
+}
 }
 
 b.WriteByte('}')

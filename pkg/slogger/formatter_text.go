@@ -61,13 +61,13 @@ var b strings.Builder
 useColor := !f.disableColors && IsTTY(f.output)
 
 if !f.disableTimestamp {
-b.WriteString(e.time.Format(f.timeFormat))
+b.WriteString(e.Time().Format(f.timeFormat))
 b.WriteByte(' ')
 }
 
-levelStr := levelPad(e.level)
+levelStr := levelPad(e.GetLevel())
 if useColor {
-b.WriteString(levelColor(e.level))
+b.WriteString(levelColor(e.GetLevel()))
 b.WriteString(colorBold)
 b.WriteString(levelStr)
 b.WriteString(colorReset)
@@ -76,19 +76,19 @@ b.WriteString(levelStr)
 }
 b.WriteByte(' ')
 
-if e.logger != nil && e.logger.name != "" {
+if l := e.Logger(); l != nil && l.name != "" {
 b.WriteByte('[')
-b.WriteString(e.logger.name)
+b.WriteString(l.name)
 b.WriteString("] ")
 }
 
-b.WriteString(e.message)
+b.WriteString(e.Message())
 
-for i := range e.fields {
+for _, fld := range e.Fields() {
 b.WriteByte(' ')
-b.WriteString(e.fields[i].Key)
+b.WriteString(fld.Key)
 b.WriteByte('=')
-v := e.fields[i].Value()
+v := fld.Value()
 if needsQuoting(v) {
 b.WriteString(strconv.Quote(v))
 } else {
@@ -96,11 +96,13 @@ b.WriteString(v)
 }
 }
 
-if f.enableCaller && e.caller != nil {
+if f.enableCaller {
+if c := e.Caller(); c != nil {
 b.WriteString(" caller=")
-b.WriteString(e.caller.file)
+b.WriteString(c.File())
 b.WriteByte(':')
-b.WriteString(strconv.Itoa(e.caller.line))
+b.WriteString(strconv.Itoa(c.Line()))
+}
 }
 
 b.WriteByte('\n')

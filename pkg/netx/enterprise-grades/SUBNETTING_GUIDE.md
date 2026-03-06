@@ -823,11 +823,11 @@ func main() {
 Expected output:
 
 ```
-Sales     10.0.0.0/25           first=10.0.0.1        last=10.0.0.126       hosts=126
-IT        10.0.0.128/27         first=10.0.0.129      last=10.0.0.158       hosts=30
-HR        10.0.0.160/29         first=10.0.0.161      last=10.0.0.166       hosts=6
-P2P-A     10.0.0.168/30         first=10.0.0.169      last=10.0.0.170       hosts=2
-P2P-B     10.0.0.172/30         first=10.0.0.173      last=10.0.0.174       hosts=2
+Sales     10.0.0.0/25           first=10.0.0.1         last=10.0.0.126       hosts=126
+IT        10.0.0.128/27         first=10.0.0.129       last=10.0.0.158       hosts=30
+HR        10.0.0.160/29         first=10.0.0.161       last=10.0.0.166       hosts=6
+P2P-A     10.0.0.168/31         first=10.0.0.168       last=10.0.0.169       hosts=2
+P2P-B     10.0.0.170/31         first=10.0.0.170       last=10.0.0.171       hosts=2
 ```
 
 ### Complete Example: FLSM Split of `192.168.10.0/24` into 4 Subnets
@@ -863,10 +863,10 @@ func main() {
 Expected output:
 
 ```
-London    192.168.10.0/26        hosts=62
-Paris     192.168.10.64/26       hosts=62
-Tokyo     192.168.10.128/26      hosts=62
-Sydney    192.168.10.192/26      hosts=62
+London    192.168.10.0/26         hosts=62
+Paris     192.168.10.64/26        hosts=62
+Tokyo     192.168.10.128/26       hosts=62
+Sydney    192.168.10.192/26       hosts=62
 ```
 
 ---

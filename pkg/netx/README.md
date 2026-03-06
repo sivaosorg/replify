@@ -23,6 +23,7 @@ Designed for backend infrastructure services, DevOps tooling, Kubernetes network
 - [Real-World DevOps Scenarios](#real-world-devops-scenarios)
 - [Edge Case Handling](#edge-case-handling)
 - [Platform Notes](#platform-notes)
+- [Engineering Guide](#engineering-guide)
 
 ---
 
@@ -384,6 +385,32 @@ fmt.Printf("Monitoring range: %s – %s (%d hosts)\n",
 `netx` depends only on `net`, `math/big`, and `sort` from the Go standard library and produces identical results on Linux, macOS, and Windows.
 
 No OS-specific code paths exist in this package.
+
+## Engineering Guide
+
+For a comprehensive technical reference covering real-world subnetting
+scenarios, binary-level calculations, efficiency analysis, VLSM vs. FLSM
+comparison, route summarization, multi-VLAN design, and algorithm pseudocode
+for all major subnetting operations, see:
+
+**[SUBNETTING_GUIDE.md](./SUBNETTING_GUIDE.md)**
+
+Topics covered in the guide:
+
+| Section | Content |
+|---------|---------|
+| Background | Classful addressing → CIDR transition |
+| Bitwise logic | Subnet mask AND/OR operations, binary examples |
+| Power-of-two rule | Standard formula, /31 and /32 edge cases |
+| FLSM walkthrough | `192.168.10.0/24` divided into 4 equal /26 subnets |
+| VLSM walkthrough | `10.0.0.0/24` allocated for Sales/IT/HR/P2P with 73% less waste than FLSM |
+| IPv4 conservation | `/29` public block assignment and NAT strategies |
+| Route summarization | Binary LCP, aggregating four /24s into a /22 |
+| Multi-VLAN design | VLAN-to-subnet alignment, gateway assignment, security policy |
+| Algorithm pseudocode | FLSM split, VLSM allocation, route summarization, prefix search |
+| API mapping | Every concept mapped to the corresponding `netx` Go function |
+
+---
 
 ## Cross-Package Architecture
 

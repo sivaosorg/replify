@@ -5,10 +5,6 @@ import (
 	"net"
 )
 
-// ///////////////////////////
-// Section: CIDR parsing
-// ///////////////////////////
-
 // ParseCIDR parses a CIDR notation string and returns a fully populated
 // Subnet with all addressing attributes calculated.
 //

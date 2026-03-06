@@ -5,125 +5,103 @@ import (
 	"net"
 )
 
-// ///////////////////////////
-// Section: Subnet construction
-// ///////////////////////////
-
-// buildSubnet computes all addressing attributes from an *net.IPNet and
-// returns a fully populated Subnet value.
+// IPNet returns the underlying *net.IPNet for this subnet.
 //
-// buildSubnet is the single place where all address arithmetic happens,
-// making it the foundation for both ParseCIDR and the FLSM/VLSM allocators.
-func buildSubnet(ipNet *net.IPNet) Subnet {
-	prefix, bits := ipNet.Mask.Size()
-	network := cloneIP(ipNet.IP)
-	broadcast := computeBroadcast(network, ipNet.Mask)
-	first, last := computeHostRange(network, broadcast, prefix, bits)
-	total := computeTotalHosts(prefix, bits)
-
-	return Subnet{
-		ipNet:            ipNet,
-		networkAddress:   network,
-		broadcastAddress: broadcast,
-		firstHost:        first,
-		lastHost:         last,
-		totalHosts:       total,
-		prefix:           prefix,
-	}
-}
-
-// computeBroadcast returns the broadcast address by ORing the network address
-// with the bitwise complement of the mask.
+// Returns:
 //
-// Works for both IPv4 (4-byte) and IPv6 (16-byte) addresses.
-func computeBroadcast(network net.IP, mask net.IPMask) net.IP {
-	broadcast := make(net.IP, len(network))
-	for i := range network {
-		broadcast[i] = network[i] | ^mask[i]
-	}
-	return broadcast
-}
+//	A pointer to the net.IPNet representing this network block.
+func (s Subnet) IPNet() *net.IPNet { return s.ipNet }
 
-// computeHostRange returns the first and last usable host addresses.
+// NetworkAddress returns the network (base) address of the subnet.
 //
-// Edge cases:
-//   - prefix == bits (e.g. /32 for IPv4, /128 for IPv6): single host; first == last == network.
-//   - prefix == bits-1 (e.g. /31 for IPv4): RFC 3021 point-to-point; first == network, last == broadcast.
-//   - all other prefixes: first is network+1, last is broadcast-1.
-func computeHostRange(network, broadcast net.IP, prefix, bits int) (first, last net.IP) {
-	switch {
-	case prefix == bits:
-		// /32 or /128 — single host address
-		first = cloneIP(network)
-		last = cloneIP(network)
-	case prefix == bits-1:
-		// /31 or /127 — RFC 3021 point-to-point link
-		first = cloneIP(network)
-		last = cloneIP(broadcast)
-	default:
-		first = ipAddOffset(network, 1)
-		last = ipAddOffset(broadcast, -1)
-	}
-	return first, last
-}
-
-// computeTotalHosts returns the number of usable host addresses.
+// Returns:
 //
-// Rules:
-//   - prefix == bits        → 1
-//   - prefix == bits-1      → 2
-//   - otherwise             → 2^(bits-prefix) - 2
-func computeTotalHosts(prefix, bits int) *big.Int {
-	hostBits := bits - prefix
-	switch {
-	case hostBits == 0:
-		return big.NewInt(1)
-	case hostBits == 1:
-		return big.NewInt(2)
-	default:
-		total := new(big.Int).Lsh(big.NewInt(1), uint(hostBits)) // 2^hostBits
-		total.Sub(total, big.NewInt(2))                           // subtract network and broadcast
-		return total
-	}
-}
-
-// ///////////////////////////
-// Section: IP arithmetic helpers
-// ///////////////////////////
-
-// cloneIP returns a copy of an IP address, always in 4-byte (IPv4) or
-// 16-byte (IPv6) form, consistent with what net.ParseCIDR produces.
-func cloneIP(ip net.IP) net.IP {
-	clone := make(net.IP, len(ip))
-	copy(clone, ip)
-	return clone
-}
-
-// ipAddOffset adds a signed offset to an IP address and returns the result.
-// The operation is performed using big.Int arithmetic so that it works
-// correctly for both IPv4 and IPv6 addresses without overflow.
+//	A net.IP containing the lowest address of the block.
 //
-// Negative offsets subtract from the address. The caller must ensure the
-// result stays within the valid address range.
-func ipAddOffset(ip net.IP, offset int) net.IP {
-	b := new(big.Int).SetBytes(ip)
-	b.Add(b, big.NewInt(int64(offset)))
-	raw := b.Bytes()
-	// Pad to original length so the IP type (4 vs 16 bytes) is preserved.
-	result := make(net.IP, len(ip))
-	copy(result[len(ip)-len(raw):], raw)
-	return result
-}
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("10.0.0.0/24")
+//	fmt.Println(sub.NetworkAddress()) // "10.0.0.0"
+func (s Subnet) NetworkAddress() net.IP { return s.networkAddress }
 
-// ipToInt converts an IP address to a big.Int for arithmetic comparison.
-func ipToInt(ip net.IP) *big.Int {
-	return new(big.Int).SetBytes(ip)
-}
+// BroadcastAddress returns the broadcast address of the subnet.
+//
+// For IPv6 subnets and /31 or /32 blocks the value is still the
+// bitwise all-ones host address, even though broadcast semantics differ.
+//
+// Returns:
+//
+//	A net.IP containing the highest address of the block.
+//
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("10.0.0.0/24")
+//	fmt.Println(sub.BroadcastAddress()) // "10.0.0.255"
+func (s Subnet) BroadcastAddress() net.IP { return s.broadcastAddress }
 
-// intToIP converts a big.Int back to a net.IP of the given byte length.
-func intToIP(n *big.Int, length int) net.IP {
-	raw := n.Bytes()
-	ip := make(net.IP, length)
-	copy(ip[length-len(raw):], raw)
-	return ip
-}
+// FirstHost returns the first usable host address.
+//
+// For /31 (RFC 3021) and /32 blocks the concept of "first host" maps to
+// networkAddress and the single host address respectively.
+//
+// Returns:
+//
+//	A net.IP containing the first usable address.
+//
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("10.0.0.0/24")
+//	fmt.Println(sub.FirstHost()) // "10.0.0.1"
+func (s Subnet) FirstHost() net.IP { return s.firstHost }
+
+// LastHost returns the last usable host address.
+//
+// For /31 and /32 blocks see the note on FirstHost.
+//
+// Returns:
+//
+//	A net.IP containing the last usable address.
+//
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("10.0.0.0/24")
+//	fmt.Println(sub.LastHost()) // "10.0.0.254"
+func (s Subnet) LastHost() net.IP { return s.lastHost }
+
+// TotalHosts returns the number of usable host addresses in the subnet.
+//
+// A *big.Int is returned to handle IPv6 subnets whose host counts exceed
+// int64 range. For typical IPv4 subnets the value fits in int64.
+//
+// Special cases:
+//   - /31 returns 2 (RFC 3021 point-to-point link)
+//   - /32 returns 1
+//
+// Returns:
+//
+//	A *big.Int representing the usable host count.
+//
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("10.0.0.0/24")
+//	fmt.Println(sub.TotalHosts()) // 254
+func (s Subnet) TotalHosts() *big.Int { return new(big.Int).Set(s.totalHosts) }
+
+// Prefix returns the prefix length of the subnet (e.g. 24 for a /24).
+//
+// Returns:
+//
+//	An int containing the prefix length.
+//
+// Example:
+//
+//	sub, _ := netx.ParseCIDR("192.168.1.0/24")
+//	fmt.Println(sub.Prefix()) // 24
+func (s Subnet) Prefix() int { return s.prefix }
+
+// String returns the CIDR notation of the subnet (e.g. "10.0.0.0/24").
+//
+// Returns:
+//
+//	A string in CIDR notation.
+func (s Subnet) String() string { return s.ipNet.String() }

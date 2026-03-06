@@ -8,10 +8,6 @@ import (
 	"sort"
 )
 
-// ///////////////////////////
-// Section: Variable-Length Subnet Masking (VLSM)
-// ///////////////////////////
-
 // DivideByHosts allocates variable-length subnets from a base network to
 // satisfy a list of host-count requirements, using Variable Length Subnet
 // Masking (VLSM).

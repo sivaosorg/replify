@@ -7,10 +7,6 @@ import (
 	"net"
 )
 
-// ///////////////////////////
-// Section: Fixed-Length Subnet Masking (FLSM)
-// ///////////////////////////
-
 // Split divides a network block into equal-sized subnets, each with the given
 // prefix length.
 //

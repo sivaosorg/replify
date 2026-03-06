@@ -872,6 +872,6 @@ Sydney    192.168.10.192/26      hosts=62
 ---
 
 *This guide is part of the `netx` package documentation. For the Go API
-reference, see [README.md](./README.md). For the cross-package architecture
+reference, see [README.md](../README.md). For the cross-package architecture
 and deduplication rationale, see the Cross-Package Architecture section in
 the README.*

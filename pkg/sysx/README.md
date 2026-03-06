@@ -839,37 +839,4 @@ func findFreePort(start, end int) (int, error) {
 > **Note:** `GetPublicIP` requires outbound internet access. It will fail in
 > air-gapped environments. Always handle its error gracefully in production code.
 
-## Cross-Package Architecture
-
-### Deduplication Note
-
-`sysx` contains no duplicate utilities when measured against the broader `pkg`
-ecosystem. Two internal helpers that previously existed — `isZero` and
-`trimSpace` — were removed because:
-
-- `isZero(s)` was functionally identical to `strutil.IsEmpty(s)` from
-  `pkg/strutil`.
-- `trimSpace(s)` was a thin wrapper around the standard-library
-  `strings.TrimSpace`.
-
-Both functions were dead code (never called within `sysx`), so they were
-deleted rather than replaced with external calls. The remaining internal
-helpers serve unique purposes:
-
-| Helper | Purpose | Equivalent elsewhere |
-|--------|---------|---------------------|
-| `parseBoolString` | Parses env-var boolean strings including "on"/"off" | No exact equivalent — `pkg/conv` uses a different value set and interface |
-| `splitLines` | Splits command output into lines, strips CR | No equivalent in `pkg/strutil` |
-
-### Dependency Relationships
-
-```
-pkg/sysx        — zero imports from other pkg/* sub-packages (stdlib only)
-pkg/netx        — zero imports from other pkg/* sub-packages (stdlib only)
-pkg/conv        — imports pkg/strutil
-pkg/crontask    — imports pkg/strutil, pkg/ref
-```
-
-`sysx` and `netx` deliberately avoid intra-pkg dependencies to remain
-zero-dependency system/network libraries that compose cleanly into any
-application without pulling in unrelated packages.
+---

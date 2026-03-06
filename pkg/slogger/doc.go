@@ -24,6 +24,8 @@
 //   - sampling.go      — SamplingOptions and per-message rate limiting
 //   - logger.go        — Logger: core type, New, With, Named, log dispatch
 //   - global.go        — Package-level functions delegating to a global Logger
+//   - rotation.go      — LevelFileWriter, LevelWriterHook, RotationOptions: per-level log file rotation with ZIP archiving
+//   - type.go          — All struct/var definitions: Logger, Entry, CallerInfo, Hooks, sampler, TextFormatter, JSONFormatter, MultiWriter, Options, SamplingOptions, entryPool, global
 //
 // # Log Levels
 //

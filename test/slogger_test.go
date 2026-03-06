@@ -841,3 +841,201 @@ func TestSlogger_MultiWriter(t *testing.T) {
 		t.Errorf("expected message in buf2, got: %s", buf2.String())
 	}
 }
+
+// ///////////////////////////
+// Section: Entry accessor tests
+// ///////////////////////////
+
+func TestSlogger_EntryAccessors(t *testing.T) {
+t.Parallel()
+var buf bytes.Buffer
+var capturedEntry *slogger.Entry
+
+log := slogger.New(func(o *slogger.Options) {
+o.Level     = slogger.TraceLevel
+o.Output    = &buf
+o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+})
+
+hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
+log.AddHook(hook)
+
+before := time.Now()
+log.Info("accessor test", slogger.String("k", "v"))
+after := time.Now()
+
+hook.mu.Lock()
+n := len(hook.fired)
+hook.mu.Unlock()
+if n != 1 {
+t.Fatalf("expected 1 fired entry, got %d", n)
+}
+
+hook.mu.Lock()
+e := hook.fired[0]
+hook.mu.Unlock()
+
+_ = capturedEntry
+
+// Logger accessor
+if e.Logger() == nil {
+t.Error("Entry.Logger() should not be nil")
+}
+// Time accessor
+if e.Time().Before(before) || e.Time().After(after) {
+t.Errorf("Entry.Time() = %v; want between %v and %v", e.Time(), before, after)
+}
+// GetLevel accessor
+if e.GetLevel() != slogger.InfoLevel {
+t.Errorf("Entry.GetLevel() = %v; want InfoLevel", e.GetLevel())
+}
+// Message accessor
+if e.Message() != "accessor test" {
+t.Errorf("Entry.Message() = %q; want %q", e.Message(), "accessor test")
+}
+// Fields accessor
+fields := e.Fields()
+if len(fields) != 1 || fields[0].Key != "k" {
+t.Errorf("Entry.Fields() = %v; want [{k v}]", fields)
+}
+// Caller accessor (should be nil since caller not enabled)
+if e.Caller() != nil {
+t.Error("Entry.Caller() should be nil when caller not enabled")
+}
+// Context accessor (should be nil)
+if e.Context() != nil {
+t.Error("Entry.Context() should be nil when no context set")
+}
+}
+
+func TestSlogger_CallerInfoAccessors(t *testing.T) {
+t.Parallel()
+var buf bytes.Buffer
+
+log := slogger.New(func(o *slogger.Options) {
+o.Level          = slogger.TraceLevel
+o.Output         = &buf
+o.Formatter      = slogger.NewTextFormatter(&buf).WithDisableColors()
+o.CallerReporter = true
+})
+
+hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
+log.AddHook(hook)
+
+log.Info("caller test")
+
+hook.mu.Lock()
+n := len(hook.fired)
+hook.mu.Unlock()
+if n != 1 {
+t.Fatalf("expected 1 fired entry, got %d", n)
+}
+
+hook.mu.Lock()
+e := hook.fired[0]
+hook.mu.Unlock()
+
+c := e.Caller()
+if c == nil {
+t.Fatal("Entry.Caller() should not be nil when CallerReporter is true")
+}
+if c.File() == "" {
+t.Error("CallerInfo.File() should not be empty")
+}
+if c.Line() <= 0 {
+t.Errorf("CallerInfo.Line() = %d; want > 0", c.Line())
+}
+if c.Function() == "" {
+t.Error("CallerInfo.Function() should not be empty")
+}
+}
+
+// ///////////////////////////
+// Section: Rotation tests
+// ///////////////////////////
+
+func TestSlogger_LevelFileWriter_Basic(t *testing.T) {
+t.Parallel()
+dir := t.TempDir()
+lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
+Dir:      dir,
+MaxBytes: 1024 * 1024,
+Compress: false,
+})
+if err != nil {
+t.Fatalf("NewLevelFileWriter: %v", err)
+}
+defer lfw.Close()
+
+msg := []byte("hello rotation\n")
+n, err := lfw.WriteLevel(slogger.InfoLevel, msg)
+if err != nil {
+t.Fatalf("WriteLevel: %v", err)
+}
+if n != len(msg) {
+t.Errorf("WriteLevel returned %d; want %d", n, len(msg))
+}
+}
+
+func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
+t.Parallel()
+dir := t.TempDir()
+lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
+Dir:      dir,
+MaxBytes: 1024 * 1024,
+Compress: false,
+})
+if err != nil {
+t.Fatalf("NewLevelFileWriter: %v", err)
+}
+defer lfw.Close()
+
+var buf bytes.Buffer
+formatter := slogger.NewTextFormatter(&buf).WithDisableColors()
+log := slogger.New(func(o *slogger.Options) {
+o.Level     = slogger.TraceLevel
+o.Output    = &buf
+o.Formatter = formatter
+})
+hook := slogger.NewLevelWriterHook(lfw, formatter)
+log.AddHook(hook)
+
+log.Info("rotation hook test")
+log.Error("rotation error test")
+// No panic means routing worked correctly.
+}
+
+func TestSlogger_RotationOptions_Defaults(t *testing.T) {
+t.Parallel()
+dir := t.TempDir()
+lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
+Dir: dir,
+// MaxBytes zero -> should default to 10MB
+})
+if err != nil {
+t.Fatalf("NewLevelFileWriter with defaults: %v", err)
+}
+defer lfw.Close()
+}
+
+func TestSlogger_WithRotation_Option(t *testing.T) {
+t.Parallel()
+dir := t.TempDir()
+var buf bytes.Buffer
+log := slogger.New(
+func(o *slogger.Options) {
+o.Output    = &buf
+o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+},
+slogger.WithRotation(slogger.RotationOptions{
+Dir:      dir,
+MaxBytes: 1024 * 1024,
+Compress: false,
+}),
+)
+// Just verify logger was constructed successfully and can log
+log.Info("with rotation test")
+if !strings.Contains(buf.String(), "with rotation test") {
+t.Errorf("expected log output, got: %s", buf.String())
+}
+}

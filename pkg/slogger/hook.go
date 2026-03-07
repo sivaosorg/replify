@@ -1,14 +1,5 @@
 package slogger
 
-// Hook fires side-effects (e.g. alerting, metrics) for matching log levels.
-// Implementations must be safe for concurrent use.
-type Hook interface {
-// Levels returns the set of log levels this hook handles.
-Levels() []Level
-// Fire is called for each matching entry; it must not retain the entry.
-Fire(*Entry) error
-}
-
 // NewHooks returns an empty Hooks registry.
 //
 // Returns:

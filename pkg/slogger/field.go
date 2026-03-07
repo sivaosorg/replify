@@ -6,43 +6,6 @@ import (
 	"time"
 )
 
-// FieldType enumerates the concrete value types that a Field may carry.
-type FieldType int
-
-const (
-	// StringType holds a string value.
-	StringType FieldType = iota
-	// Int64Type holds an int64 value.
-	Int64Type
-	// Float64Type holds a float64 value.
-	Float64Type
-	// BoolType holds a bool value.
-	BoolType
-	// ErrorType holds an error value.
-	ErrorType
-	// TimeType holds a time.Time value.
-	TimeType
-	// DurationType holds a time.Duration value.
-	DurationType
-	// AnyType holds an arbitrary interface{} value.
-	AnyType
-)
-
-// Field is a typed key-value pair attached to a log entry.
-// All value variants are stored inline to minimise heap allocations.
-type Field struct {
-	Key      string
-	Type     FieldType
-	strVal   string
-	intVal   int64
-	floatVal float64
-	boolVal  bool
-	errVal   error
-	timeVal  time.Time
-	durVal   time.Duration
-	anyVal   interface{}
-}
-
 // String constructs a Field carrying a string value.
 //
 // Parameters:

@@ -5,26 +5,6 @@ import (
 	"strings"
 )
 
-// Level represents the severity of a log message.
-type Level int32
-
-const (
-	// TraceLevel is the most verbose level; for fine-grained diagnostic output.
-	TraceLevel Level = iota
-	// DebugLevel is for debugging information during development.
-	DebugLevel
-	// InfoLevel is for general operational messages.
-	InfoLevel
-	// WarnLevel is for potentially harmful situations.
-	WarnLevel
-	// ErrorLevel is for error events that might still allow the application to continue.
-	ErrorLevel
-	// FatalLevel logs the message and then calls os.Exit(1).
-	FatalLevel
-	// PanicLevel logs the message and then panics.
-	PanicLevel
-)
-
 // String returns the uppercase name of the level.
 //
 // Returns:

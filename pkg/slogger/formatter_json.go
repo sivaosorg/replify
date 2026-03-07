@@ -1,9 +1,8 @@
 package slogger
 
 import (
-"encoding/json"
-"strings"
-"time"
+	"strings"
+	"time"
 )
 
 // NewJSONFormatter returns a JSONFormatter with sensible production defaults.
@@ -116,82 +115,4 @@ writeJSONString(&b, c.File()+":"+itoa(c.Line()))
 b.WriteByte('}')
 b.WriteByte('\n')
 return []byte(b.String()), nil
-}
-
-// writeJSONKey writes a JSON-encoded object key to b.
-func writeJSONKey(b *strings.Builder, key string) {
-writeJSONString(b, key)
-}
-
-// writeJSONString writes a JSON-encoded string value to b using encoding/json.
-func writeJSONString(b *strings.Builder, s string) {
-enc, _ := json.Marshal(s)
-b.Write(enc)
-}
-
-// writeJSONValue writes the JSON encoding of a field's value to b.
-func writeJSONValue(b *strings.Builder, f *Field) {
-switch f.Type {
-case StringType:
-writeJSONString(b, f.strVal)
-case Int64Type:
-b.WriteString(itoa64(f.intVal))
-case Float64Type:
-enc, _ := json.Marshal(f.floatVal)
-b.Write(enc)
-case BoolType:
-if f.boolVal {
-b.WriteString("true")
-} else {
-b.WriteString("false")
-}
-case ErrorType:
-if f.errVal == nil {
-b.WriteString("null")
-} else {
-writeJSONString(b, f.errVal.Error())
-}
-case TimeType:
-writeJSONString(b, f.timeVal.Format(time.RFC3339))
-case DurationType:
-writeJSONString(b, f.durVal.String())
-case AnyType:
-enc, err := json.Marshal(f.anyVal)
-if err != nil {
-writeJSONString(b, f.Value())
-} else {
-b.Write(enc)
-}
-default:
-writeJSONString(b, f.Value())
-}
-}
-
-// itoa converts an int to its decimal string representation without importing strconv.
-func itoa(n int) string {
-return itoa64(int64(n))
-}
-
-// itoa64 converts an int64 to its decimal string representation.
-func itoa64(n int64) string {
-if n == 0 {
-return "0"
-}
-neg := false
-if n < 0 {
-neg = true
-n = -n
-}
-var buf [20]byte
-pos := len(buf)
-for n > 0 {
-pos--
-buf[pos] = byte('0' + n%10)
-n /= 10
-}
-if neg {
-pos--
-buf[pos] = '-'
-}
-return string(buf[pos:])
 }

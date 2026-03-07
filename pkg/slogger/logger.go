@@ -314,22 +314,3 @@ function: frame.Function,
 }
 }
 
-// trimFile shortens an absolute file path to just the last two path segments.
-func trimFile(path string) string {
-const sep = '/'
-slash := -1
-count := 0
-for i := len(path) - 1; i >= 0; i-- {
-if path[i] == sep {
-count++
-if count == 2 {
-slash = i
-break
-}
-}
-}
-if slash >= 0 {
-return path[slash+1:]
-}
-return path
-}

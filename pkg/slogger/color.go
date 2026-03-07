@@ -34,29 +34,3 @@ func IsTTY(w io.Writer) bool {
 	}
 	return (info.Mode() & os.ModeCharDevice) != 0
 }
-
-// levelColor returns the ANSI escape sequence associated with level l.
-//
-// Parameters:
-//   - `l`: the log level
-//
-// Returns:
-//
-// an ANSI colour code string; Trace=cyan, Debug=blue, Info=green,
-// Warn=yellow, Error/Fatal/Panic=red+bold.
-func levelColor(l Level) string {
-	switch l {
-	case TraceLevel:
-		return colorCyan
-	case DebugLevel:
-		return colorBlue
-	case InfoLevel:
-		return colorGreen
-	case WarnLevel:
-		return colorYellow
-	case ErrorLevel, FatalLevel, PanicLevel:
-		return colorRed
-	default:
-		return colorReset
-	}
-}

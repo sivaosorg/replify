@@ -1,10 +1,10 @@
 package slogger
 
 import (
-"io"
-"strconv"
-"strings"
-"time"
+	"io"
+	"strconv"
+	"strings"
+	"time"
 )
 
 // NewTextFormatter returns a TextFormatter that writes to output.
@@ -107,23 +107,4 @@ b.WriteString(strconv.Itoa(c.Line()))
 
 b.WriteByte('\n')
 return []byte(b.String()), nil
-}
-
-// levelPad returns the level string padded to 5 characters.
-func levelPad(l Level) string {
-s := l.String()
-for len(s) < 5 {
-s += " "
-}
-return s
-}
-
-// needsQuoting reports whether a value string should be quoted in text output.
-func needsQuoting(s string) bool {
-for _, c := range s {
-if c == ' ' || c == '=' || c == '"' || c == '\\' {
-return true
-}
-}
-return false
 }

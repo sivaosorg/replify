@@ -2,18 +2,6 @@ package slogger
 
 import "time"
 
-// newSampler creates a sampler with the given options.
-//
-// Parameters:
-//   - `opts`: the sampling configuration
-//
-// Returns:
-//
-// a ready-to-use *sampler.
-func newSampler(opts SamplingOptions) *sampler {
-return &sampler{opts: opts}
-}
-
 // allow reports whether this invocation of msg should be logged.
 //
 // Parameters:

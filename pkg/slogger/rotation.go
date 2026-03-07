@@ -12,6 +12,15 @@ import (
 
 // NewLevelWriterHook creates a LevelWriterHook that writes to lfw using formatter.
 // If levels is empty, all levels are enabled.
+//
+// Parameters:
+//   - `lfw`: the LevelFileWriter that handles per-level file output
+//   - `formatter`: the Formatter used to serialise each Entry before writing
+//   - `levels`: the log levels this hook responds to; if empty all levels fire
+//
+// Returns:
+//
+// a *LevelWriterHook registered for the given levels.
 func NewLevelWriterHook(lfw *LevelFileWriter, formatter Formatter, levels ...Level) *LevelWriterHook {
 if len(levels) == 0 {
 levels = []Level{TraceLevel, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, FatalLevel, PanicLevel}
@@ -23,10 +32,22 @@ levels:    levels,
 }
 }
 
-// Levels implements Hook.
+// Levels implements Hook by returning the set of log levels this hook handles.
+//
+// Returns:
+//
+// the slice of Level values for which this hook's Fire method will be called.
 func (h *LevelWriterHook) Levels() []Level { return h.levels }
 
-// Fire implements Hook.
+// Fire implements Hook by serialising the entry with the configured Formatter
+// and writing the result to the appropriate level-specific file.
+//
+// Parameters:
+//   - `e`: the log entry to write
+//
+// Returns:
+//
+// an error if formatting or writing fails; nil on success.
 func (h *LevelWriterHook) Fire(e *Entry) error {
 data, err := h.formatter.Format(e)
 if err != nil {
@@ -40,13 +61,21 @@ return nil
 }
 
 // NewLevelFileWriter creates a LevelFileWriter with the given options.
-// The logs directory and per-level files are created automatically.
+// The logs directory and per-level files are created automatically if they
+// do not already exist.
+//
+// Parameters:
+//   - `opts`: rotation configuration including directory, size limits, and compression
+//
+// Returns:
+//
+// a ready-to-use *LevelFileWriter and any initialisation error.
 func NewLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
 if opts.Dir == "" {
-opts.Dir = "logs"
+opts.Dir = defaultLogDir
 }
 if opts.MaxBytes <= 0 {
-opts.MaxBytes = 10 * 1024 * 1024 // 10 MB
+opts.MaxBytes = defaultMaxBytes
 }
 
 if !sysx.DirExists(opts.Dir) {
@@ -74,6 +103,16 @@ return w, nil
 }
 
 // WriteLevel routes p to the file for the given level.
+// If no exact file exists for level, the nearest coarser-grained file is used
+// (Trace → Debug, Fatal/Panic → Error).
+//
+// Parameters:
+//   - `level`: the severity level determining which file receives p
+//   - `p`: the bytes to write
+//
+// Returns:
+//
+// the number of bytes written and any write error.
 func (lfw *LevelFileWriter) WriteLevel(level Level, p []byte) (int, error) {
 lfw.mu.Lock()
 rf, ok := lfw.writers[level]
@@ -96,12 +135,26 @@ return 0, nil
 return rf.write(p)
 }
 
-// Write implements io.Writer by routing to the InfoLevel file.
+// Write implements io.Writer by routing p to the InfoLevel file.
+// This satisfies io.Writer so that a LevelFileWriter can be used as a generic
+// writer destination.
+//
+// Parameters:
+//   - `p`: the bytes to write
+//
+// Returns:
+//
+// the number of bytes written and any write error.
 func (lfw *LevelFileWriter) Write(p []byte) (int, error) {
 return lfw.WriteLevel(InfoLevel, p)
 }
 
-// Close closes all open file handles.
+// Close closes all open file handles managed by this writer.
+// After Close, the LevelFileWriter must not be used.
+//
+// Returns:
+//
+// the first error encountered while closing files, or nil if all succeed.
 func (lfw *LevelFileWriter) Close() error {
 lfw.mu.Lock()
 defer lfw.mu.Unlock()
@@ -114,7 +167,12 @@ first = err
 return first
 }
 
-// Rotate forces rotation of all level files.
+// Rotate forces immediate rotation of all level files, regardless of their
+// current size or age. Useful for external rotation signals (e.g. SIGHUP).
+//
+// Returns:
+//
+// the first rotation error encountered, or nil if all files rotated successfully.
 func (lfw *LevelFileWriter) Rotate() error {
 lfw.mu.Lock()
 defer lfw.mu.Unlock()
@@ -177,14 +235,14 @@ rf.file = nil
 }
 
 now := time.Now()
-dateDir := filepath.Join(rf.dir, "archived", now.Format("2006-01-02"))
+dateDir := filepath.Join(rf.dir, defaultArchivedDir, now.Format(archiveDateFormat))
 if !sysx.DirExists(dateDir) {
 if err := os.MkdirAll(dateDir, 0755); err != nil {
 return fmt.Errorf("slogger: cannot create archive dir %q: %w", dateDir, err)
 }
 }
 
-stamp := now.Format("20060102150405")
+stamp := now.Format(archiveStampFormat)
 levelName := strings.ToLower(rf.level.String())
 
 if rf.compress {

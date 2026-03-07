@@ -1,8 +1,7 @@
 package slogger
 
 import (
-	"strings"
-	"time"
+"strings"
 )
 
 // NewJSONFormatter returns a JSONFormatter with sensible production defaults.
@@ -12,52 +11,99 @@ import (
 // a *JSONFormatter with keys ts, level, msg, caller, and name.
 func NewJSONFormatter() *JSONFormatter {
 return &JSONFormatter{
-timeFormat: time.RFC3339,
-timeKey:    "ts",
-levelKey:   "level",
-messageKey: "msg",
-callerKey:  "caller",
-nameKey:    "name",
+timeFormat: defaultTimeFormat,
+timeKey:    defaultJSONTimeKey,
+levelKey:   defaultJSONLevelKey,
+messageKey: defaultJSONMessageKey,
+callerKey:  defaultJSONCallerKey,
+nameKey:    defaultJSONNameKey,
 }
 }
 
-// WithTimeFormat overrides the timestamp layout.
+// WithTimeFormat overrides the timestamp layout used in JSON output.
+//
+// Parameters:
+//   - `fmt`: the Go time layout string (e.g. time.RFC3339Nano)
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithTimeFormat(fmt string) *JSONFormatter {
 f.timeFormat = fmt
 return f
 }
 
-// WithEnableCaller includes caller information in the JSON output.
+// WithEnableCaller includes the caller source location (file:line) in the
+// JSON output under the callerKey field.
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithEnableCaller() *JSONFormatter {
 f.enableCaller = true
 return f
 }
 
 // WithTimeKey sets the JSON key for the timestamp field.
+//
+// Parameters:
+//   - `key`: the desired JSON key name
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithTimeKey(key string) *JSONFormatter {
 f.timeKey = key
 return f
 }
 
 // WithLevelKey sets the JSON key for the level field.
+//
+// Parameters:
+//   - `key`: the desired JSON key name
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithLevelKey(key string) *JSONFormatter {
 f.levelKey = key
 return f
 }
 
 // WithMessageKey sets the JSON key for the message field.
+//
+// Parameters:
+//   - `key`: the desired JSON key name
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithMessageKey(key string) *JSONFormatter {
 f.messageKey = key
 return f
 }
 
 // WithCallerKey sets the JSON key for the caller field.
+//
+// Parameters:
+//   - `key`: the desired JSON key name
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithCallerKey(key string) *JSONFormatter {
 f.callerKey = key
 return f
 }
 
 // WithNameKey sets the JSON key for the logger name field.
+//
+// Parameters:
+//   - `key`: the desired JSON key name
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *JSONFormatter) WithNameKey(key string) *JSONFormatter {
 f.nameKey = key
 return f

@@ -1,10 +1,9 @@
 package slogger
 
 import (
-	"io"
-	"strconv"
-	"strings"
-	"time"
+"io"
+"strconv"
+"strings"
 )
 
 // NewTextFormatter returns a TextFormatter that writes to output.
@@ -18,30 +17,54 @@ import (
 // a terminal.
 func NewTextFormatter(output io.Writer) *TextFormatter {
 return &TextFormatter{
-timeFormat: time.RFC3339,
+timeFormat: defaultTimeFormat,
 output:     output,
 }
 }
 
 // WithTimeFormat sets the time layout string used when formatting timestamps.
+//
+// Parameters:
+//   - `fmt`: the Go time layout string (e.g. time.RFC3339Nano)
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *TextFormatter) WithTimeFormat(fmt string) *TextFormatter {
 f.timeFormat = fmt
 return f
 }
 
 // WithDisableColors disables ANSI colour codes in the output.
+// Useful when writing to files, pipes, or CI environments that do not
+// interpret escape sequences.
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *TextFormatter) WithDisableColors() *TextFormatter {
 f.disableColors = true
 return f
 }
 
 // WithDisableTimestamp omits the timestamp from formatted output.
+// Useful when the surrounding infrastructure (systemd, Docker) adds its own
+// timestamps.
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *TextFormatter) WithDisableTimestamp() *TextFormatter {
 f.disableTimestamp = true
 return f
 }
 
-// WithEnableCaller appends caller information to formatted output.
+// WithEnableCaller appends the source file and line number (caller=file:line)
+// to formatted output, aiding in debugging.
+//
+// Returns:
+//
+// the receiver, for method chaining.
 func (f *TextFormatter) WithEnableCaller() *TextFormatter {
 f.enableCaller = true
 return f

@@ -9,23 +9,30 @@
 //
 // The package is split across focused files:
 //
-//   - level.go         — Level type, ParseLevel, IsEnabled
-//   - field.go         — Field type and typed constructor functions
-//   - entry.go         — Entry, CallerInfo, and entry-level logging methods
-//   - internal_pool.go — sync.Pool management for Entry objects
-//   - formatter.go     — Formatter interface
+//   - constant.go      — All package constants: levels, field types, ANSI codes,
+//     default directories, file names, timestamp formats, JSON keys, sizes
+//   - type.go          — All type definitions: Logger, Entry, CallerInfo, Field,
+//     Formatter, Hook, Hooks, Options, SamplingOptions, TextFormatter,
+//     JSONFormatter, MultiWriter, RotationOptions, LevelFileWriter,
+//     LevelWriterHook, sampler, rotatingFile, contextKey, entryPool, global
+//   - utilities.go     — All unexported helper functions: entry pool management,
+//     trimFile, defaultOptions, newSampler, rotation helpers, color helpers,
+//     text/JSON formatter helpers, integer formatting
+//   - level.go         — Level type methods: String, ParseLevel, IsEnabled
+//   - field.go         — Field constructor functions: String, Int, Int64, …
+//   - entry.go         — Entry and CallerInfo methods and accessor functions
+//   - formatter.go     — Package-level doc placeholder for formatter subsystem
 //   - formatter_text.go — TextFormatter: human-readable key=value output
 //   - formatter_json.go — JSONFormatter: single-line JSON output
-//   - hook.go          — Hook interface and Hooks registry
+//   - hook.go          — Hook interface implementation: NewHooks, Add, Fire, Len
 //   - writer.go        — MultiWriter and Stdout/Stderr helpers
-//   - color.go         — ANSI colour helpers and IsTTY
-//   - options.go       — Options struct and defaultOptions
+//   - color.go         — IsTTY terminal detection
+//   - options.go       — WithRotation functional option
 //   - context.go       — WithContextFields / FieldsFromContext
-//   - sampling.go      — SamplingOptions and per-message rate limiting
-//   - logger.go        — Logger: core type, New, With, Named, log dispatch
+//   - sampling.go      — Per-message rate limiting: sampler.allow
+//   - logger.go        — Logger: New, With, Named, SetLevel, log dispatch
 //   - global.go        — Package-level functions delegating to a global Logger
-//   - rotation.go      — LevelFileWriter, LevelWriterHook, RotationOptions: per-level log file rotation with ZIP archiving
-//   - type.go          — All struct/var definitions: Logger, Entry, CallerInfo, Hooks, sampler, TextFormatter, JSONFormatter, MultiWriter, Options, SamplingOptions, entryPool, global
+//   - rotation.go      — LevelFileWriter, LevelWriterHook with ZIP archiving
 //
 // # Log Levels
 //
@@ -41,11 +48,11 @@
 //
 // Use New with optional functional options:
 //
-//	log := slogger.New(func(o *slogger.Options) {
-//	    o.Level     = slogger.DebugLevel
-//	    o.Formatter = slogger.NewJSONFormatter()
-//	    o.Output    = os.Stdout
-//	})
+//log := slogger.New(func(o *slogger.Options) {
+//    o.Level     = slogger.DebugLevel
+//    o.Formatter = slogger.NewJSONFormatter()
+//    o.Output    = os.Stdout
+//})
 //
 // # Structured Fields
 //
@@ -73,70 +80,70 @@
 //
 // Attach persistent fields with With:
 //
-//	req := log.With(slogger.String("request_id", rid))
-//	req.Info("handler called")
+//req := log.With(slogger.String("request_id", rid))
+//req.Info("handler called")
 //
 // Scope loggers with Named (dot-separated):
 //
-//	db := log.Named("db")       // name = "db"
-//	rw := db.Named("reader")   // name = "db.reader"
+//db := log.Named("db")       // name = "db"
+//rw := db.Named("reader")   // name = "db.reader"
 //
 // # Context-Aware Logging
 //
 // Store fields in a context and retrieve them at log time:
 //
-//	ctx := slogger.WithContextFields(ctx, slogger.String("trace_id", tid))
-//	log.WithContext(ctx).Info("processing request")
+//ctx := slogger.WithContextFields(ctx, slogger.String("trace_id", tid))
+//log.WithContext(ctx).Info("processing request")
 //
 // # Formatters
 //
 // TextFormatter (default) — human-readable:
 //
-//	f := slogger.NewTextFormatter(os.Stderr).
-//	    WithTimeFormat(time.RFC3339).
-//	    WithEnableCaller()
+//f := slogger.NewTextFormatter(os.Stderr).
+//    WithTimeFormat(time.RFC3339).
+//    WithEnableCaller()
 //
 // JSONFormatter — machine-parseable:
 //
-//	f := slogger.NewJSONFormatter().
-//	    WithTimeKey("timestamp").
-//	    WithEnableCaller()
+//f := slogger.NewJSONFormatter().
+//    WithTimeKey("timestamp").
+//    WithEnableCaller()
 //
 // # Hooks
 //
 // Hooks fire on matching levels; useful for alerting or metrics:
 //
-//	type alertHook struct{}
-//	func (h *alertHook) Levels() []slogger.Level { return []slogger.Level{slogger.ErrorLevel} }
-//	func (h *alertHook) Fire(e *slogger.Entry) error { /* send alert */ return nil }
+//type alertHook struct{}
+//func (h *alertHook) Levels() []slogger.Level { return []slogger.Level{slogger.ErrorLevel} }
+//func (h *alertHook) Fire(e *slogger.Entry) error { /* send alert */ return nil }
 //
-//	log.AddHook(&alertHook{})
+//log.AddHook(&alertHook{})
 //
 // # Sampling
 //
 // Prevent log storms by rate-limiting identical messages:
 //
-//	log := slogger.New(func(o *slogger.Options) {
-//	    o.SamplingOpts = &slogger.SamplingOptions{
-//	        First:      10,
-//	        Period:     time.Second,
-//	        Thereafter: 100,
-//	    }
-//	})
+//log := slogger.New(func(o *slogger.Options) {
+//    o.SamplingOpts = &slogger.SamplingOptions{
+//        First:      10,
+//        Period:     time.Second,
+//        Thereafter: 100,
+//    }
+//})
 //
 // # Global Logger
 //
 // A package-level logger is provided for convenience:
 //
-//	slogger.SetGlobalLogger(log)
-//	slogger.Info("application ready")
-//	slogger.Errorf("unexpected status: %d", code)
+//slogger.SetGlobalLogger(log)
+//slogger.Info("application ready")
+//slogger.Errorf("unexpected status: %d", code)
 //
 // # MultiWriter
 //
 // Fan output to multiple destinations:
 //
-//	w := slogger.NewMultiWriter(os.Stdout, logFile)
+//w := slogger.NewMultiWriter(os.Stdout, logFile)
 //
 // All methods on Logger are safe for concurrent use.
 package slogger

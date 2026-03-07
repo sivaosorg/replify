@@ -40,7 +40,7 @@ func New(opts ...func(*Options)) *Logger {
 		l.sampling = newSampler(*o.SamplingOpts)
 	}
 	if o.RotationOpts != nil {
-		lfw, err := NewLevelFileWriter(*o.RotationOpts)
+		lfw, err := newLevelFileWriter(*o.RotationOpts)
 		if err != nil {
 			// Rotation setup failed; write diagnostic to stderr and continue
 			// without rotation so the logger remains usable.

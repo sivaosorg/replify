@@ -4,21 +4,6 @@ import (
 "io"
 "os"
 )
-
-// NewMultiWriter returns a MultiWriter that writes to all provided writers.
-//
-// Parameters:
-//   - `writers`: one or more destination writers
-//
-// Returns:
-//
-// a *MultiWriter targeting every supplied writer.
-func NewMultiWriter(writers ...io.Writer) *MultiWriter {
-dst := make([]io.Writer, len(writers))
-copy(dst, writers)
-return &MultiWriter{writers: dst}
-}
-
 // Write writes p to every registered writer.
 // All writers are attempted even when an earlier write fails.
 //

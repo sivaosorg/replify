@@ -8,49 +8,6 @@ import (
 "runtime"
 "time"
 )
-
-// New creates a Logger using the provided functional options.
-// Unset options fall back to production-safe defaults (InfoLevel, TextFormatter,
-// os.Stderr output).
-//
-// Parameters:
-//   - `opts`: zero or more functions that mutate an *Options before the logger
-//     is built
-//
-// Returns:
-//
-// a ready-to-use *Logger.
-func New(opts ...func(*Options)) *Logger {
-o := defaultOptions()
-for _, fn := range opts {
-fn(o)
-}
-l := &Logger{
-formatter:  o.Formatter,
-output:     o.Output,
-hooks:      NewHooks(),
-fields:     append([]Field(nil), o.Fields...),
-name:       o.Name,
-caller:     o.CallerReporter,
-callerSkip: o.CallerSkip,
-}
-l.level.Store(int32(o.Level))
-if o.SamplingOpts != nil {
-l.sampling = newSampler(*o.SamplingOpts)
-}
-if o.RotationOpts != nil {
-	lfw, err := NewLevelFileWriter(*o.RotationOpts)
-	if err != nil {
-		// Rotation setup failed; write diagnostic to stderr and continue
-		// without rotation so the logger remains usable.
-		_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
-	} else {
-		l.hooks.Add(NewLevelWriterHook(lfw, o.Formatter))
-	}
-}
-return l
-}
-
 // With returns a child Logger that inherits all settings and prepends the
 // provided fields to every subsequent log entry.
 //
@@ -314,3 +271,129 @@ function: frame.Function,
 }
 }
 
+
+// ///////////////////////////////////////////////////////////////////////////
+// Fluent builder methods — With** pattern
+// ///////////////////////////////////////////////////////////////////////////
+
+// WithLevel sets the minimum log level and returns the logger for chaining.
+// The update is atomic and safe to call concurrently.
+// This is the fluent equivalent of SetLevel for use in builder-style
+// logger configuration.
+//
+// Parameters:
+//   - `level`: the new minimum severity level
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithLevel(level Level) *Logger {
+l.level.Store(int32(level))
+return l
+}
+
+// WithFormatter replaces the entry formatter and returns the logger for chaining.
+// The update is lock-protected and safe to call concurrently.
+//
+// Parameters:
+//   - `f`: the new Formatter to use for serialising log entries
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithFormatter(f Formatter) *Logger {
+l.mu.Lock()
+l.formatter = f
+l.mu.Unlock()
+return l
+}
+
+// WithOutput replaces the primary output writer and returns the logger for
+// chaining. The update is lock-protected and safe to call concurrently.
+//
+// Parameters:
+//   - `w`: the new destination writer
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithOutput(w io.Writer) *Logger {
+l.mu.Lock()
+l.output = w
+l.mu.Unlock()
+return l
+}
+
+// WithCaller enables or disables automatic source-location capture and returns
+// the logger for chaining.
+//
+// Parameters:
+//   - `enabled`: true to capture file/line/function on every log call
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithCaller(enabled bool) *Logger {
+l.mu.Lock()
+l.caller = enabled
+l.mu.Unlock()
+return l
+}
+
+// WithCallerSkip sets the number of additional stack frames to skip when
+// capturing caller information and returns the logger for chaining.
+// Useful when wrapping slogger inside a library adapter.
+//
+// Parameters:
+//   - `skip`: the number of additional frames to skip beyond the default
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithCallerSkip(skip int) *Logger {
+l.mu.Lock()
+l.callerSkip = skip
+l.mu.Unlock()
+return l
+}
+
+// WithSampling enables per-message rate limiting on the logger and returns it
+// for chaining. Sampling prevents log storms by allowing only the first opts.First
+// identical messages per opts.Period, then every opts.Thereafter-th message.
+//
+// Parameters:
+//   - `opts`: the SamplingOptions that define the rate-limiting behaviour
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithSampling(opts SamplingOptions) *Logger {
+l.mu.Lock()
+l.sampling = newSampler(opts)
+l.mu.Unlock()
+return l
+}
+
+// WithRotation enables per-level file rotation on the logger and returns it for
+// chaining. It creates a LevelFileWriter from opts and registers a
+// LevelWriterHook on the logger. If initialisation fails, a diagnostic message
+// is written to stderr and the logger continues without rotation.
+//
+// Parameters:
+//   - `opts`: the RotationOptions that configure directory, size limits, and compression
+//
+// Returns:
+//
+// the receiver *Logger, enabling method chaining.
+func (l *Logger) WithRotation(opts RotationOptions) *Logger {
+lfw, err := newLevelFileWriter(opts)
+if err != nil {
+_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
+return l
+}
+l.mu.RLock()
+formatter := l.formatter
+l.mu.RUnlock()
+l.hooks.Add(NewLevelWriterHook(lfw, formatter))
+return l
+}

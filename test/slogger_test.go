@@ -125,8 +125,8 @@ func TestSlogger_FieldConstructors(t *testing.T) {
 	t.Run("String", func(t *testing.T) {
 		t.Parallel()
 		f := slogger.String("k", "hello world")
-		if f.Key != "k" {
-			t.Errorf("Key = %q; want %q", f.Key, "k")
+		if f.Key() != "k" {
+			t.Errorf("Key = %q; want %q", f.Key(), "k")
 		}
 		if f.Value() != "hello world" {
 			t.Errorf("Value() = %q; want %q", f.Value(), "hello world")
@@ -176,8 +176,8 @@ func TestSlogger_FieldConstructors(t *testing.T) {
 	t.Run("Err_non_nil", func(t *testing.T) {
 		t.Parallel()
 		f := slogger.Err(errors.New("boom"))
-		if f.Key != "error" {
-			t.Errorf("Err key = %q; want %q", f.Key, "error")
+		if f.Key() != "error" {
+			t.Errorf("Err key = %q; want %q", f.Key(), "error")
 		}
 		if f.Value() != "boom" {
 			t.Errorf("Err.Value() = %q; want %q", f.Value(), "boom")
@@ -580,8 +580,8 @@ func TestSlogger_Context(t *testing.T) {
 	if len(fields) != 2 {
 		t.Fatalf("expected 2 fields, got %d", len(fields))
 	}
-	if fields[0].Key != "trace_id" {
-		t.Errorf("fields[0].Key = %q; want trace_id", fields[0].Key)
+	if fields[0].Key() != "trace_id" {
+		t.Errorf("fields[0].Key() = %q; want trace_id", fields[0].Key())
 	}
 
 	// Append more fields preserving existing
@@ -893,7 +893,7 @@ t.Errorf("Entry.Message() = %q; want %q", e.Message(), "accessor test")
 }
 // Fields accessor
 fields := e.Fields()
-if len(fields) != 1 || fields[0].Key != "k" {
+if len(fields) != 1 || fields[0].Key() != "k" {
 t.Errorf("Entry.Fields() = %v; want [{k v}]", fields)
 }
 // Caller accessor (should be nil since caller not enabled)

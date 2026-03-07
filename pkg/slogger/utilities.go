@@ -227,13 +227,18 @@ b.Write(enc)
 
 // writeJSONValue writes the JSON encoding of a field's value to b.
 func writeJSONValue(b *strings.Builder, f *Field) {
-switch f.Type {
-case StringType:
+switch f.typ {
+case StringType, JSONType:
 writeJSONString(b, f.strVal)
-case Int64Type:
+case Int64Type, Int8Type, Int16Type, Int32Type:
 b.WriteString(itoa64(f.intVal))
+case UintType, Uint8Type, Uint16Type, Uint32Type, Uint64Type:
+b.WriteString(utoa64(f.uint64Val))
 case Float64Type:
 enc, _ := json.Marshal(f.floatVal)
+b.Write(enc)
+case Float32Type:
+enc, _ := json.Marshal(float32(f.floatVal))
 b.Write(enc)
 case BoolType:
 if f.boolVal {
@@ -249,6 +254,12 @@ writeJSONString(b, f.errVal.Error())
 }
 case TimeType:
 writeJSONString(b, f.timeVal.Format(time.RFC3339))
+case TimefType:
+layout := f.strVal
+if layout == "" {
+layout = time.RFC3339
+}
+writeJSONString(b, f.timeVal.Format(layout))
 case DurationType:
 writeJSONString(b, f.durVal.String())
 case AnyType:
@@ -266,6 +277,21 @@ writeJSONString(b, f.Value())
 // itoa converts an int to its decimal string representation.
 func itoa(n int) string {
 return itoa64(int64(n))
+}
+
+// utoa64 converts a uint64 to its decimal string representation.
+func utoa64(n uint64) string {
+if n == 0 {
+return "0"
+}
+var buf [20]byte
+pos := len(buf)
+for n > 0 {
+pos--
+buf[pos] = byte('0' + n%10)
+n /= 10
+}
+return string(buf[pos:])
 }
 
 // itoa64 converts an int64 to its decimal string representation.

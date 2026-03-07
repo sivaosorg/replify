@@ -10,28 +10,6 @@ import (
 "github.com/sivaosorg/replify/pkg/sysx"
 )
 
-// NewLevelWriterHook creates a LevelWriterHook that writes to lfw using formatter.
-// If levels is empty, all levels are enabled.
-//
-// Parameters:
-//   - `lfw`: the LevelFileWriter that handles per-level file output
-//   - `formatter`: the Formatter used to serialise each Entry before writing
-//   - `levels`: the log levels this hook responds to; if empty all levels fire
-//
-// Returns:
-//
-// a *LevelWriterHook registered for the given levels.
-func NewLevelWriterHook(lfw *LevelFileWriter, formatter Formatter, levels ...Level) *LevelWriterHook {
-if len(levels) == 0 {
-levels = []Level{TraceLevel, DebugLevel, InfoLevel, WarnLevel, ErrorLevel, FatalLevel, PanicLevel}
-}
-return &LevelWriterHook{
-writer:    lfw,
-formatter: formatter,
-levels:    levels,
-}
-}
-
 // Levels implements Hook by returning the set of log levels this hook handles.
 //
 // Returns:
@@ -70,7 +48,7 @@ return nil
 // Returns:
 //
 // a ready-to-use *LevelFileWriter and any initialisation error.
-func NewLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
+func newLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
 if opts.Dir == "" {
 opts.Dir = defaultLogDir
 }

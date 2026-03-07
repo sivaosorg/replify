@@ -45,6 +45,28 @@ const (
 	DurationType
 	// AnyType holds an arbitrary interface{} value.
 	AnyType
+	// Int8Type holds an int8 value stored as int64.
+	Int8Type
+	// Int16Type holds an int16 value stored as int64.
+	Int16Type
+	// Int32Type holds an int32 value stored as int64.
+	Int32Type
+	// UintType holds a uint value stored as uint64.
+	UintType
+	// Uint8Type holds a uint8 value stored as uint64.
+	Uint8Type
+	// Uint16Type holds a uint16 value stored as uint64.
+	Uint16Type
+	// Uint32Type holds a uint32 value stored as uint64.
+	Uint32Type
+	// Uint64Type holds a uint64 value.
+	Uint64Type
+	// Float32Type holds a float32 value stored as float64.
+	Float32Type
+	// TimefType holds a time.Time value formatted with a custom layout string.
+	TimefType
+	// JSONType holds a JSON-encoded string representation of an arbitrary value.
+	JSONType
 )
 
 // ///////////////////////////////////////////////////////////////////////////

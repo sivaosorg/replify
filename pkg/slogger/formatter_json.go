@@ -3,23 +3,6 @@ package slogger
 import (
 "strings"
 )
-
-// NewJSONFormatter returns a JSONFormatter with sensible production defaults.
-//
-// Returns:
-//
-// a *JSONFormatter with keys ts, level, msg, caller, and name.
-func NewJSONFormatter() *JSONFormatter {
-return &JSONFormatter{
-timeFormat: defaultTimeFormat,
-timeKey:    defaultJSONTimeKey,
-levelKey:   defaultJSONLevelKey,
-messageKey: defaultJSONMessageKey,
-callerKey:  defaultJSONCallerKey,
-nameKey:    defaultJSONNameKey,
-}
-}
-
 // WithTimeFormat overrides the timestamp layout used in JSON output.
 //
 // Parameters:
@@ -144,7 +127,7 @@ writeJSONString(&b, e.Message())
 
 for _, fld := range e.Fields() {
 b.WriteByte(',')
-writeJSONKey(&b, fld.Key)
+writeJSONKey(&b, fld.key)
 b.WriteByte(':')
 writeJSONValue(&b, &fld)
 }

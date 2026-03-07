@@ -1,27 +1,9 @@
 package slogger
 
 import (
-"io"
 "strconv"
 "strings"
 )
-
-// NewTextFormatter returns a TextFormatter that writes to output.
-//
-// Parameters:
-//   - `output`: the destination writer (used only for TTY detection)
-//
-// Returns:
-//
-// a *TextFormatter with RFC3339 timestamps and colours enabled when output is
-// a terminal.
-func NewTextFormatter(output io.Writer) *TextFormatter {
-return &TextFormatter{
-timeFormat: defaultTimeFormat,
-output:     output,
-}
-}
-
 // WithTimeFormat sets the time layout string used when formatting timestamps.
 //
 // Parameters:
@@ -109,7 +91,7 @@ b.WriteString(e.Message())
 
 for _, fld := range e.Fields() {
 b.WriteByte(' ')
-b.WriteString(fld.Key)
+b.WriteString(fld.key)
 b.WriteByte('=')
 v := fld.Value()
 if needsQuoting(v) {

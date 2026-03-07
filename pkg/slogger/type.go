@@ -85,18 +85,21 @@ function string
 // All value variants are stored inline to minimise heap allocations.
 //
 // Use the typed constructors — String, Int, Int64, Float64, Bool, Err,
-// Time, Duration, Any — to build Field values; do not construct them directly.
+// Time, Duration, Any, Int8, Int16, Int32, Uint, Uint64, Float32, Timef, JSON —
+// to build Field values; do not construct them directly.
+// Access the key and type via the Key() and FieldType() accessor methods.
 type Field struct {
-Key      string
-Type     FieldType
-strVal   string
-intVal   int64
-floatVal float64
-boolVal  bool
-errVal   error
-timeVal  time.Time
-durVal   time.Duration
-anyVal   interface{}
+key       string
+typ       FieldType
+strVal    string
+intVal    int64
+uint64Val uint64
+floatVal  float64
+boolVal   bool
+errVal    error
+timeVal   time.Time
+durVal    time.Duration
+anyVal    interface{}
 }
 
 // ///////////////////////////////////////////////////////////////////////////

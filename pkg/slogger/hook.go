@@ -1,16 +1,4 @@
 package slogger
-
-// NewHooks returns an empty Hooks registry.
-//
-// Returns:
-//
-// a ready-to-use *Hooks.
-func NewHooks() *Hooks {
-return &Hooks{
-hooks: make(map[Level][]Hook, 7),
-}
-}
-
 // Add registers hook for every level it reports.
 //
 // Parameters:

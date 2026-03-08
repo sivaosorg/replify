@@ -33,27 +33,27 @@ func GetGlobalLogger() *Logger {
 
 // Trace logs a TRACE-level message via the global logger.
 func Trace(msg string, fields ...Field) {
-	GetGlobalLogger().log(TraceLevel, msg, fields...)
+	GetGlobalLogger().dispatch(TraceLevel, msg, fields...)
 }
 
 // Debug logs a DEBUG-level message via the global logger.
 func Debug(msg string, fields ...Field) {
-	GetGlobalLogger().log(DebugLevel, msg, fields...)
+	GetGlobalLogger().dispatch(DebugLevel, msg, fields...)
 }
 
 // Info logs an INFO-level message via the global logger.
 func Info(msg string, fields ...Field) {
-	GetGlobalLogger().log(InfoLevel, msg, fields...)
+	GetGlobalLogger().dispatch(InfoLevel, msg, fields...)
 }
 
 // Warn logs a WARN-level message via the global logger.
 func Warn(msg string, fields ...Field) {
-	GetGlobalLogger().log(WarnLevel, msg, fields...)
+	GetGlobalLogger().dispatch(WarnLevel, msg, fields...)
 }
 
 // Error logs an ERROR-level message via the global logger.
 func Error(msg string, fields ...Field) {
-	GetGlobalLogger().log(ErrorLevel, msg, fields...)
+	GetGlobalLogger().dispatch(ErrorLevel, msg, fields...)
 }
 
 // Tracef logs a TRACE-level formatted message via the global logger.

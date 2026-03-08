@@ -140,164 +140,69 @@ func (l *Logger) IsLevelEnabled(level Level) bool {
 }
 
 // Trace logs a TRACE-level message.
-func (l *Logger) Trace(msg string, fields ...Field) { l.log(TraceLevel, msg, fields...) }
+func (l *Logger) Trace(msg string, fields ...Field) { l.dispatch(TraceLevel, msg, fields...) }
 
 // Debug logs a DEBUG-level message.
-func (l *Logger) Debug(msg string, fields ...Field) { l.log(DebugLevel, msg, fields...) }
+func (l *Logger) Debug(msg string, fields ...Field) { l.dispatch(DebugLevel, msg, fields...) }
 
 // Info logs an INFO-level message.
-func (l *Logger) Info(msg string, fields ...Field) { l.log(InfoLevel, msg, fields...) }
+func (l *Logger) Info(msg string, fields ...Field) { l.dispatch(InfoLevel, msg, fields...) }
 
 // Warn logs a WARN-level message.
-func (l *Logger) Warn(msg string, fields ...Field) { l.log(WarnLevel, msg, fields...) }
+func (l *Logger) Warn(msg string, fields ...Field) { l.dispatch(WarnLevel, msg, fields...) }
 
 // Error logs an ERROR-level message.
-func (l *Logger) Error(msg string, fields ...Field) { l.log(ErrorLevel, msg, fields...) }
+func (l *Logger) Error(msg string, fields ...Field) { l.dispatch(ErrorLevel, msg, fields...) }
 
 // Fatal logs a FATAL-level message and calls os.Exit(1).
 func (l *Logger) Fatal(msg string, fields ...Field) {
-	l.log(FatalLevel, msg, fields...)
+	l.dispatch(FatalLevel, msg, fields...)
 	os.Exit(1)
 }
 
 // Panic logs a PANIC-level message and panics with msg.
 func (l *Logger) Panic(msg string, fields ...Field) {
-	l.log(PanicLevel, msg, fields...)
+	l.dispatch(PanicLevel, msg, fields...)
 	panic(msg)
 }
 
 // Tracef logs a TRACE-level formatted message.
 func (l *Logger) Tracef(format string, args ...any) {
-	l.log(TraceLevel, fmt.Sprintf(format, args...))
+	l.dispatch(TraceLevel, fmt.Sprintf(format, args...))
 }
 
 // Debugf logs a DEBUG-level formatted message.
 func (l *Logger) Debugf(format string, args ...any) {
-	l.log(DebugLevel, fmt.Sprintf(format, args...))
+	l.dispatch(DebugLevel, fmt.Sprintf(format, args...))
 }
 
 // Infof logs an INFO-level formatted message.
 func (l *Logger) Infof(format string, args ...any) {
-	l.log(InfoLevel, fmt.Sprintf(format, args...))
+	l.dispatch(InfoLevel, fmt.Sprintf(format, args...))
 }
 
 // Warnf logs a WARN-level formatted message.
 func (l *Logger) Warnf(format string, args ...any) {
-	l.log(WarnLevel, fmt.Sprintf(format, args...))
+	l.dispatch(WarnLevel, fmt.Sprintf(format, args...))
 }
 
 // Errorf logs an ERROR-level formatted message.
 func (l *Logger) Errorf(format string, args ...any) {
-	l.log(ErrorLevel, fmt.Sprintf(format, args...))
+	l.dispatch(ErrorLevel, fmt.Sprintf(format, args...))
 }
 
 // Fatalf logs a FATAL-level formatted message and calls os.Exit(1).
 func (l *Logger) Fatalf(format string, args ...any) {
-	l.log(FatalLevel, fmt.Sprintf(format, args...))
+	l.dispatch(FatalLevel, fmt.Sprintf(format, args...))
 	os.Exit(1)
 }
 
 // Panicf logs a PANIC-level formatted message and panics.
 func (l *Logger) Panicf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
-	l.log(PanicLevel, msg)
+	l.dispatch(PanicLevel, msg)
 	panic(msg)
 }
-
-// log fires a log entry without a context.
-//
-// Parameters:
-//   - `level`: the log level
-//   - `msg`: the message to log
-//   - `fields`: optional structured fields
-func (l *Logger) log(level Level, msg string, fields ...Field) {
-	//nolint:gochecknoglobals
-	//nolint:SA1012
-	l.logCtx(nil, level, msg, fields...)
-}
-
-// logCtx is the internal dispatch point for all log events.
-//
-// Parameters:
-//   - `ctx`: the context to associate with the entry
-//   - `level`: the log level
-//   - `msg`: the message to log
-//   - `fields`: optional structured fields
-func (l *Logger) logCtx(ctx context.Context, level Level, msg string, fields ...Field) {
-	if !level.IsEnabled(Level(l.level.Load())) {
-		return
-	}
-	if l.sampling != nil && !l.sampling.allow(msg) {
-		return
-	}
-
-	e := acquireEntry(l)
-	e.time = time.Now()
-	e.level = level
-	e.message = msg
-	e.ctx = ctx
-
-	// Merge fields: logger-bound first, then context fields, then call-site fields.
-	total := len(l.fields) + len(fields)
-	if ctx != nil {
-		total += len(FieldsFromContext(ctx))
-	}
-	if cap(e.fields) < total {
-		e.fields = make([]Field, 0, total)
-	}
-	e.fields = append(e.fields, l.fields...)
-	if ctx != nil {
-		e.fields = append(e.fields, FieldsFromContext(ctx)...)
-	}
-	e.fields = append(e.fields, fields...)
-
-	if l.caller {
-		e.caller = l.getCaller(l.callerSkip)
-	}
-
-	l.mu.RLock()
-	formatter := l.formatter
-	output := l.output
-	l.mu.RUnlock()
-
-	data, err := formatter.Format(e)
-	if err == nil {
-		l.mu.Lock()
-		_, _ = output.Write(data)
-		l.mu.Unlock()
-	}
-
-	_ = l.hooks.Fire(level, e)
-
-	releaseEntry(e)
-}
-
-// getCaller captures the source location of the log call site.
-//
-// Parameters:
-//   - `skip`: additional frames to skip beyond the internal logging frames
-//
-// Returns:
-//
-// a *CallerInfo describing the file, line, and function, or nil if the
-// call site could not be determined.
-func (l *Logger) getCaller(skip int) *CallerInfo {
-	pcs := make([]uintptr, 1)
-	n := runtime.Callers(4+skip, pcs)
-	if n == 0 {
-		return nil
-	}
-	frame, _ := runtime.CallersFrames(pcs).Next()
-	return &CallerInfo{
-		file:     trimFilepath(frame.File),
-		line:     frame.Line,
-		function: frame.Function,
-	}
-}
-
-// ///////////////////////////////////////////////////////////////////////////
-// Fluent builder methods — With** pattern
-// ///////////////////////////////////////////////////////////////////////////
 
 // WithLevel sets the minimum log level and returns the logger for chaining.
 // The update is atomic and safe to call concurrently.
@@ -419,4 +324,106 @@ func (l *Logger) WithRotation(opts RotationOptions) *Logger {
 	l.mu.RUnlock()
 	l.hooks.Add(NewLevelWriterHook(lfw, formatter))
 	return l
+}
+
+// getCaller captures the source location of the log call site.
+//
+// Parameters:
+//   - `skip`: additional frames to skip beyond the internal logging frames
+//
+// Returns:
+//
+// a *CallerInfo describing the file, line, and function, or nil if the
+// call site could not be determined.
+func (l *Logger) getCaller(skip int) *CallerInfo {
+	pcs := make([]uintptr, 1)
+	n := runtime.Callers(4+skip, pcs)
+	if n == 0 {
+		return nil
+	}
+	frame, _ := runtime.CallersFrames(pcs).Next()
+	return &CallerInfo{
+		file:     trimFilepath(frame.File),
+		line:     frame.Line,
+		function: frame.Function,
+	}
+}
+
+// dispatch fires a dispatch entry without a context.
+//
+// Parameters:
+//   - `level`: the dispatch level
+//   - `msg`: the message to dispatch
+//   - `fields`: optional structured fields
+func (l *Logger) dispatch(level Level, msg string, fields ...Field) {
+	//nolint:gochecknoglobals
+	//nolint:SA1012
+	l.dispatchContext(nil, level, msg, fields...)
+}
+
+// dispatchContext is the internal dispatch point for all log events.
+//
+// Parameters:
+//   - `ctx`: the context to associate with the entry
+//   - `level`: the log level
+//   - `msg`: the message to log
+//   - `fields`: optional structured fields
+func (l *Logger) dispatchContext(ctx context.Context, level Level, msg string, fields ...Field) {
+	if !level.IsEnabled(Level(l.level.Load())) {
+		return
+	}
+
+	// Check sampling.
+	if l.sampling != nil && !l.sampling.allow(msg) {
+		return
+	}
+
+	// Acquire entry.
+	e := acquireEntry(l)
+	e.time = time.Now()
+	e.level = level
+	e.message = msg
+	e.ctx = ctx
+
+	// Calculate total number of fields.
+	total := len(l.fields) + len(fields)
+	if ctx != nil {
+		total += len(FieldsFromContext(ctx))
+	}
+
+	// Ensure enough capacity for all fields.
+	if cap(e.fields) < total {
+		e.fields = make([]Field, 0, total)
+	}
+
+	// Append fields in order: logger-bound, context, call-site.
+	e.fields = append(e.fields, l.fields...)
+	if ctx != nil {
+		e.fields = append(e.fields, FieldsFromContext(ctx)...)
+	}
+	e.fields = append(e.fields, fields...)
+
+	// Add caller information if enabled.
+	if l.caller {
+		e.caller = l.getCaller(l.callerSkip)
+	}
+
+	l.mu.RLock()
+	formatter := l.formatter
+	output := l.output
+	l.mu.RUnlock()
+
+	// Serialize entry.
+	data, err := formatter.Format(e)
+	if err == nil {
+		l.mu.Lock()
+		_, _ = output.Write(data)
+		l.mu.Unlock()
+	}
+
+	// Fire hooks.
+	_ = l.hooks.Fire(level, e)
+
+	// Release entry.
+	releaseEntry(e)
 }

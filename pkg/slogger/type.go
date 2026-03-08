@@ -128,6 +128,7 @@ type Formatter interface {
 type Hook interface {
 	// Levels returns the set of log levels this hook handles.
 	Levels() []Level
+
 	// Fire is called for each matching entry; it must not retain the entry.
 	Fire(*Entry) error
 }
@@ -186,14 +187,14 @@ type Options struct {
 // After that, every Thereafter-th message is logged (0 means drop all remaining).
 type SamplingOptions struct {
 	// First is the number of identical messages always logged within Period.
-	First int
+	First int `json:"first"`
 
 	// Period is the window after which the counter resets.
-	Period time.Duration
+	Period time.Duration `json:"period"`
 
 	// Thereafter logs every Nth message after the First are exhausted.
 	// Zero means drop all subsequent messages.
-	Thereafter int
+	Thereafter int `json:"thereafter"`
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -246,16 +247,16 @@ type MultiWriter struct {
 // Pass RotationOptions to WithRotation to enable per-level log file rotation.
 type RotationOptions struct {
 	// Dir is the base log directory. Defaults to defaultLogDir ("logs").
-	Dir string
+	Dir string `json:"dir"`
 
 	// MaxBytes is the maximum file size before rotation. Defaults to 10 MiB.
-	MaxBytes int64
+	MaxBytes int64 `json:"max_bytes"`
 
 	// MaxAge is the maximum age of a log file before rotation. Zero means no age-based rotation.
-	MaxAge time.Duration
+	MaxAge time.Duration `json:"max_age"`
 
 	// Compress controls whether rotated files are zipped. Defaults to false.
-	Compress bool
+	Compress bool `json:"compress"`
 }
 
 // LevelFileWriter writes log entries to separate files per log level.

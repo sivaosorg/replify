@@ -70,6 +70,7 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 
 	useColor := !f.disableColors && IsTTY(f.output)
 
+	// Add caller information if enabled.
 	if e.caller != nil {
 		f.WithEnableCaller()
 	}

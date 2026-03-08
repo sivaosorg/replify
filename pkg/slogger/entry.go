@@ -116,7 +116,7 @@ func (c *CallerInfo) Function() string { return c.function }
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Trace(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, TraceLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, TraceLevel, msg, fields...)
 }
 
 // Debug logs a DEBUG-level message using the entry's logger and context.
@@ -125,7 +125,7 @@ func (e *Entry) Trace(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Debug(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, DebugLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, DebugLevel, msg, fields...)
 }
 
 // Info logs an INFO-level message using the entry's logger and context.
@@ -134,7 +134,7 @@ func (e *Entry) Debug(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Info(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, InfoLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, InfoLevel, msg, fields...)
 }
 
 // Warn logs a WARN-level message using the entry's logger and context.
@@ -143,7 +143,7 @@ func (e *Entry) Info(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Warn(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, WarnLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, WarnLevel, msg, fields...)
 }
 
 // Error logs an ERROR-level message using the entry's logger and context.
@@ -152,7 +152,7 @@ func (e *Entry) Warn(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Error(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, ErrorLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, ErrorLevel, msg, fields...)
 }
 
 // Fatal logs a FATAL-level message using the entry's logger and context,
@@ -163,7 +163,7 @@ func (e *Entry) Error(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Fatal(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, FatalLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, FatalLevel, msg, fields...)
 	os.Exit(1)
 }
 
@@ -174,6 +174,6 @@ func (e *Entry) Fatal(msg string, fields ...Field) {
 //   - `msg`: the log message
 //   - `fields`: optional structured fields appended after the entry's own fields
 func (e *Entry) Panic(msg string, fields ...Field) {
-	e.logger.logCtx(e.ctx, PanicLevel, msg, fields...)
+	e.logger.dispatchContext(e.ctx, PanicLevel, msg, fields...)
 	panic(msg)
 }

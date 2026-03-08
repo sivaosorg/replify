@@ -68,7 +68,7 @@ func (f *TextFormatter) WithEnableCaller() *TextFormatter {
 func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 	var b strings.Builder
 
-	useColor := !f.disableColors && IsTTY(f.output)
+	useColor := !f.disableColors && istty(f.output)
 
 	// Add caller information if enabled.
 	if e.caller != nil {

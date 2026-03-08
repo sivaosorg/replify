@@ -194,7 +194,7 @@ func (f *JSONFormatter) Format(e *Entry) ([]byte, error) {
 	data := []byte(b.String())
 
 	// Apply ANSI colour only when color is enabled and the output is a terminal.
-	if f.enableColor && e.logger != nil && IsTTY(e.logger.output) {
+	if f.enableColor && e.logger != nil && istty(e.logger.output) {
 		if f.color == nil {
 			f.color = encoding.TerminalStyle // Default color style
 		}

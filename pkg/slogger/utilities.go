@@ -12,6 +12,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/strutil"
+	"github.com/sivaosorg/replify/pkg/sysx"
 )
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -383,4 +384,16 @@ func itoa64(n int64) string {
 		buf[pos] = '-'
 	}
 	return string(buf[pos:])
+}
+
+// istty reports whether w is connected to a terminal (character device).
+//
+// Parameters:
+//   - `w`: the writer to test
+//
+// Returns:
+//
+// true when w is an *os.File whose device mode includes os.ModeCharDevice.
+func istty(w io.Writer) bool {
+	return sysx.IsTTY(w)
 }

@@ -673,7 +673,7 @@ func TestSlogger_GlobalLogger(t *testing.T) {
 		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
 	})
 
-	original := slogger.GetGlobalLogger()
+	original := slogger.GlobalLogger()
 	slogger.SetGlobalLogger(log)
 	defer slogger.SetGlobalLogger(original)
 
@@ -683,7 +683,7 @@ func TestSlogger_GlobalLogger(t *testing.T) {
 	}
 
 	slogger.SetGlobalLogger(nil) // should be a no-op
-	if slogger.GetGlobalLogger() != log {
+	if slogger.GlobalLogger() != log {
 		t.Error("SetGlobalLogger(nil) should not replace the current logger")
 	}
 }

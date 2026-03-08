@@ -47,6 +47,29 @@ func (f *JSONFormatter) WithColor(enabled bool) *JSONFormatter {
 	return f
 }
 
+// WithEnableColor enables ANSI colour output for the JSON formatter.
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (f *JSONFormatter) WithEnableColor() *JSONFormatter {
+	f.enableColor = true
+	return f
+}
+
+// WithColorStyle sets the color style for the JSON formatter.
+//
+// Parameters:
+//   - `style`: the color style to use
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (f *JSONFormatter) WithColorStyle(style *encoding.Style) *JSONFormatter {
+	f.color = style
+	return f
+}
+
 // WithTimeKey sets the JSON key for the timestamp field.
 //
 // Parameters:
@@ -172,11 +195,13 @@ func (f *JSONFormatter) Format(e *Entry) ([]byte, error) {
 
 	// Apply ANSI colour only when color is enabled and the output is a terminal.
 	if f.enableColor && e.logger != nil && IsTTY(e.logger.output) {
+		if f.color == nil {
+			f.color = encoding.TerminalStyle // Default color style
+		}
 		// encoding.Color operates on the JSON body without the trailing newline.
-		colored := encoding.Color(data[:len(data)-1], encoding.TerminalStyle)
+		colored := encoding.Color(data[:len(data)-1], f.color)
 		return append(colored, '\n'), nil
 	}
 
 	return data, nil
 }
-

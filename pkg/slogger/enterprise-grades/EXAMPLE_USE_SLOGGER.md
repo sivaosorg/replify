@@ -104,7 +104,7 @@ type UserRepository struct {
 func NewUserRepository(db DB) *UserRepository {
     return &UserRepository{
         db:  db,
-        log: slogger.GetGlobalLogger().Named("db.users"),
+        log: slogger.GlobalLogger().Named("db.users"),
     }
 }
 
@@ -179,7 +179,7 @@ type Worker struct {
 func NewWorker(id int, jobs <-chan Job) *Worker {
     return &Worker{
         id:   id,
-        log:  slogger.GetGlobalLogger().Named(fmt.Sprintf("worker-%d", id)),
+        log:  slogger.GlobalLogger().Named(fmt.Sprintf("worker-%d", id)),
         jobs: jobs,
     }
 }
@@ -300,7 +300,7 @@ func withTraceFields(ctx context.Context) context.Context {
 
 func processPayment(ctx context.Context, payment Payment) error {
     ctx = withTraceFields(ctx)
-    log := slogger.GetGlobalLogger()
+    log := slogger.GlobalLogger()
 
     log.WithContext(ctx).Info("processing payment",
         slogger.String("payment_id",  payment.ID),

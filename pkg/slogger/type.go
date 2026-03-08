@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	"github.com/sivaosorg/replify/pkg/encoding"
 )
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -228,6 +230,7 @@ type JSONFormatter struct {
 	messageKey   string
 	callerKey    string
 	nameKey      string
+	color        *encoding.Style // Color style for log levels
 }
 
 // ///////////////////////////////////////////////////////////////////////////

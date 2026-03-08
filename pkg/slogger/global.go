@@ -22,63 +22,63 @@ func SetGlobalLogger(l *Logger) {
 	atomic.StorePointer(&global, unsafe.Pointer(l))
 }
 
-// GetGlobalLogger returns the current package-level logger.
+// GlobalLogger returns the current package-level logger.
 //
 // Returns:
 //
 // the active *Logger used by all package-level functions.
-func GetGlobalLogger() *Logger {
+func GlobalLogger() *Logger {
 	return (*Logger)(atomic.LoadPointer(&global))
 }
 
 // Trace logs a TRACE-level message via the global logger.
 func Trace(msg string, fields ...Field) {
-	GetGlobalLogger().dispatch(TraceLevel, msg, fields...)
+	GlobalLogger().dispatch(TraceLevel, msg, fields...)
 }
 
 // Debug logs a DEBUG-level message via the global logger.
 func Debug(msg string, fields ...Field) {
-	GetGlobalLogger().dispatch(DebugLevel, msg, fields...)
+	GlobalLogger().dispatch(DebugLevel, msg, fields...)
 }
 
 // Info logs an INFO-level message via the global logger.
 func Info(msg string, fields ...Field) {
-	GetGlobalLogger().dispatch(InfoLevel, msg, fields...)
+	GlobalLogger().dispatch(InfoLevel, msg, fields...)
 }
 
 // Warn logs a WARN-level message via the global logger.
 func Warn(msg string, fields ...Field) {
-	GetGlobalLogger().dispatch(WarnLevel, msg, fields...)
+	GlobalLogger().dispatch(WarnLevel, msg, fields...)
 }
 
 // Error logs an ERROR-level message via the global logger.
 func Error(msg string, fields ...Field) {
-	GetGlobalLogger().dispatch(ErrorLevel, msg, fields...)
+	GlobalLogger().dispatch(ErrorLevel, msg, fields...)
 }
 
 // Tracef logs a TRACE-level formatted message via the global logger.
 func Tracef(format string, args ...any) {
-	GetGlobalLogger().Tracef(format, args...)
+	GlobalLogger().Tracef(format, args...)
 }
 
 // Debugf logs a DEBUG-level formatted message via the global logger.
 func Debugf(format string, args ...any) {
-	GetGlobalLogger().Debugf(format, args...)
+	GlobalLogger().Debugf(format, args...)
 }
 
 // Infof logs an INFO-level formatted message via the global logger.
 func Infof(format string, args ...any) {
-	GetGlobalLogger().Infof(format, args...)
+	GlobalLogger().Infof(format, args...)
 }
 
 // Warnf logs a WARN-level formatted message via the global logger.
 func Warnf(format string, args ...any) {
-	GetGlobalLogger().Warnf(format, args...)
+	GlobalLogger().Warnf(format, args...)
 }
 
 // Errorf logs an ERROR-level formatted message via the global logger.
 func Errorf(format string, args ...any) {
-	GetGlobalLogger().Errorf(format, args...)
+	GlobalLogger().Errorf(format, args...)
 }
 
 // GlobalWithContextFields returns a new context that carries the provided fields for

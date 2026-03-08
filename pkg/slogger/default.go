@@ -91,7 +91,7 @@ func NewJSONFormatter() *JSONFormatter {
 		messageKey:  defaultJSONMessageKey,
 		callerKey:   defaultJSONCallerKey,
 		nameKey:     defaultJSONNameKey,
-		enableColor: true,
+		enableColor: false,
 	}
 }
 

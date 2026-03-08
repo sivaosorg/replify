@@ -649,7 +649,7 @@ slogger.Errorf("unexpected status: %d", code)
 ctx = slogger.GlobalWithContextFields(ctx, slogger.String("trace_id", tid))
 
 // Retrieve the global logger when a reference is needed.
-gl := slogger.GetGlobalLogger()
+gl := slogger.GlobalLogger()
 gl.AddHook(myHook)
 ```
 

@@ -155,7 +155,7 @@ import (
 //   - client IP
 //   - any errors set on the Gin context
 func SloggerMiddleware() gin.HandlerFunc {
-    log := slogger.GetGlobalLogger().Named("http")
+    log := slogger.GlobalLogger().Named("http")
 
     return func(c *gin.Context) {
         start := time.Now()
@@ -224,7 +224,7 @@ func GetUserHandler(c *gin.Context) {
     logVal, _ := c.Get("logger")
     log, ok := logVal.(*slogger.Logger)
     if !ok {
-        log = slogger.GetGlobalLogger()
+        log = slogger.GlobalLogger()
     }
 
     userID := c.Param("id")
@@ -274,7 +274,7 @@ type UserService struct {
 
 func NewUserService(repo UserRepository) *UserService {
     return &UserService{
-        log:  slogger.GetGlobalLogger().Named("user-service"),
+        log:  slogger.GlobalLogger().Named("user-service"),
         repo: repo,
     }
 }

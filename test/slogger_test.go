@@ -1211,3 +1211,107 @@ func TestSlogger_JSONFormatter_AnyStruct(t *testing.T) {
 		t.Errorf("user.name = %v; want alice", userObj["name"])
 	}
 }
+
+// ///////////////////////////
+// Section: JSONFormatter color tests
+// ///////////////////////////
+
+// TestSlogger_JSONFormatter_ColorDisabled verifies that WithColor(false) produces
+// plain JSON with no ANSI escape sequences, even when called explicitly.
+func TestSlogger_JSONFormatter_ColorDisabled(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter().WithColor(false)
+	})
+
+	log.Info("color test", slogger.String("key", "val"), slogger.Int("n", 42))
+	out := strings.TrimSpace(buf.String())
+
+	// Must not contain ANSI escape codes.
+	if strings.Contains(out, "\x1b[") {
+		t.Errorf("expected no ANSI codes with color disabled, got: %q", out)
+	}
+
+	// Must be valid JSON.
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+	if m["key"] != "val" {
+		t.Errorf("key = %v; want val", m["key"])
+	}
+}
+
+// TestSlogger_JSONFormatter_ColorDefaultNonTTY verifies that the default
+// JSONFormatter (enableColor: true) produces plain JSON when writing to a
+// non-TTY writer (bytes.Buffer), because IsTTY returns false.
+func TestSlogger_JSONFormatter_ColorDefaultNonTTY(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		// Default JSONFormatter has enableColor: true, but buf is not a TTY.
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Warn("server started", slogger.String("addr", ":8080"), slogger.Int("port", 8080))
+	out := strings.TrimSpace(buf.String())
+
+	// No ANSI codes because buf is not a TTY.
+	if strings.Contains(out, "\x1b[") {
+		t.Errorf("expected no ANSI codes for non-TTY output, got: %q", out)
+	}
+
+	// Output must still be valid JSON.
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+	if m["level"] != "WARN" {
+		t.Errorf("level = %v; want WARN", m["level"])
+	}
+}
+
+// TestSlogger_JSONFormatter_WithColorChaining verifies that WithColor is chainable
+// with other JSONFormatter methods without breaking existing functionality.
+func TestSlogger_JSONFormatter_WithColorChaining(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter().
+			WithColor(false).
+			WithTimeKey("timestamp").
+			WithLevelKey("severity").
+			WithMessageKey("message")
+	})
+
+	log.Info("chaining test")
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
+	}
+	if _, ok := m["timestamp"]; !ok {
+		t.Error("expected timestamp key in output")
+	}
+	if m["severity"] != "INFO" {
+		t.Errorf("severity = %v; want INFO", m["severity"])
+	}
+	if m["message"] != "chaining test" {
+		t.Errorf("message = %v; want 'chaining test'", m["message"])
+	}
+	// No ANSI codes.
+	if strings.Contains(out, "\x1b[") {
+		t.Errorf("expected no ANSI codes, got: %q", out)
+	}
+}

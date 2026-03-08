@@ -85,12 +85,13 @@ func NewLogger() *Logger {
 // a *JSONFormatter with keys ts, level, msg, caller, and name.
 func NewJSONFormatter() *JSONFormatter {
 	return &JSONFormatter{
-		timeFormat: defaultTimeFormat,
-		timeKey:    defaultJSONTimeKey,
-		levelKey:   defaultJSONLevelKey,
-		messageKey: defaultJSONMessageKey,
-		callerKey:  defaultJSONCallerKey,
-		nameKey:    defaultJSONNameKey,
+		timeFormat:  defaultTimeFormat,
+		timeKey:     defaultJSONTimeKey,
+		levelKey:    defaultJSONLevelKey,
+		messageKey:  defaultJSONMessageKey,
+		callerKey:   defaultJSONCallerKey,
+		nameKey:     defaultJSONNameKey,
+		enableColor: true,
 	}
 }
 

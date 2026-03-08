@@ -3,6 +3,7 @@ package slogger
 import (
 	"strings"
 
+	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
@@ -27,6 +28,22 @@ func (f *JSONFormatter) WithTimeFormat(fmt string) *JSONFormatter {
 // the receiver, for method chaining.
 func (f *JSONFormatter) WithEnableCaller() *JSONFormatter {
 	f.enableCaller = true
+	return f
+}
+
+// WithColor controls ANSI colour output for the JSON formatter.
+// When enabled is true, colour is applied only when the logger's output is a
+// TTY terminal; it is suppressed automatically for files and pipes.
+// When enabled is false, output is always plain JSON.
+//
+// Parameters:
+//   - `enabled`: true to enable colour (subject to TTY detection), false to disable
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (f *JSONFormatter) WithColor(enabled bool) *JSONFormatter {
+	f.enableColor = enabled
 	return f
 }
 
@@ -96,6 +113,10 @@ func (f *JSONFormatter) WithNameKey(key string) *JSONFormatter {
 }
 
 // Format serialises e to a single-line JSON byte slice.
+// When colour is enabled and the logger's output writer is a TTY terminal,
+// ANSI colour escape sequences are applied to keys, values, and level fields
+// using encoding.Color with encoding.TerminalStyle. When the output is not a
+// terminal (e.g. a file or pipe), plain JSON is returned without modification.
 //
 // Parameters:
 //   - `e`: the log entry to format
@@ -147,5 +168,15 @@ func (f *JSONFormatter) Format(e *Entry) ([]byte, error) {
 	b.WriteByte('}')
 	b.WriteByte('\n')
 
-	return []byte(b.String()), nil
+	data := []byte(b.String())
+
+	// Apply ANSI colour only when color is enabled and the output is a terminal.
+	if f.enableColor && e.logger != nil && IsTTY(e.logger.output) {
+		// encoding.Color operates on the JSON body without the trailing newline.
+		colored := encoding.Color(data[:len(data)-1], encoding.TerminalStyle)
+		return append(colored, '\n'), nil
+	}
+
+	return data, nil
 }
+

@@ -222,6 +222,7 @@ type TextFormatter struct {
 type JSONFormatter struct {
 	timeFormat   string
 	enableCaller bool
+	enableColor  bool
 	timeKey      string
 	levelKey     string
 	messageKey   string

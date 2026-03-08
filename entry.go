@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/strutil"
@@ -40,17 +41,22 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	if strutil.IsEmpty(jsonStr) {
 		return nil, NewError("JSON string is required")
 	}
-	if !encoding.IsValidJSON(jsonStr) || !fj.IsValidJSON(jsonStr) {
-		return nil, NewErrorf("invalid JSON string: %s", jsonStr)
+	specJSON := encoding.Spec([]byte(jsonStr))
+	nJSON, err := encoding.NormalizeJSON(string(specJSON))
+	if err != nil {
+		return nil, err
+	}
+	if !encoding.IsValidJSON(nJSON) || !fj.IsValidJSON(nJSON) {
+		return nil, NewErrorf("invalid JSON string: %s", jsonStr) // keep original JSON string
 	}
 
 	var data map[string]any
-	err = encoding.UnmarshalJSON(jsonStr, &data)
+	err = encoding.UnmarshalJSON(nJSON, &data)
 	if err != nil {
 		return nil, NewErrorAck(err)
 	}
 	if len(data) == 0 {
-		return nil, NewErrorf("an unexpected error occurred while unmarshaling JSON to map, json: %s", jsonStr)
+		return nil, NewErrorf("an unexpected error occurred while unmarshaling JSON to map, json: %s", nJSON)
 	}
 	w = &wrapper{}
 	if value, exists := data["status_code"].(float64); exists {
@@ -61,6 +67,71 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	}
 	if value, exists := data["message"].(string); exists {
 		w.message = value
+	}
+	if value, exists := data["path"].(string); exists {
+		w.path = value
+	}
+	if value, exists := data["debug"].(map[string]any); exists {
+		w.debug = value
+	}
+	if values, exists := data["meta"].(map[string]any); exists {
+		meta := &meta{}
+		if value, exists := values["api_version"].(string); exists {
+			meta.apiVersion = value
+		}
+		if value, exists := values["locale"].(string); exists {
+			meta.locale = value
+		}
+		if value, exists := values["request_id"].(string); exists {
+			meta.requestID = value
+		}
+		if customFields, exists := values["custom_fields"].(map[string]any); exists {
+			meta.customFields = customFields
+		}
+		if value, exists := values["requested_time"].(string); exists {
+			if t, err := time.Parse(time.RFC3339, value); err == nil {
+				meta.requestedTime = t
+			} else {
+				// fallback using converter
+				meta.requestedTime = conv.TimeOrDefault(value, time.Time{})
+			}
+		}
+		w.meta = meta
+	}
+	if values, exists := data["header"].(map[string]any); exists {
+		header := &header{}
+		if value, exists := values["code"].(float64); exists {
+			header.code = int(value)
+		}
+		if value, exists := values["text"].(string); exists {
+			header.text = value
+		}
+		if value, exists := values["type"].(string); exists {
+			header.typez = value
+		}
+		if value, exists := values["description"].(string); exists {
+			header.description = value
+		}
+		w.header = header
+	}
+	if values, exists := data["pagination"].(map[string]any); exists {
+		pagination := &pagination{}
+		if value, exists := values["page"].(float64); exists {
+			pagination.page = int(value)
+		}
+		if value, exists := values["per_page"].(float64); exists {
+			pagination.perPage = int(value)
+		}
+		if value, exists := values["total_pages"].(float64); exists {
+			pagination.totalPages = int(value)
+		}
+		if value, exists := values["total_items"].(float64); exists {
+			pagination.totalItems = int(value)
+		}
+		if value, exists := values["is_last"].(bool); exists {
+			pagination.isLast = value
+		}
+		w.pagination = pagination
 	}
 	// if the data is a string, check if it is a valid JSON string and convert it to a json.RawMessage
 	// otherwise, keep it as a string.
@@ -85,68 +156,6 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 		default:
 			w.data = value
 		}
-	}
-	if value, exists := data["path"].(string); exists {
-		w.path = value
-	}
-	if value, exists := data["debug"].(map[string]any); exists {
-		w.debug = value
-	}
-	if values, exists := data["header"].(map[string]any); exists {
-		header := &header{}
-		if value, exists := values["code"].(float64); exists {
-			header.code = int(value)
-		}
-		if value, exists := values["text"].(string); exists {
-			header.text = value
-		}
-		if value, exists := values["type"].(string); exists {
-			header.typez = value
-		}
-		if value, exists := values["description"].(string); exists {
-			header.description = value
-		}
-		w.header = header
-	}
-	if values, exists := data["meta"].(map[string]any); exists {
-		meta := &meta{}
-		if value, exists := values["api_version"].(string); exists {
-			meta.apiVersion = value
-		}
-		if value, exists := values["locale"].(string); exists {
-			meta.locale = value
-		}
-		if value, exists := values["request_id"].(string); exists {
-			meta.requestID = value
-		}
-		if customFields, exists := values["custom_fields"].(map[string]any); exists {
-			meta.customFields = customFields
-		}
-		if value, exists := values["requested_time"].(string); exists {
-			if t, err := time.Parse(time.RFC3339, value); err == nil {
-				meta.requestedTime = t
-			}
-		}
-		w.meta = meta
-	}
-	if values, exists := data["pagination"].(map[string]any); exists {
-		pagination := &pagination{}
-		if value, exists := values["page"].(float64); exists {
-			pagination.page = int(value)
-		}
-		if value, exists := values["per_page"].(float64); exists {
-			pagination.perPage = int(value)
-		}
-		if value, exists := values["total_pages"].(float64); exists {
-			pagination.totalPages = int(value)
-		}
-		if value, exists := values["total_items"].(float64); exists {
-			pagination.totalItems = int(value)
-		}
-		if value, exists := values["is_last"].(bool); exists {
-			pagination.isLast = value
-		}
-		w.pagination = pagination
 	}
 	return w, nil
 }

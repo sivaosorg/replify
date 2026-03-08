@@ -293,11 +293,15 @@ func writeJSONValue(b *strings.Builder, f *Field) {
 	case DurationType:
 		writeJSONString(b, f.durVal.String())
 	case AnyType:
-		enc, err := json.Marshal(f.anyVal)
-		if err != nil {
-			writeJSONString(b, f.Value())
+		if s, ok := f.anyVal.(string); ok {
+			writeJSONString(b, s)
 		} else {
-			b.Write(enc)
+			enc, err := json.Marshal(f.anyVal)
+			if err != nil {
+				writeJSONString(b, f.Value())
+			} else {
+				b.Write(enc)
+			}
 		}
 	default:
 		writeJSONString(b, f.Value())

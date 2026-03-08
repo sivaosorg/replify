@@ -1036,3 +1036,178 @@ func TestSlogger_WithRotation_Option(t *testing.T) {
 		t.Errorf("expected log output, got: %s", buf.String())
 	}
 }
+
+// ///////////////////////////
+// Section: JSON string embedding tests
+// ///////////////////////////
+
+// TestSlogger_JSONFormatter_AnyJSONString verifies that slogger.Any with a
+// valid JSON string value is embedded as raw JSON (not double-encoded) in the
+// JSON formatter output.
+func TestSlogger_JSONFormatter_AnyJSONString(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Warn("server started",
+		slogger.Any("f4", `{"user_id":2,"username":"abc@gmail.com"}`),
+	)
+	out := strings.TrimSpace(buf.String())
+
+	// Output must be valid JSON.
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+
+	// f4 must be an embedded object, not a quoted string.
+	f4, ok := m["f4"]
+	if !ok {
+		t.Fatalf("expected key f4 in output, got: %s", out)
+	}
+	f4Map, ok := f4.(map[string]interface{})
+	if !ok {
+		t.Fatalf("f4 should be a JSON object, got %T: %v", f4, f4)
+	}
+	if f4Map["user_id"] != float64(2) {
+		t.Errorf("f4.user_id = %v; want 2", f4Map["user_id"])
+	}
+	if f4Map["username"] != "abc@gmail.com" {
+		t.Errorf("f4.username = %v; want abc@gmail.com", f4Map["username"])
+	}
+}
+
+// TestSlogger_JSONFormatter_JSONFieldWithString verifies that slogger.JSON with
+// a valid JSON string value is embedded as raw JSON (not double-encoded) in the
+// JSON formatter output.
+func TestSlogger_JSONFormatter_JSONFieldWithString(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Warn("server started",
+		slogger.JSON("f1", `{"user_id":1,"username":"abc@gmail.com"}`),
+	)
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+
+	f1, ok := m["f1"]
+	if !ok {
+		t.Fatalf("expected key f1 in output, got: %s", out)
+	}
+	f1Map, ok := f1.(map[string]interface{})
+	if !ok {
+		t.Fatalf("f1 should be a JSON object, got %T: %v", f1, f1)
+	}
+	if f1Map["user_id"] != float64(1) {
+		t.Errorf("f1.user_id = %v; want 1", f1Map["user_id"])
+	}
+}
+
+// TestSlogger_JSONFormatter_JSONFieldWithMap verifies that slogger.JSON with a
+// map value is embedded as a JSON object.
+func TestSlogger_JSONFormatter_JSONFieldWithMap(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Info("event",
+		slogger.JSON("data", map[string]any{"a": 1}),
+	)
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+	dataObj, ok := m["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("data should be a JSON object, got %T: %v", m["data"], m["data"])
+	}
+	if dataObj["a"] != float64(1) {
+		t.Errorf("data.a = %v; want 1", dataObj["a"])
+	}
+}
+
+// TestSlogger_JSONFormatter_AnyNormalString verifies that slogger.Any with a
+// plain (non-JSON) string is correctly quoted in JSON output.
+func TestSlogger_JSONFormatter_AnyNormalString(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Info("event",
+		slogger.Any("name", "alice"),
+	)
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+	if m["name"] != "alice" {
+		t.Errorf("name = %v; want alice", m["name"])
+	}
+}
+
+// TestSlogger_JSONFormatter_AnyStruct verifies that slogger.Any with a struct
+// value is embedded as a JSON object.
+func TestSlogger_JSONFormatter_AnyStruct(t *testing.T) {
+	t.Parallel()
+
+	type User struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	}
+
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewJSONFormatter()
+	})
+
+	log.Info("event",
+		slogger.Any("user", User{ID: 1, Name: "alice"}),
+	)
+	out := strings.TrimSpace(buf.String())
+
+	var m map[string]interface{}
+	if err := json.Unmarshal([]byte(out), &m); err != nil {
+		t.Fatalf("invalid JSON output: %v\noutput: %s", err, out)
+	}
+	userObj, ok := m["user"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("user should be a JSON object, got %T: %v", m["user"], m["user"])
+	}
+	if userObj["id"] != float64(1) {
+		t.Errorf("user.id = %v; want 1", userObj["id"])
+	}
+	if userObj["name"] != "alice" {
+		t.Errorf("user.name = %v; want alice", userObj["name"])
+	}
+}

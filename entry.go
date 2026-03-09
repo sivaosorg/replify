@@ -11,32 +11,72 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// UnwrapJSON takes a JSON string as input and maps it into a 'wrapper' struct, populating its fields
-// with data extracted from the JSON. The function handles different parts of the response such as
-// status code, message, pagination, headers, metadata, and debugging information. It uses
-// `encoding.UnmarshalFromString` for unmarshaling the JSON string into a map, then assigns the
-// respective values from the map to the fields of the `wrapper` struct.
+// UnwrapJSON parses a raw JSON string and maps it into a [wrapper] struct.
 //
-// The function extracts information from the provided JSON, handles nested
-// objects, and populates the `wrapper` struct with relevant values for:
-//   - statusCode: The HTTP status code of the response
-//   - total: The total number of items in the response
-//   - message: A message associated with the response
-//   - data: The primary data in the response (can be any type)
-//   - path: The request path of the API that generated the response
-//   - debug: Debugging information, if available
-//   - header: An optional header with various status-related fields
-//   - meta: Metadata about the API response such as version, locale, etc.
-//   - pagination: Pagination details, such as page number and total items
+// The input is first normalised (comments stripped, whitespace compacted) and
+// validated before unmarshaling. The following top-level JSON keys are
+// recognised and mapped to the corresponding wrapper field:
+//
+//	JSON key       wrapper field   Notes
+//	──────────────────────────────────────────────────────────────────────────
+//	"status_code"  statusCode      float64 → int
+//	"total"        total           float64 → int
+//	"message"      message         string
+//	"path"         path            string
+//	"data"         data            string/[]byte → json.RawMessage when valid
+//	                                JSON; any other type stored as-is
+//	"debug"        debug           map[string]any
+//	"header"       header          object → *header (code, text, type,
+//	                                description)
+//	"meta"         meta            object → *meta (api_version, locale,
+//	                                request_id, requested_time,
+//	                                custom_fields)
+//	"pagination"   pagination      object → *pagination (page, per_page,
+//	                                total_pages, total_items, is_last)
+//
+// Unknown top-level keys are silently ignored. Missing keys leave the
+// corresponding field at its zero value—no error is returned.
+//
+// Parameters:
+//   - `jsonStr`: the raw JSON string to parse; may contain JS-style comments
+//     or trailing commas, which are stripped during normalisation.
 //
 // Returns:
-//   - A pointer to a `wrapper` struct containing the parsed data
-//   - An error if the JSON string cannot be parsed or is invalid
 //
-// This function is responsible for taking raw JSON data and converting it into a
-// structured format, making it easier to work with in Go. It handles various
-// nested objects (like `header`, `meta`, and `pagination`), checking for the
-// presence of keys and converting them into their appropriate types.
+// a non-nil *wrapper and a nil error on success.
+// Returns nil, err when jsonStr is empty, fails normalisation, or is not
+// valid JSON after normalisation.
+//
+// Example:
+//
+//	jsonStr := `{
+//	    "status_code": 200,
+//	    "message":     "OK",
+//	    "path":        "/api/v1/users",
+//	    "data": [
+//	        {"id": "u1", "username": "alice"},
+//	        {"id": "u2", "username": "bob"}
+//	    ],
+//	    "pagination": {
+//	        "page": 1, "per_page": 2,
+//	        "total_items": 42, "total_pages": 21,
+//	        "is_last": false
+//	    },
+//	    "meta": {
+//	        "request_id":     "req_abc123",
+//	        "api_version":    "v1.0.0",
+//	        "locale":         "en_US",
+//	        "requested_time": "2026-03-09T07:00:00Z"
+//	    }
+//	}`
+//
+//	w, err := replify.UnwrapJSON(jsonStr)
+//	if err != nil {
+//	    log.Fatalf("parse error: %v", err)
+//	}
+//	fmt.Println(w.JSONBodyParser().Get("0").Get("username").String()) // "alice"
+//	fmt.Println(w.StatusCode())                                       // 200
+//	fmt.Println(w.Pagination().TotalItems())                          // 42
 func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	if strutil.IsEmpty(jsonStr) {
 		return nil, NewError("JSON string is required")

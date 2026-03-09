@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"time"
 )
 
 // FileExists reports whether a file exists at the given path.
@@ -231,6 +232,62 @@ func FileSize(path string) (int64, error) {
 		return 0, err
 	}
 	return fi.Size(), nil
+}
+
+// FileMode returns the permission bits (os.FileMode) of the file at the given
+// path.
+//
+// Symbolic links are followed; the mode of the link target is returned.
+//
+// Parameters:
+//   - `path`: the file system path to inspect.
+//
+// Returns:
+//
+//	(os.FileMode, error): the file permission bits and nil on success, or 0
+//	and a non-nil error if the file does not exist or cannot be stat'd.
+//
+// Example:
+//
+//	mode, err := sysx.FileMode("/etc/passwd")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Printf("%o\n", mode) // e.g. "644"
+func FileMode(path string) (os.FileMode, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	return fi.Mode().Perm(), nil
+}
+
+// FileModTime returns the modification time of the file at the given path.
+//
+// Symbolic links are followed; the modification time of the link target is
+// returned.
+//
+// Parameters:
+//   - `path`: the file system path to inspect.
+//
+// Returns:
+//
+//	(time.Time, error): the modification time and nil on success, or the zero
+//	time and a non-nil error if the file does not exist or cannot be stat'd.
+//
+// Example:
+//
+//	t, err := sysx.FileModTime("/var/log/syslog")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Println(t.Format(time.RFC3339))
+func FileModTime(path string) (time.Time, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return fi.ModTime(), nil
 }
 
 // TempDir returns the default directory to use for temporary files.

@@ -13,6 +13,9 @@
 //   - type.go      — struct definitions (Command, CommandResult, SafeFileWriter), getters
 //   - command.go   — command builder, Execute/Run/Output, and convenience functions
 //   - file.go      — file existence/permission checks, read/write/atomic utilities
+//   - dir.go       — directory creation, removal, and listing utilities
+//   - path.go      — path manipulation helpers (base name, dir name, extension, join)
+//   - io.go        — stream-oriented I/O helpers (CountLines, Head, CopyFile)
 //   - net.go       — IP classification, port probing, address helpers, connectivity
 //   - env.go       — environment variable helpers
 //   - os.go        — OS detection and version
@@ -107,6 +110,8 @@
 // sysx.IsReadable(path)    // true when file is readable by owner
 // sysx.IsWritable(path)    // true when file can be opened for writing
 // sysx.FileSize(path)      // size of file in bytes
+// sysx.FileMode(path)      // permission bits of the file
+// sysx.FileModTime(path)   // last modification time of the file
 // sysx.HomeDir()           // user's home directory
 // sysx.WorkingDir()        // current working directory
 //
@@ -130,6 +135,31 @@
 // sysx.AtomicWriteFile(path, data)        // temp-file + rename, prevents partial reads
 // sysx.WriteFileLocked(path, data)        // per-path in-process mutex, serialises writers
 // sysx.NewSafeFileWriter(path)            // reusable mutex-protected writer for one path
+//
+// # Directory Utilities
+//
+// sysx.CreateDir(path)               // create directory and all parents (MkdirAll, 0755)
+// sysx.RemoveDir(path)               // remove directory and all contents (RemoveAll)
+// sysx.ListDir(path)                 // []string of all entry names in a directory
+// sysx.ListDirFiles(path)            // []string of regular file names only
+// sysx.ListDirDirs(path)             // []string of subdirectory names only
+//
+// # Path Helpers
+//
+// sysx.BaseName(path)                // last element of path (filepath.Base)
+// sysx.DirName(path)                 // directory component of path (filepath.Dir)
+// sysx.Ext(path)                     // file extension including leading dot (filepath.Ext)
+// sysx.AbsPath(path)                 // absolute representation of path (filepath.Abs)
+// sysx.JoinPath(elem...)             // join path elements (filepath.Join)
+// sysx.CleanPath(path)               // lexically clean path (filepath.Clean)
+// sysx.SplitPath(path)               // split into (dir, file) components
+//
+// # Stream I/O Utilities
+//
+// sysx.CountLines(path)              // count newline-delimited lines in a file
+// sysx.Head(path, n)                 // first n lines of a file as []string
+// sysx.CopyFile(src, dst)            // copy a file from src to dst
+// sysx.TruncateFile(path, size)      // truncate or extend a file to size bytes
 //
 // # Network Utilities
 //
@@ -161,5 +191,22 @@
 // sysx.PingHost(host)                              // TCP probe to port 80, 5s timeout
 // sysx.CheckTCPConn(host, port, timeout)     // TCP connect with explicit timeout
 //
-// All functions in this package are safe for concurrent use.
+// # Concurrency and Safety Notes
+//
+// All exported functions in this package are safe for concurrent use.
+// WriteFileLocked and SafeFileWriter provide in-process serialisation via
+// sync.Mutex. For cross-process atomicity, use AtomicWriteFile which relies on
+// the atomic rename(2) syscall on POSIX systems.
+//
+// # Cross-Platform Notes
+//
+// Path separator: use JoinPath and CleanPath instead of manual string
+// concatenation to ensure correct behaviour on all platforms.
+//
+// File permissions: mode bits set by CreateDir (0755) and write functions
+// (0644) are subject to the process umask on Unix. On Windows, mode bits are
+// an approximation; all files typically report as executable.
+//
+// Symlinks: IsFile, IsDir, FileSize, FileMode, and FileModTime follow symbolic
+// links. IsSymlink uses os.Lstat and does not follow links.
 package sysx

@@ -1679,3 +1679,502 @@ func TestSysx_PingHost_DoesNotPanic(t *testing.T) {
 	// Just verify the function doesn't panic.
 	_ = sysx.PingHost("127.0.0.1")
 }
+
+// ///////////////////////////
+// Section: Directory utility tests
+// ///////////////////////////
+
+func TestSysx_CreateDir(t *testing.T) {
+	t.Parallel()
+	base, err := os.MkdirTemp("", "sysx_mkdir_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(base)
+
+	nested := base + "/a/b/c"
+	if err := sysx.CreateDir(nested); err != nil {
+		t.Fatalf("CreateDir(%q) error = %v", nested, err)
+	}
+	if !sysx.DirExists(nested) {
+		t.Errorf("CreateDir(%q): directory does not exist after creation", nested)
+	}
+	// Idempotent: calling again should be a no-op.
+	if err := sysx.CreateDir(nested); err != nil {
+		t.Errorf("CreateDir(%q) second call error = %v", nested, err)
+	}
+}
+
+func TestSysx_RemoveDir(t *testing.T) {
+	t.Parallel()
+	dir, err := os.MkdirTemp("", "sysx_rmdir_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Create a nested structure to verify recursive removal.
+	nested := dir + "/sub/dir"
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := sysx.RemoveDir(dir); err != nil {
+		t.Fatalf("RemoveDir(%q) error = %v", dir, err)
+	}
+	if sysx.DirExists(dir) {
+		t.Errorf("RemoveDir(%q): directory still exists after removal", dir)
+	}
+	// Calling on a non-existent path should not error.
+	if err := sysx.RemoveDir(dir + "_nonexistent"); err != nil {
+		t.Errorf("RemoveDir non-existent path: got error %v, want nil", err)
+	}
+}
+
+func TestSysx_ListDir(t *testing.T) {
+	t.Parallel()
+	dir, err := os.MkdirTemp("", "sysx_listdir_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Create some entries.
+	names := []string{"alpha.txt", "beta.txt", "gamma"}
+	for _, name := range names {
+		path := dir + "/" + name
+		if err := os.WriteFile(path, []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := sysx.ListDir(dir)
+	if err != nil {
+		t.Fatalf("ListDir(%q) error = %v", dir, err)
+	}
+	if len(got) != len(names) {
+		t.Errorf("ListDir len = %d; want %d", len(got), len(names))
+	}
+}
+
+func TestSysx_ListDir_Error(t *testing.T) {
+	t.Parallel()
+	_, err := sysx.ListDir("/nonexistent_sysx_dir_xyz")
+	if err == nil {
+		t.Error("ListDir on non-existent path should return error")
+	}
+}
+
+func TestSysx_ListDirFiles(t *testing.T) {
+	t.Parallel()
+	dir, err := os.MkdirTemp("", "sysx_listfiles_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Create a file and a subdirectory.
+	if err := os.WriteFile(dir+"/file.txt", []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(dir+"/subdir", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	files, err := sysx.ListDirFiles(dir)
+	if err != nil {
+		t.Fatalf("ListDirFiles(%q) error = %v", dir, err)
+	}
+	if len(files) != 1 || files[0] != "file.txt" {
+		t.Errorf("ListDirFiles = %v; want [file.txt]", files)
+	}
+}
+
+func TestSysx_ListDirDirs(t *testing.T) {
+	t.Parallel()
+	dir, err := os.MkdirTemp("", "sysx_listdirs_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(dir)
+
+	// Create a file and a subdirectory.
+	if err := os.WriteFile(dir+"/file.txt", []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(dir+"/subdir", 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	dirs, err := sysx.ListDirDirs(dir)
+	if err != nil {
+		t.Fatalf("ListDirDirs(%q) error = %v", dir, err)
+	}
+	if len(dirs) != 1 || dirs[0] != "subdir" {
+		t.Errorf("ListDirDirs = %v; want [subdir]", dirs)
+	}
+}
+
+// ///////////////////////////
+// Section: Path helper tests
+// ///////////////////////////
+
+func TestSysx_BaseName(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"/etc/hosts", "hosts"},
+		{"/usr/bin/", "bin"},
+		{"file.txt", "file.txt"},
+		{"", "."},
+	}
+	for _, tc := range cases {
+		got := sysx.BaseName(tc.path)
+		if got != tc.want {
+			t.Errorf("BaseName(%q) = %q; want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestSysx_DirName(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"/etc/hosts", "/etc"},
+		{"/usr/bin/git", "/usr/bin"},
+		{"file.txt", "."},
+		{"", "."},
+	}
+	for _, tc := range cases {
+		got := sysx.DirName(tc.path)
+		if got != tc.want {
+			t.Errorf("DirName(%q) = %q; want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestSysx_Ext(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"archive.tar.gz", ".gz"},
+		{"/etc/hosts", ""},
+		{"README.md", ".md"},
+		{"noext", ""},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		got := sysx.Ext(tc.path)
+		if got != tc.want {
+			t.Errorf("Ext(%q) = %q; want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestSysx_AbsPath(t *testing.T) {
+	t.Parallel()
+	// An already-absolute path should be returned unchanged (modulo cleaning).
+	abs, err := sysx.AbsPath("/etc/hosts")
+	if err != nil {
+		t.Fatalf("AbsPath error = %v", err)
+	}
+	if abs != "/etc/hosts" {
+		t.Errorf("AbsPath(%q) = %q; want %q", "/etc/hosts", abs, "/etc/hosts")
+	}
+	// A relative path must produce an absolute result.
+	rel, err := sysx.AbsPath(".")
+	if err != nil {
+		t.Fatalf("AbsPath(.) error = %v", err)
+	}
+	if !strings.HasPrefix(rel, "/") {
+		t.Errorf("AbsPath(.) = %q; want absolute path", rel)
+	}
+}
+
+func TestSysx_JoinPath(t *testing.T) {
+	t.Parallel()
+	got := sysx.JoinPath("/usr", "local", "bin")
+	if got != "/usr/local/bin" {
+		t.Errorf("JoinPath = %q; want %q", got, "/usr/local/bin")
+	}
+	got = sysx.JoinPath("a", "b", "c")
+	if got != "a/b/c" {
+		t.Errorf("JoinPath(a,b,c) = %q; want %q", got, "a/b/c")
+	}
+}
+
+func TestSysx_CleanPath(t *testing.T) {
+	t.Parallel()
+	got := sysx.CleanPath("/usr//local/./bin/../lib")
+	if got != "/usr/local/lib" {
+		t.Errorf("CleanPath = %q; want %q", got, "/usr/local/lib")
+	}
+	if sysx.CleanPath("") != "." {
+		t.Errorf("CleanPath(\"\") = %q; want %q", sysx.CleanPath(""), ".")
+	}
+}
+
+func TestSysx_SplitPath(t *testing.T) {
+	t.Parallel()
+	dir, file := sysx.SplitPath("/usr/local/bin/git")
+	if dir != "/usr/local/bin/" {
+		t.Errorf("SplitPath dir = %q; want %q", dir, "/usr/local/bin/")
+	}
+	if file != "git" {
+		t.Errorf("SplitPath file = %q; want %q", file, "git")
+	}
+}
+
+// ///////////////////////////
+// Section: File info tests
+// ///////////////////////////
+
+func TestSysx_FileMode(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.Skip("file mode bits are approximations on Windows")
+	}
+	f, err := os.CreateTemp("", "sysx_mode_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.Close()
+	defer os.Remove(path)
+
+	// Set an explicit mode.
+	if err := os.Chmod(path, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	mode, err := sysx.FileMode(path)
+	if err != nil {
+		t.Fatalf("FileMode error = %v", err)
+	}
+	if mode != 0o644 {
+		t.Errorf("FileMode = %o; want %o", mode, 0o644)
+	}
+
+	_, err = sysx.FileMode(path + "_nonexistent")
+	if err == nil {
+		t.Error("FileMode on non-existent path should return error")
+	}
+}
+
+func TestSysx_FileModTime(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_modtime_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.Close()
+	defer os.Remove(path)
+
+	before := time.Now().Add(-time.Second)
+	mt, err := sysx.FileModTime(path)
+	if err != nil {
+		t.Fatalf("FileModTime error = %v", err)
+	}
+	if mt.Before(before) {
+		t.Errorf("FileModTime = %v; want after %v", mt, before)
+	}
+
+	_, err = sysx.FileModTime(path + "_nonexistent")
+	if err == nil {
+		t.Error("FileModTime on non-existent path should return error")
+	}
+}
+
+// ///////////////////////////
+// Section: I/O utility tests
+// ///////////////////////////
+
+func TestSysx_CountLines(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_countlines_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("line1\nline2\nline3\n")
+	f.Close()
+	defer os.Remove(path)
+
+	n, err := sysx.CountLines(path)
+	if err != nil {
+		t.Fatalf("CountLines error = %v", err)
+	}
+	if n != 3 {
+		t.Errorf("CountLines = %d; want 3", n)
+	}
+}
+
+func TestSysx_CountLines_Empty(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_countlines_empty_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.Close()
+	defer os.Remove(path)
+
+	n, err := sysx.CountLines(path)
+	if err != nil {
+		t.Fatalf("CountLines empty file error = %v", err)
+	}
+	if n != 0 {
+		t.Errorf("CountLines empty = %d; want 0", n)
+	}
+}
+
+func TestSysx_CountLines_Error(t *testing.T) {
+	t.Parallel()
+	_, err := sysx.CountLines("/nonexistent_sysx_file_xyz")
+	if err == nil {
+		t.Error("CountLines on non-existent file should return error")
+	}
+}
+
+func TestSysx_Head(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_head_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("line1\nline2\nline3\nline4\nline5\n")
+	f.Close()
+	defer os.Remove(path)
+
+	lines, err := sysx.Head(path, 3)
+	if err != nil {
+		t.Fatalf("Head error = %v", err)
+	}
+	if len(lines) != 3 {
+		t.Fatalf("Head len = %d; want 3", len(lines))
+	}
+	for i, want := range []string{"line1", "line2", "line3"} {
+		if lines[i] != want {
+			t.Errorf("Head[%d] = %q; want %q", i, lines[i], want)
+		}
+	}
+}
+
+func TestSysx_Head_FewerLinesThanN(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_head_short_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("only\ntwo\n")
+	f.Close()
+	defer os.Remove(path)
+
+	lines, err := sysx.Head(path, 100)
+	if err != nil {
+		t.Fatalf("Head error = %v", err)
+	}
+	if len(lines) != 2 {
+		t.Errorf("Head len = %d; want 2", len(lines))
+	}
+}
+
+func TestSysx_Head_Zero(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_head_zero_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("line1\nline2\n")
+	f.Close()
+	defer os.Remove(path)
+
+	lines, err := sysx.Head(path, 0)
+	if err != nil {
+		t.Fatalf("Head(0) error = %v", err)
+	}
+	if len(lines) != 0 {
+		t.Errorf("Head(0) len = %d; want 0", len(lines))
+	}
+}
+
+func TestSysx_CopyFile(t *testing.T) {
+	t.Parallel()
+	src, err := os.CreateTemp("", "sysx_copy_src_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	srcPath := src.Name()
+	content := []byte("copy file content")
+	src.Write(content)
+	src.Close()
+	defer os.Remove(srcPath)
+
+	dstPath := srcPath + "_dst"
+	defer os.Remove(dstPath)
+
+	if err := sysx.CopyFile(srcPath, dstPath); err != nil {
+		t.Fatalf("CopyFile error = %v", err)
+	}
+	got, err := os.ReadFile(dstPath)
+	if err != nil {
+		t.Fatalf("ReadFile after CopyFile error = %v", err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("CopyFile content = %q; want %q", got, content)
+	}
+}
+
+func TestSysx_CopyFile_SrcNotFound(t *testing.T) {
+	t.Parallel()
+	err := sysx.CopyFile("/nonexistent_sysx_src_xyz", "/tmp/sysx_dst_xyz")
+	if err == nil {
+		t.Error("CopyFile with non-existent src should return error")
+	}
+}
+
+func TestSysx_TruncateFile(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_trunc_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("some content here")
+	f.Close()
+	defer os.Remove(path)
+
+	if err := sysx.TruncateFile(path, 4); err != nil {
+		t.Fatalf("TruncateFile error = %v", err)
+	}
+	got, _ := os.ReadFile(path)
+	if string(got) != "some" {
+		t.Errorf("TruncateFile content = %q; want %q", got, "some")
+	}
+}
+
+func TestSysx_TruncateFile_ToZero(t *testing.T) {
+	t.Parallel()
+	f, err := os.CreateTemp("", "sysx_trunc_zero_*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := f.Name()
+	f.WriteString("data")
+	f.Close()
+	defer os.Remove(path)
+
+	if err := sysx.TruncateFile(path, 0); err != nil {
+		t.Fatalf("TruncateFile(0) error = %v", err)
+	}
+	got, _ := os.ReadFile(path)
+	if len(got) != 0 {
+		t.Errorf("TruncateFile(0) content = %q; want empty", got)
+	}
+}

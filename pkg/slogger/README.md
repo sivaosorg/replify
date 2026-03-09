@@ -390,7 +390,7 @@ Human-readable output, ideal for development and CLI tools:
 f := slogger.NewTextFormatter(os.Stderr).
     WithTimeFormat(time.RFC3339Nano).  // custom timestamp layout
     WithEnableCaller().                // append caller=pkg/foo/bar.go:42
-    WithDisableColors().               // disable ANSI codes (e.g. for files)
+    WithDisableColor().               // disable ANSI codes (e.g. for files)
     WithDisableTimestamp()             // omit timestamp (when infra adds its own)
 ```
 
@@ -506,7 +506,7 @@ disabled automatically for file writers, pipes, and CI environments.
 Force-disable colors:
 
 ```go
-f := slogger.NewTextFormatter(os.Stderr).WithDisableColors()
+f := slogger.NewTextFormatter(os.Stderr).WithDisableColor()
 ```
 
 Color mapping:

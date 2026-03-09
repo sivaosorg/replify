@@ -282,6 +282,146 @@ type LevelWriterHook struct {
 	levels    []Level
 }
 
+// SloggerConfig mirrors the slogger section of configs/slogger.yaml.
+//
+// All fields are optional; unset fields fall back to production-safe defaults
+// (InfoLevel, TextFormatter, os.Stderr).
+type SloggerConfig struct {
+	// Level is the minimum severity that will be emitted.
+	// Accepted values (case-insensitive): "trace", "debug", "info", "warn", "error".
+	// Invalid or empty values fall back to InfoLevel.
+	Level string `yaml:"level" json:"level"`
+
+	// Formatter controls the output structure of each log line.
+	// Use "text" for human-readable key=value lines (development / CLI tools)
+	// or "json" for single-line JSON objects (log aggregators, Loki, Datadog).
+	// Defaults to "text" when unset.
+	Formatter string `yaml:"formatter" json:"formatter"`
+
+	// Output configures where log entries are delivered (console, file, or both).
+	Output OutputConfig `yaml:"output" json:"output"`
+
+	// File configures the base directory and per-level file names used when
+	// file output is enabled.
+	File FileConfig `yaml:"file" json:"file"`
+
+	// Rotation configures automatic log-file rotation by size and/or age.
+	Rotation RotationConfig `yaml:"rotation" json:"rotation"`
+
+	// Archive configures how rotated files are stored after rotation.
+	Archive ArchiveConfig `yaml:"archive" json:"archive"`
+
+	// Caller controls capture of the source file and line number on each entry.
+	Caller CallerConfig `yaml:"caller" json:"caller"`
+
+	// Color controls ANSI colour codes in text-format output.
+	Color ColorConfig `yaml:"color" json:"color"`
+}
+
+// OutputConfig configures where log entries are delivered.
+type OutputConfig struct {
+	// Console writes every log entry to the standard output stream (os.Stdout).
+	// Recommended for containerised workloads where the runtime collects stdout.
+	Console bool `yaml:"console" json:"console"`
+
+	// File writes every log entry to level-specific files in addition to any
+	// console output. Requires File.Directory to be set.
+	// Set to false when running in Kubernetes or other stdout-first environments.
+	File bool `yaml:"file" json:"file"`
+}
+
+// FileConfig configures the base directory and per-level file names for
+// file-based log output. All paths are relative to the working directory
+// unless an absolute path is given.
+type FileConfig struct {
+	// Directory is the base directory for all log files.
+	// It is created automatically (with mode 0755) if it does not exist.
+	// Recommended: use an absolute path in production (e.g. /var/log/myapp).
+	Directory string `yaml:"directory" json:"directory"`
+
+	// InfoFile is the filename for INFO-level entries inside Directory.
+	InfoFile string `yaml:"info_file" json:"info_file"`
+
+	// WarnFile is the filename for WARN-level entries inside Directory.
+	WarnFile string `yaml:"warn_file" json:"warn_file"`
+
+	// ErrorFile is the filename for ERROR-level (and above) entries inside Directory.
+	// Fatal and Panic entries are also routed here.
+	ErrorFile string `yaml:"error_file" json:"error_file"`
+
+	// DebugFile is the filename for DEBUG-level entries inside Directory.
+	// Trace-level entries are also routed here when no dedicated trace file exists.
+	DebugFile string `yaml:"debug_file" json:"debug_file"`
+}
+
+// RotationConfig configures automatic log-file rotation.
+// Either or both of the size and age policies can be active simultaneously;
+// the first threshold that is exceeded triggers rotation.
+type RotationConfig struct {
+	// IsEnabled activates the rotation subsystem. When false, no rotation
+	// occurs regardless of the other fields.
+	IsEnabled bool `yaml:"enabled" json:"enabled"`
+
+	// MaxSizeMB is the maximum size in megabytes a log file may reach before
+	// it is rotated. Very small values (< 10 MB) cause frequent I/O on
+	// high-throughput services. Recommended range: 50–200 MB.
+	// Set to 0 to disable size-based rotation.
+	MaxSizeMB int64 `yaml:"max_size_mb" json:"max_size_mb"`
+
+	// MaxAgeDays is the maximum number of days a log file may be kept open
+	// before it is rotated, regardless of its current size.
+	// Set to 0 to disable age-based rotation.
+	MaxAgeDays int `yaml:"max_age_days" json:"max_age_days"`
+
+	// Compress zips rotated files to reduce disk usage.
+	// Compression ratios for plain-text logs are typically 80–95 %.
+	// Recommended for long-retention or low-disk environments.
+	Compress bool `yaml:"compress" json:"compress"`
+}
+
+// ArchiveConfig configures how rotated log files are archived.
+// Rotated files are stored under Path/<date>/ where the date sub-directory
+// name is derived from Format (a Go time layout string, e.g. "2006-01-02").
+// When IsEnabled is false the archive step is skipped and rotated files are
+// written directly next to the active log file.
+type ArchiveConfig struct {
+	// IsEnabled activates date-bucketed archival of rotated files.
+	// When false, rotated files are placed alongside the active log file
+	// without a date sub-directory.
+	IsEnabled bool `yaml:"enabled" json:"enabled"`
+
+	// Path is the base directory for archived files.
+	// Rotated files are stored at Path/<date>/<timestamp>_<level>.{log,zip}.
+	// The directory is created automatically if it does not exist.
+	Path string `yaml:"path" json:"path"`
+
+	// Format is the Go time layout string used to name the date sub-directory
+	// inside Path (e.g. "2006-01-02" for ISO 8601 dates).
+	// Must be a valid Go time layout; defaults to "2006-01-02" when unset.
+	Format string `yaml:"format" json:"format"`
+}
+
+// CallerConfig controls whether the source file and line number of the log
+// call-site are captured and appended to each log entry.
+// Enabling this adds a small runtime overhead (runtime.Callers) per log call;
+// it is recommended in development but can be disabled in production.
+type CallerConfig struct {
+	// IsEnabled turns on call-site capture (file:line) for every log entry.
+	// Recommended: true in development/debugging, false in production.
+	IsEnabled bool `yaml:"enabled" json:"enabled"`
+}
+
+// ColorConfig controls whether ANSI colour codes are applied to log output.
+// Colour is applied only when the formatter is TextFormatter and the
+// destination writer is a TTY; non-TTY writers (files, pipes, CI) are never
+// colourised regardless of this setting.
+type ColorConfig struct {
+	// IsEnabled opts in to ANSI colour codes for text-format output.
+	// Has no effect when Formatter is set to "json" or when the output
+	// writer is not a TTY (e.g. a file or a CI pipeline).
+	IsEnabled bool `yaml:"enabled" json:"enabled"`
+}
+
 // ///////////////////////////////////////////////////////////////////////////
 // Internal — sampler and bucket
 // ///////////////////////////////////////////////////////////////////////////

@@ -22,15 +22,29 @@ func (f *TextFormatter) WithTimeFormat(fmt string) *TextFormatter {
 	return f
 }
 
-// WithDisableColors disables ANSI colour codes in the output.
+// WithDisableColor disables ANSI colour codes in the output.
 // Useful when writing to files, pipes, or CI environments that do not
 // interpret escape sequences.
 //
 // Returns:
 //
 // the receiver, for method chaining.
-func (f *TextFormatter) WithDisableColors() *TextFormatter {
+func (f *TextFormatter) WithDisableColor() *TextFormatter {
 	f.disableColors = true
+	return f
+}
+
+// WithEnableColor re-enables ANSI colour codes in the output.
+// This is the counterpart to WithDisableColors and is useful when colour was
+// previously suppressed but the destination is known to be a colour-capable
+// terminal or when constructing a formatter that starts with colours disabled
+// and opts back in conditionally (e.g. based on a config flag).
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (f *TextFormatter) WithEnableColor() *TextFormatter {
+	f.disableColors = false
 	return f
 }
 

@@ -683,7 +683,7 @@ func applyConfig(cfg config.SloggerConfig) error {
         if cfg.Color.Enabled {
             formatter = slogger.NewTextFormatter(output)
         } else {
-            formatter = slogger.NewTextFormatter(output).WithDisableColors()
+            formatter = slogger.NewTextFormatter(output).WithDisableColor()
         }
     }
 

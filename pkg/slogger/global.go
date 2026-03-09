@@ -2,7 +2,9 @@ package slogger
 
 import (
 	"context"
+	"os"
 	"sync/atomic"
+	"time"
 	"unsafe"
 )
 
@@ -85,4 +87,122 @@ func Errorf(format string, args ...any) {
 // use with the global logger.
 func GlobalWithContextFields(ctx context.Context, fields ...Field) context.Context {
 	return WithContextFields(ctx, fields...)
+}
+
+// ApplyGlobalConfig builds a Logger from cfg and installs it as the package-level
+// global logger, replacing any previously set logger atomically.
+//
+// The function performs the following steps in order:
+//
+//  1. Parse cfg.Level into a Level constant; falls back to InfoLevel on error.
+//  2. Choose the output writer: os.Stdout when colour is enabled (to preserve
+//     ANSI escape codes), otherwise a colour-stripped Stdout wrapper.
+//  3. Instantiate the Formatter selected by cfg.Formatter ("json" or "text").
+//     When cfg.Color.IsEnabled is true the formatter is configured with colour
+//     support; otherwise colours are explicitly disabled.
+//  4. Build a Logger with the resolved level, formatter, output writer, and
+//     caller-reporting flag.
+//  5. If cfg.Output.File and cfg.Rotation.IsEnabled are both true, attach a
+//     rotating LevelFileWriter that writes to cfg.File.Directory, rotating
+//     after cfg.Rotation.MaxSizeMB megabytes or cfg.Rotation.MaxAgeDays days,
+//     optionally compressing archived files as ZIP.
+//  6. Install the resulting Logger as the global logger via SetGlobalLogger.
+//
+// ApplyGlobalConfig is safe to call multiple times; each call fully replaces the
+// previous global logger. It is not safe to call concurrently with itself.
+//
+// Parameters:
+//   - `cfg`: the configuration to apply; see [SloggerConfig] for field details.
+//
+// Returns:
+//
+// nil (reserved for future validation errors).
+//
+// Example:
+//
+//	func main() {
+//		err := slogger.ApplyGlobalConfig(slogger.SloggerConfig{
+//			Level:     "debug",
+//			Formatter: "text",
+//			Output: slogger.OutputConfig{
+//				Console: true,
+//				File:    true,
+//			},
+//			File: slogger.FileConfig{
+//				Directory: "logs",
+//				InfoFile:  "info.log",
+//				WarnFile:  "warn.log",
+//				ErrorFile: "error.log",
+//				DebugFile: "debug.log",
+//			},
+//			Rotation: slogger.RotationConfig{
+//				IsEnabled:  true,
+//				MaxSizeMB:  100,
+//				MaxAgeDays: 30,
+//				Compress:   true,
+//			},
+//			Archive: slogger.ArchiveConfig{
+//				IsEnabled: true,
+//				Path:      "logs/archived",
+//				Format:    "2006-01-02",
+//			},
+//			Caller: slogger.CallerConfig{IsEnabled: true},
+//			Color:  slogger.ColorConfig{IsEnabled: true},
+//		})
+//		if err != nil {
+//			panic(err)
+//		}
+//		slogger.Info("logger ready")
+//	}
+func ApplyGlobalConfig(cfg SloggerConfig) error {
+	// 1. Parse level.
+	lvl, err := ParseLevel(cfg.Level)
+	if err != nil {
+		lvl = InfoLevel
+	}
+
+	// 2. Choose output writer.
+	output := Stdout()
+	if cfg.Color.IsEnabled {
+		output = os.Stdout
+	}
+
+	// 3. Choose formatter.
+	var formatter Formatter
+	switch cfg.Formatter {
+	case "json":
+		if cfg.Color.IsEnabled {
+			formatter = NewJSONFormatter().WithEnableColor()
+		} else {
+			formatter = NewJSONFormatter()
+		}
+	default:
+		if cfg.Color.IsEnabled {
+			formatter = NewTextFormatter(output).WithEnableColor()
+		} else {
+			formatter = NewTextFormatter(output).WithDisableColor()
+		}
+	}
+
+	// 4. Build the logger using the fluent API.
+	log := NewLogger().
+		WithLevel(lvl).
+		WithFormatter(formatter).
+		WithOutput(output).
+		WithCaller(cfg.Caller.IsEnabled)
+
+	// 5. Enable file rotation if configured.
+	if cfg.Output.File && cfg.Rotation.IsEnabled {
+		rotOpts := RotationOptions{
+			Dir:      cfg.File.Directory,
+			MaxBytes: cfg.Rotation.MaxSizeMB * int64(1024) * 1024,
+			MaxAge:   time.Duration(cfg.Rotation.MaxAgeDays) * 24 * time.Hour,
+			Compress: cfg.Rotation.Compress,
+		}
+		log = log.WithRotation(rotOpts)
+	}
+
+	// 6. Set the global logger.
+	SetGlobalLogger(log)
+	return nil
 }

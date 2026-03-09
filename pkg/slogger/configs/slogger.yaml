@@ -1,0 +1,78 @@
+slogger:
+  # Minimum log level that will be emitted.
+  # Supported values: trace, debug, info, warn, error
+  # Recommended for production: info
+  # Performance note: trace and debug add overhead on hot paths.
+  level: debug
+
+  # Log formatter controls the output structure.
+  # Supported values: text, json
+  #   text — human-readable key=value lines; best for development and CLI tools
+  #   json — single-line JSON objects; required for log aggregators (Loki, Datadog, Elasticsearch)
+  # Recommended for production: json
+  formatter: text
+
+  output:
+    # Write log entries to stdout/stderr.
+    # Recommended for containerised workloads — let the container runtime collect stdout.
+    console: true
+
+    # Write log entries to level-specific files in addition to console output.
+    # Set to false when running in Kubernetes (stdout is sufficient).
+    file: true
+
+  file:
+    # Base directory for all log files. Created automatically if absent.
+    # Recommended: use an absolute path in production (/var/log/my-service).
+    directory: logs
+
+    # File names for each severity level.
+    # These correspond to the four level buckets managed by LevelFileWriter.
+    # Trace-level entries route to debug.log; Fatal/Panic route to error.log.
+    info_file:  info.log
+    warn_file:  warn.log
+    error_file: error.log
+    debug_file: debug.log
+
+  rotation:
+    # Enable automatic file rotation when a threshold is reached.
+    enabled: true
+
+    # Maximum size in megabytes before the active file is rotated.
+    # Performance note: very small values (< 10 MB) cause frequent I/O on
+    # high-throughput services. Recommended: 50–200 MB.
+    max_size_mb: 100
+
+    # Maximum age in days before the active file is rotated, regardless of size.
+    # Set to 0 to disable age-based rotation.
+    max_age_days: 30
+
+    # Compress rotated files using ZIP to reduce disk usage.
+    # Compression ratio is typically 80–95% for log files.
+    # Recommended for long-retention environments.
+    compress: true
+
+  archive:
+    # Enable archival of rotated files into a date-bucketed sub-directory.
+    enabled: true
+
+    # Base path for the archive directory.
+    # Rotated files are stored under path/YYYY-MM-DD/timestamp_level.zip
+    path: logs/archived
+
+    # Date format for the archive sub-directory name.
+    # Must be a valid Go time layout string.
+    # Recommended: "2006-01-02" (ISO 8601 date)
+    format: "2006-01-02"
+
+  caller:
+    # Capture the source file and line number of the log call site.
+    # Adds a small runtime overhead (runtime.Callers) on every log call.
+    # Recommended: false in production, true in development/debugging.
+    enabled: true
+
+  color:
+    # Enable ANSI color codes in text-format output.
+    # Automatically disabled when the output writer is not a terminal (TTY).
+    # No effect when formatter is set to json.
+    enabled: true

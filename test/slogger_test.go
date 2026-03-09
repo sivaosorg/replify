@@ -229,7 +229,7 @@ func TestSlogger_TextFormatter(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	log.Info("hello world", slogger.String("key", "val"))
@@ -258,7 +258,7 @@ func TestSlogger_TextFormatter_QuotedValues(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	log.Info("msg", slogger.String("msg", "hello world"))
 	out := buf.String()
@@ -340,7 +340,7 @@ func TestSlogger_Logger_New(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	log.Info("startup complete")
 	if !strings.Contains(buf.String(), "startup complete") {
@@ -358,7 +358,7 @@ func TestSlogger_Logger_With(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	child := log.With(slogger.String("component", "auth"))
 	child.Info("login attempt")
@@ -378,7 +378,7 @@ func TestSlogger_Logger_Named(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	db := log.Named("db")
 	rw := db.Named("reader")
@@ -395,7 +395,7 @@ func TestSlogger_Logger_Named_NoParent(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	named := log.Named("api")
 	named.Info("route registered")
@@ -432,7 +432,7 @@ func TestSlogger_Logger_IsLevelEnabled(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.WarnLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	if log.IsLevelEnabled(slogger.DebugLevel) {
 		t.Error("IsLevelEnabled(DebugLevel) should be false when min=WarnLevel")
@@ -467,7 +467,7 @@ func TestSlogger_Logger_SetOutput(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf1
-		o.Formatter = slogger.NewTextFormatter(&buf1).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf1).WithDisableColor()
 	})
 	log.Info("first destination")
 	if !strings.Contains(buf1.String(), "first destination") {
@@ -491,7 +491,7 @@ func TestSlogger_Logger_SetFormatter(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	log.SetFormatter(slogger.NewJSONFormatter())
 	log.Info("formatted as json")
@@ -528,7 +528,7 @@ func TestSlogger_Hooks(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	hook := &testHook{levels: []slogger.Level{slogger.ErrorLevel, slogger.WarnLevel}}
 	log.AddHook(hook)
@@ -598,7 +598,7 @@ func TestSlogger_Context_Logging(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	ctx := slogger.WithContextFields(context.Background(), slogger.String("req_id", "xyz"))
 	log.WithContext(ctx).Info("handling request")
@@ -618,7 +618,7 @@ func TestSlogger_Sampling(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors().WithDisableTimestamp()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp()
 		o.SamplingOpts = &slogger.SamplingOptions{
 			First:      3,
 			Period:     10 * time.Second,
@@ -642,7 +642,7 @@ func TestSlogger_Sampling_Thereafter(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors().WithDisableTimestamp()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp()
 		o.SamplingOpts = &slogger.SamplingOptions{
 			First:      2,
 			Period:     10 * time.Second,
@@ -670,7 +670,7 @@ func TestSlogger_GlobalLogger(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	original := slogger.GlobalLogger()
@@ -698,7 +698,7 @@ func TestSlogger_EntryMethods(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	ctx := context.Background()
@@ -730,7 +730,7 @@ func TestSlogger_EntryMethods_Panic(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	defer func() {
@@ -756,7 +756,7 @@ func TestSlogger_Fatal_Hook(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 	hook := &testHook{levels: []slogger.Level{slogger.FatalLevel}}
 	log.AddHook(hook)
@@ -793,7 +793,7 @@ func TestSlogger_Concurrent(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	const goroutines = 50
@@ -831,7 +831,7 @@ func TestSlogger_MultiWriter(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.InfoLevel
 		o.Output = mw
-		o.Formatter = slogger.NewTextFormatter(mw).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(mw).WithDisableColor()
 	})
 	log.Info("multiwriter test")
 	if !strings.Contains(buf1.String(), "multiwriter test") {
@@ -853,7 +853,7 @@ func TestSlogger_EntryAccessors(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 	})
 
 	hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
@@ -912,7 +912,7 @@ func TestSlogger_CallerInfoAccessors(t *testing.T) {
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 		o.CallerReporter = true
 	})
 
@@ -988,7 +988,7 @@ func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
 	defer lfw.Close()
 
 	var buf bytes.Buffer
-	formatter := slogger.NewTextFormatter(&buf).WithDisableColors()
+	formatter := slogger.NewTextFormatter(&buf).WithDisableColor()
 	log := slogger.New(func(o *slogger.Options) {
 		o.Level = slogger.TraceLevel
 		o.Output = &buf
@@ -1022,7 +1022,7 @@ func TestSlogger_WithRotation_Option(t *testing.T) {
 	log := slogger.New(
 		func(o *slogger.Options) {
 			o.Output = &buf
-			o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColors()
+			o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
 		},
 		slogger.WithRotation(slogger.RotationOptions{
 			Dir:      dir,

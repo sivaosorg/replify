@@ -1,5 +1,3 @@
-// Package truncate provides a set of OOP-style strategies to truncate strings
-// with support for customisable omission markers and positional control.
 package truncate
 
 // Position represents the location at which the omission marker is placed

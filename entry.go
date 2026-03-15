@@ -263,6 +263,7 @@ func WrapFrom(data map[string]any) (w *wrapper, err error) {
 func WrapOk(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusOK).
+		WithHeader(OK).
 		WithMessage(message).
 		WithBody(data)
 	return w

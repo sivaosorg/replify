@@ -225,14 +225,14 @@ strutil.JoinUnary(parts, "-")                  // "hello-world"
 ```go
 // Basic slugify
 strutil.Slugify("Hello World!")                    // "hello-world"
-strutil.SlugifySpecial("Hello_World!", "_")       // "hello_world"
+strutil.SlugifySpec("Hello_World!", "_")       // "hello_world"
 
 // URL-safe strings
 title := "10 Tips for Better Code"
 slug := strutil.Slugify(title)                     // "10-tips-for-better-code"
 
 // Custom separators
-strutil.SlugifySpecial("Hello World", "_")         // "hello_world"
+strutil.SlugifySpec("Hello World", "_")         // "hello_world"
 ```
 
 ### 8. Hashing
@@ -424,7 +424,7 @@ func generateCacheKey(prefix string, params ...string) string {
 | `PadRight(s string, size int, pad string) string` | Pad on right | `PadRight("5", 3, "0") // "500"` |
 | `Center(s string, size int, pad string) string` | Center string | `Center("hi", 6, " ") // "  hi  "` |
 | `Slugify(s string) string` | Create URL slug | `Slugify("Hi!") // "hi"` |
-| `SlugifySpecial(s, sep string) string` | Slug with custom separator | `SlugifySpecial("Hi", "_") // "hi"` |
+| `SlugifySpec(s, sep string) string` | Slug with custom separator | `SlugifySpec("Hi", "_") // "hi"` |
 | `Abbreviate(s string, maxLen int) string` | Abbreviate string | `Abbreviate("hello world", 8) // "hello..."` |
 
 ### Utilities

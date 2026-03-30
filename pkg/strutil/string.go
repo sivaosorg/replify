@@ -58,6 +58,29 @@ func IsEmpty(s string) bool {
 	return len(trimmed) == 0
 }
 
+// IsEmptyPtr checks if the provided string pointer is nil or points to an empty string.
+//
+// Parameters:
+//   - `s`: A pointer to a string that needs to be checked for emptiness.
+//
+// Returns:
+//
+//	A boolean value:
+//	 - true if the string pointer is nil or points to an empty string;
+//	 - false if the string pointer points to a non-empty string.
+//
+// Example:
+//
+//	result := IsEmptyPtr(nil) // result will be true
+//	result = IsEmptyPtr(&"   ") // result will be true
+//	result = IsEmptyPtr(&"Hello") // result will be false
+func IsEmptyPtr(s *string) bool {
+	if s == nil {
+		return true
+	}
+	return IsEmpty(*s)
+}
+
 // IsAnyEmpty checks if any of the provided strings are empty.
 //
 // This function takes a variadic number of string arguments and iterates through
@@ -89,6 +112,37 @@ func IsAnyEmpty(strings ...string) bool {
 	return false
 }
 
+// IsAnyEmptyPtr checks if any of the provided string pointers are nil or point to an empty string.
+//
+// This function takes a variadic number of string pointer arguments and iterates through
+// each string pointer to check if it is nil or points to an empty string (i.e., has a length of zero or consists
+// solely of whitespace characters). If any string pointer in the provided list is found
+// to be nil or points to an empty string, the function returns `true`. If all string pointers are non-nil and point to non-empty strings, it
+// returns `false`.
+//
+// Parameters:
+//   - `strings`: A variadic parameter that allows passing multiple string pointers to be checked.
+//
+// Returns:
+//   - `true` if at least one of the provided string pointers is nil or points to an empty string; `false` if all
+//     string pointers are non-nil and point to non-empty strings.
+//
+// Example:
+//
+//	result := IsAnyEmptyPtr(&"hello", nil, &"world") // result will be true because one of the string pointers is nil.
+//
+// Notes:
+//   - The function utilizes the IsEmptyPtr helper function to determine if a string pointer
+//     is considered empty, which may include strings that are only whitespace.
+func IsAnyEmptyPtr(strings ...*string) bool {
+	for _, s := range strings {
+		if IsEmptyPtr(s) {
+			return true
+		}
+	}
+	return false
+}
+
 // IsNotEmpty checks if the provided string is not empty or does not consist solely of whitespace characters.
 //
 // This function leverages the IsEmpty function to determine whether the input string `s`
@@ -111,6 +165,29 @@ func IsAnyEmpty(strings ...string) bool {
 //	result = IsNotEmpty("   ") // result will be false
 func IsNotEmpty(s string) bool {
 	return !IsEmpty(s)
+}
+
+// IsNotEmptyPtr checks if the provided string pointer is not nil and points to a non-empty string.
+//
+// Parameters:
+//   - `s`: A pointer to a string that needs to be checked for non-emptiness.
+//
+// Returns:
+//
+//	A boolean value:
+//	 - true if the string pointer is not nil and points to a non-empty string;
+//	 - false if the string pointer is nil or points to an empty string.
+//
+// Example:
+//
+//	result := IsNotEmptyPtr(nil) // result will be false
+//	result = IsNotEmptyPtr(&"") // result will be false
+//	result = IsNotEmptyPtr(&"Hello") // result will be true
+func IsNotEmptyPtr(s *string) bool {
+	if s == nil {
+		return false
+	}
+	return IsNotEmpty(*s)
 }
 
 // IsNoneEmpty checks if all provided strings are non-empty.
@@ -139,6 +216,39 @@ func IsNotEmpty(s string) bool {
 func IsNoneEmpty(strings ...string) bool {
 	for _, s := range strings {
 		if IsEmpty(s) {
+			return false
+		}
+	}
+	return true
+}
+
+// IsNoneEmptyPtr checks if all provided string pointers are non-nil and point to non-empty strings.
+//
+// This function takes a variadic number of string pointer arguments and iterates through
+// each string pointer to verify that none of them are nil or point to an empty string (i.e., have a length of zero
+// or consist solely of whitespace characters). If any string pointer in the provided list
+// is found to be nil or points to an empty string, the function immediately returns `false`. If all string pointers
+// are non-nil and point to non-empty strings, it returns `true`.
+//
+// Parameters:
+//   - `strings`: A variadic parameter that allows passing multiple string pointers to be checked.
+//
+// Returns:
+//   - `true` if all of the provided string pointers are non-nil and point to non-empty strings; `false` if at least one
+//     string pointer is nil or points to an empty string.
+//
+// Example:
+//
+//	result := IsNoneEmptyPtr(&"hello", &"world", &"!") // result will be true because all string pointers are non-nil and point to non-empty strings.
+//	result2 := IsNoneEmptyPtr(&"hello", nil, &"world") // result2 will be false because one of the string pointers is nil.
+//	result3 := IsNoneEmptyPtr(&"hello", &"", &"world") // result3 will be false because one of the string pointers points to an empty string.
+//
+// Notes:
+//   - The function utilizes the IsEmptyPtr helper function to determine if a string pointer
+//     is considered empty, which may include strings that are only whitespace.
+func IsNoneEmptyPtr(strings ...*string) bool {
+	for _, s := range strings {
+		if IsEmptyPtr(s) {
 			return false
 		}
 	}
@@ -184,6 +294,42 @@ func IsBlank(s string) bool {
 	return false
 }
 
+// IsBlankPtr checks if a string pointer is nil or points to a blank string (empty or contains only whitespace).
+//
+// This function determines if the input string pointer `s` is considered blank. A string pointer
+// is considered blank if it is either nil or points to an empty string or a string that consists solely of
+// whitespace characters (spaces, tabs, newlines, etc.).
+//
+// The function first checks if the string pointer is nil. If it is, it returns `true`.
+// If the string pointer is not nil, it uses the `IsBlank` helper function to check if the
+// string it points to is blank. If the string is blank, the function also returns `true`.
+// If neither condition is met, the function returns `false`, indicating that the string pointer
+// is not nil and points to a non-blank string.
+//
+// Parameters:
+//   - `s`: The input string pointer to check for blankness.
+//
+// Returns:
+//   - `true` if the string pointer is nil or points to a blank string (empty or contains only whitespace);
+//     `false` otherwise.
+//
+// Example:
+//
+//	result1 := IsBlankPtr(nil) // result1 will be true because the string pointer is nil.
+//	result2 := IsBlankPtr(&"") // result2 will be true because the string pointer points to an empty string.
+//	result3 := IsBlankPtr(&"   ") // result3 will be true because the string pointer points to a string with only spaces.
+//	result4 := IsBlankPtr(&"Hello") // result4 will be false because the string pointer points to a non-blank string.
+//
+// Notes:
+//   - This function provides a convenient way to check for blank string pointers by combining
+//     the nil check with the `IsBlank` function.
+func IsBlankPtr(s *string) bool {
+	if s == nil {
+		return true
+	}
+	return IsBlank(*s)
+}
+
 // IsNotBlank checks if a string is not blank (not empty and contains non-whitespace characters).
 //
 // This function serves as a logical negation of the `IsBlank` function. It checks
@@ -212,6 +358,36 @@ func IsNotBlank(s string) bool {
 	return !IsBlank(s)
 }
 
+// IsNotBlankPtr checks if a string pointer is not nil and points to a non-blank string.
+//
+// This function serves as a logical negation of the `IsBlankPtr` function. It checks
+// if the input string pointer `s` points to a non-blank string (i.e., a string that is neither empty nor consists solely of whitespace characters).
+// This is determined by first checking if the string pointer is nil (in which case it returns `false`),
+// and then calling the `IsNotBlank` helper function on the dereferenced string.
+//
+// Parameters:
+//   - `s`: The input string pointer to check for non-blankness.
+//
+// Returns:
+//   - `true` if the string pointer is not nil and points to a non-blank string;
+//     `false` if the string pointer is nil or points to a blank string.
+//
+// Example:
+//
+//	result1 := IsNotBlankPtr(&"Hello") // result1 will be true because the string pointer is not nil and points to a non-blank string.
+//	result2 := IsNotBlankPtr(&"   ") // result2 will be false because the string pointer points to a blank string.
+//	result3 := IsNotBlankPtr(nil) // result3 will be false because the string pointer is nil.
+//
+// Notes:
+//   - This function provides a convenient way to check for non-blank string pointers by combining
+//     the nil check with the `IsNotBlank` function.
+func IsNotBlankPtr(s *string) bool {
+	if s == nil {
+		return false
+	}
+	return IsNotBlank(*s)
+}
+
 // IsAnyBlank checks if any of the provided strings are blank (empty or containing only whitespace).
 //
 // This function iterates through a variadic list of strings and determines if at least
@@ -237,6 +413,38 @@ func IsNotBlank(s string) bool {
 func IsAnyBlank(strings ...string) bool {
 	for _, s := range strings {
 		if IsBlank(s) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsAnyBlankPtr checks if any of the provided string pointers are nil or point to a blank string.
+//
+// This function iterates through a variadic list of string pointers and determines if at least
+// one of them is considered blank. A string pointer is considered blank if it is either nil
+// or points to an empty string or a string that consists solely of whitespace characters.
+// The function returns `true` as soon as it finds a blank string pointer; if none of the
+// string pointers are blank, it returns `false`.
+//
+// Parameters:
+//   - `strings`: A variadic parameter that accepts one or more string pointers to check for blankness.
+//
+// Returns:
+//   - `true` if at least one of the provided string pointers is nil or points to a blank string;
+//     `false` if none of the string pointers are nil or point to a blank string.
+//
+// Example:
+//
+//	result1 := IsAnyBlankPtr(&"Hello", &"World", nil) // result1 will be true because the third element is a nil pointer.
+//	result2 := IsAnyBlankPtr(&"Hello", &"World") // result2 will be false because both string pointers point to non-blank strings.
+//
+// Notes:
+//   - This function provides a convenient way to check for blank string pointers by combining
+//     the nil check with the `IsBlankPtr` function.
+func IsAnyBlankPtr(strings ...*string) bool {
+	for _, s := range strings {
+		if IsBlankPtr(s) {
 			return true
 		}
 	}
@@ -273,6 +481,36 @@ func IsNoneBlank(strings ...string) bool {
 	return true
 }
 
+// IsNoneBlankPtr checks if none of the provided string pointers are nil or point to a blank string.
+//
+// This function iterates through a variadic list of string pointers and returns `false` if any of them
+// is blank. A string pointer is considered blank if it is either nil or points to an empty string or a string that consists solely of whitespace characters.
+// If all string pointers point to non-blank strings, it returns `true`.
+//
+// Parameters:
+//   - `strings`: A variadic parameter that accepts one or more string pointers to check for blankness.
+//
+// Returns:
+//   - `true` if none of the provided string pointers are nil or point to a blank string;
+//     `false` if at least one of the string pointers is nil or points to a blank string.
+//
+// Example:
+//
+//	result1 := IsNoneBlankPtr(&"Hello", &"World", &" ") // result1 will be false because the third element points to a blank string.
+//	result2 := IsNoneBlankPtr(&"Hello", &"World") // result2 will be true because both string pointers point to non-blank strings.
+//
+// Notes:
+//   - This function provides a convenient way to check for non-blank string pointers by combining
+//     the nil check with the `IsNoneBlank` function.
+func IsNoneBlankPtr(strings ...*string) bool {
+	for _, s := range strings {
+		if IsBlankPtr(s) {
+			return false
+		}
+	}
+	return true
+}
+
 // IsNumeric checks if the provided string contains only numeric digits (0-9).
 //
 // This function iterates through each character of the input string and verifies if each
@@ -301,6 +539,35 @@ func IsNumeric(str string) bool {
 		}
 	}
 	return true
+}
+
+// IsNumericPtr checks if the provided string pointer points to a string containing only numeric digits (0-9).
+//
+// This function first checks if the string pointer is nil. If it is, the function returns `false`.
+// If the pointer is not nil, it dereferences the pointer to get the actual string and then uses
+// the `IsNumeric` function to check if that string contains only numeric digits.
+//
+// Parameters:
+//   - `str`: The input string pointer to be checked for numeric characters.
+//
+// Returns:
+//   - `true` if the string pointer is not nil and the pointed-to string contains only numeric digits;
+//     `false` if the string pointer is nil or the pointed-to string contains any non-numeric characters.
+//
+// Example:
+//
+//	result1 := IsNumericPtr(&"12345") // result1 will be true because the string pointer points to a string containing only digits.
+//	result2 := IsNumericPtr(&"123A45") // result2 will be false because the string pointer points to a string containing a non-digit character ('A').
+//	result3 := IsNumericPtr(nil) // result3 will be false because the string pointer is nil.
+//
+// Notes:
+//   - This function provides a convenient way to check for numeric string pointers by combining
+//     the nil check with the `IsNumeric` function.
+func IsNumericPtr(str *string) bool {
+	if str == nil {
+		return false
+	}
+	return IsNumeric(*str)
 }
 
 // IsNumericSpace checks if the provided string contains only numeric digits and whitespace characters.
@@ -334,6 +601,35 @@ func IsNumericSpace(str string) bool {
 	return true
 }
 
+// IsNumericSpacePtr checks if the provided string pointer points to a string containing only numeric digits and whitespace characters.
+//
+// This function first checks if the string pointer is nil. If it is, the function returns `false`.
+// If the pointer is not nil, it dereferences the pointer to get the actual string and then uses
+// the `IsNumericSpace` function to check if that string contains only numeric digits and whitespace.
+//
+// Parameters:
+//   - `str`: The input string pointer to be checked for numeric digits and whitespace.
+//
+// Returns:
+//   - `true` if the string pointer is not nil and the pointed-to string contains only numeric digits and whitespace;
+//     `false` if the string pointer is nil or the pointed-to string contains any non-numeric and non-whitespace characters.
+//
+// Example:
+//
+//	result1 := IsNumericSpacePtr(&"123 456") // result1 will be true because the string pointer points to a string containing only digits and a space.
+//	result2 := IsNumericSpacePtr(&"123A456") // result2 will be false because the string pointer points to a string containing a non-numeric character ('A').
+//	result3 := IsNumericSpacePtr(nil) // result3 will be false because the string pointer is nil.
+//
+// Notes:
+//   - This function provides a convenient way to check for numeric space string pointers by combining
+//     the nil check with the `IsNumericSpace` function.
+func IsNumericSpacePtr(str *string) bool {
+	if str == nil {
+		return false
+	}
+	return IsNumericSpace(*str)
+}
+
 // IsWhitespace checks if the provided string contains only whitespace characters.
 //
 // This function iterates through each character of the input string and checks if each character
@@ -363,6 +659,35 @@ func IsWhitespace(str string) bool {
 		}
 	}
 	return true
+}
+
+// IsWhitespacePtr checks if the provided string pointer points to a string containing only whitespace characters.
+//
+// This function first checks if the string pointer is nil. If it is, the function returns `false`.
+// If the pointer is not nil, it dereferences the pointer to get the actual string and then uses
+// the `IsWhitespace` function to check if that string contains only whitespace characters.
+//
+// Parameters:
+//   - `str`: The input string pointer to be checked for whitespace.
+//
+// Returns:
+//   - `true` if the string pointer is not nil and the pointed-to string contains only whitespace characters;
+//     `false` if the string pointer is nil or the pointed-to string contains any non-whitespace characters.
+//
+// Example:
+//
+//	result1 := IsWhitespacePtr(&"    ") // result1 will be true because the string pointer points to a string containing only spaces.
+//	result2 := IsWhitespacePtr(&"Hello") // result2 will be false because the string pointer points to a string containing non-whitespace characters.
+//	result3 := IsWhitespacePtr(nil) // result3 will be false because the string pointer is nil.
+//
+// Notes:
+//   - This function provides a convenient way to check for whitespace string pointers by combining
+//     the nil check with the `IsWhitespace` function.
+func IsWhitespacePtr(str *string) bool {
+	if str == nil {
+		return false
+	}
+	return IsWhitespace(*str)
 }
 
 // TrimWhitespace removes extra whitespace from the input string,
@@ -898,27 +1223,27 @@ func RemoveAccents(s string) string {
 //	str := unidecode.Unidecode("你好, world!")
 //	strutil.Slugify(str) //Output: ni-hao-world
 func Slugify(s string) string {
-	return SlugifySpecial(s, "-")
+	return SlugifySpec(s, "-")
 }
 
-// SlugifySpecial converts a string to a slug with the delimiter.
+// SlugifySpec converts a string to a slug with the delimiter.
 // It removes accents, converts string to lower case, remove the characters
 // which are not letters or numbers and replaces spaces with the delimiter.
 //
 // Example:
 //
-//	strutil.SlugifySpecial("'We löve Motörhead'", "-") //Output: we-love-motorhead
+//	strutil.SlugifySpec("'We löve Motörhead'", "-") //Output: we-love-motorhead
 //
-// SlugifySpecial doesn't support transliteration. You should use a transliteration
-// library before SlugifySpecial like github.com/rainycape/unidecode
+// SlugifySpec doesn't support transliteration. You should use a transliteration
+// library before SlugifySpec like github.com/rainycape/unidecode
 //
 // Example:
 //
 //	import "github.com/rainycape/unidecode"
 //
 //	str := unidecode.Unidecode("你好, world!")
-//	strutil.SlugifySpecial(str, "-") //Output: ni-hao-world
-func SlugifySpecial(str string, delimiter string) string {
+//	strutil.SlugifySpec(str, "-") //Output: ni-hao-world
+func SlugifySpec(str string, delimiter string) string {
 	str = RemoveAccents(str)
 	delBytes := []byte(delimiter)
 	n := make([]byte, 0, len(str))
@@ -974,7 +1299,7 @@ func SlugifySpecial(str string, delimiter string) string {
 //     or other identifiers that conform to snake_case naming conventions.
 func ToSnakeCase(s string) string {
 	s = strings.TrimSpace(strings.ToLower(s))
-	return strings.Replace(s, " ", "_", -1)
+	return strings.ReplaceAll(s, " ", "_")
 }
 
 // ToCamelCase converts the input string s to CamelCase format,

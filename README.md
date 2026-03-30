@@ -51,12 +51,14 @@ Building RESTful APIs often requires repetitive boilerplate code for standardizi
 
 ### Install Package
 
+> Latest version
 ```bash
-# Latest version
-go get -u github.com/sivaosorg/replify@latest
+go get github.com/sivaosorg/replify@latest
+```
 
-# Specific version
-go get github.com/sivaosorg/replify@v0.0.1
+> Specific version
+```bash
+go get github.com/sivaosorg/replify@v0.1.0
 ```
 
 ### Import in Code

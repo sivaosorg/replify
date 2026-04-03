@@ -37,6 +37,20 @@ func SafeFrom(s string) *SafeStringWeaver {
 	return sw
 }
 
+// SafeFromPtr creates a new SafeStringWeaver initialized with the given strings.Builder pointer.
+//
+// Example:
+//
+//	sw := strchain.SafeFromPtr(&myBuilder)
+func SafeFromPtr(s *strings.Builder) *SafeStringWeaver {
+	if s == nil {
+		return NewSafe()
+	}
+	return &SafeStringWeaver{
+		builder: *s,
+	}
+}
+
 // NewSafe creates a new SafeStringWeaver instance.
 //
 // Example:

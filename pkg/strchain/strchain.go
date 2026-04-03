@@ -31,6 +31,20 @@ func From(s string) *StringWeaver {
 	return sw
 }
 
+// FromPtr creates a new StringWeaver initialized with the given strings.Builder pointer.
+//
+// Example:
+//
+//	sw := strchain.FromPtr(&myBuilder)
+func FromPtr(s *strings.Builder) *StringWeaver {
+	if s == nil {
+		return New()
+	}
+	return &StringWeaver{
+		builder: *s,
+	}
+}
+
 // New creates a new StringWeaver instance.
 //
 // Example:

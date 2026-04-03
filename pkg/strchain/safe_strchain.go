@@ -784,3 +784,14 @@ func (sw *SafeStringWeaver) Inspect(fn func(current string)) Weaver {
 	fn(current)
 	return sw
 }
+
+// Builder returns the underlying strings.Builder for advanced operations.
+//
+// Example:
+//
+//	builder := sw.Builder()
+func (sw *SafeStringWeaver) Builder() *strings.Builder {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	return &sw.builder
+}

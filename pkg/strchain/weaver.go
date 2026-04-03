@@ -1,5 +1,7 @@
 package strchain
 
+import "strings"
+
 // Weaver defines the common interface for fluent string builder operations.
 // Both StringWeaver (non-thread-safe, maximum performance) and SafeStringWeaver
 // (thread-safe with mutex synchronization) implement this interface.
@@ -182,4 +184,7 @@ type Weaver interface {
 
 	// Inspect executes a function with access to the current state without modification.
 	Inspect(fn func(current string)) Weaver
+
+	// Builder returns the underlying strings.Builder for advanced operations.
+	Builder() *strings.Builder
 }

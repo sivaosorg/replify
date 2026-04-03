@@ -669,3 +669,12 @@ func (sw *StringWeaver) Inspect(fn func(current string)) Weaver {
 	fn(sw.builder.String())
 	return sw
 }
+
+// Builder returns the underlying strings.Builder for advanced operations.
+//
+// Example:
+//
+//	builder := sw.Builder()
+func (sw *StringWeaver) Builder() *strings.Builder {
+	return &sw.builder
+}

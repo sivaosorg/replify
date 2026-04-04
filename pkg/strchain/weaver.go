@@ -187,4 +187,49 @@ type Weaver interface {
 
 	// Builder returns the underlying strings.Builder for advanced operations.
 	Builder() *strings.Builder
+
+	// IndentF adds indentation (2 spaces per level) before appending a formatted string.
+	IndentF(level int, format string, args ...any) Weaver
+
+	// IndentLineF adds indentation (2 spaces per level) before a formatted string and ends with a newline.
+	IndentLineF(level int, format string, args ...any) Weaver
+
+	// JSONObjectStart adds an opening curly brace for a JSON object.
+	JSONObjectStart() Weaver
+
+	// JSONObjectEnd adds a closing curly brace for a JSON object.
+	JSONObjectEnd() Weaver
+
+	// JSONArrayStart adds an opening square bracket for a JSON array.
+	JSONArrayStart() Weaver
+
+	// JSONArrayEnd adds a closing square bracket for a JSON array.
+	JSONArrayEnd() Weaver
+
+	// JSONString adds a quoted and escaped string value.
+	JSONString(s string) Weaver
+
+	// JSONKey adds a quoted key followed by a colon and space.
+	JSONKey(key string) Weaver
+
+	// JSONKeyString adds a key-value pair where the value is a string.
+	JSONKeyString(key, value string) Weaver
+
+	// JSONKeyInt adds a key-value pair where the value is an integer.
+	JSONKeyInt(key string, value int) Weaver
+
+	// JSONKeyBool adds a key-value pair where the value is a boolean.
+	JSONKeyBool(key string, value bool) Weaver
+
+	// JSONKeyFloat adds a key-value pair where the value is a float.
+	JSONKeyFloat(key string, value float64) Weaver
+
+	// JSONField adds an indented JSON field (key: value) with optional comma and newline.
+	JSONField(level int, key, value string, addComma bool) Weaver
+
+	// JSONFieldInt adds an indented JSON field with an integer value.
+	JSONFieldInt(level int, key string, value int, addComma bool) Weaver
+
+	// CommaIfNotLast adds a comma if the index is not the last item.
+	CommaIfNotLast(index, total int) Weaver
 }

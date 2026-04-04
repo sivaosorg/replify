@@ -692,3 +692,213 @@ func (sw *StringWeaver) Inspect(fn func(current string)) Weaver {
 func (sw *StringWeaver) Builder() *strings.Builder {
 	return &sw.builder
 }
+
+// IndentF adds indentation (2 spaces per level) before appending a formatted string.
+//
+// Example:
+//
+//	sw.IndentF(1, `"id": %q,`, "abc123")
+func (sw *StringWeaver) IndentF(level int, format string, args ...any) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	fmt.Fprintf(&sw.builder, format, args...)
+	return sw
+}
+
+// IndentLineF adds indentation (2 spaces per level) before a formatted string and ends with a newline.
+//
+// Example:
+//
+//	sw.IndentLineF(1, `"id": %q,`, "abc123")
+func (sw *StringWeaver) IndentLineF(level int, format string, args ...any) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	fmt.Fprintf(&sw.builder, format, args...)
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONObjectStart adds an opening curly brace for a JSON object.
+//
+// Example:
+//
+//	sw.JSONObjectStart() // adds "{"
+func (sw *StringWeaver) JSONObjectStart() Weaver {
+	sw.builder.WriteByte('{')
+	return sw
+}
+
+// JSONObjectEnd adds a closing curly brace for a JSON object.
+//
+// Example:
+//
+//	sw.JSONObjectEnd() // adds "}"
+func (sw *StringWeaver) JSONObjectEnd() Weaver {
+	sw.builder.WriteByte('}')
+	return sw
+}
+
+// JSONArrayStart adds an opening square bracket for a JSON array.
+//
+// Example:
+//
+//	sw.JSONArrayStart() // adds "["
+func (sw *StringWeaver) JSONArrayStart() Weaver {
+	sw.builder.WriteByte('[')
+	return sw
+}
+
+// JSONArrayEnd adds a closing square bracket for a JSON array.
+//
+// Example:
+//
+//	sw.JSONArrayEnd() // adds "]"
+func (sw *StringWeaver) JSONArrayEnd() Weaver {
+	sw.builder.WriteByte(']')
+	return sw
+}
+
+// JSONString adds a quoted and escaped string value.
+//
+// Example:
+//
+//	sw.JSONString("hello") // adds "hello"
+func (sw *StringWeaver) JSONString(s string) Weaver {
+	// Use %q for proper JSON string escaping
+	fmt.Fprintf(&sw.builder, "%q", s)
+	return sw
+}
+
+// JSONKey adds a quoted key followed by a colon and space.
+//
+// Example:
+//
+//	sw.JSONKey("name") // adds "name":
+func (sw *StringWeaver) JSONKey(key string) Weaver {
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	return sw
+}
+
+// JSONKeyString adds a key-value pair where the value is a string.
+//
+// Example:
+//
+//	sw.JSONKeyString("name", "John") // adds "name": "John"
+func (sw *StringWeaver) JSONKeyString(key, value string) Weaver {
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%q", value)
+	return sw
+}
+
+// JSONKeyInt adds a key-value pair where the value is an integer.
+//
+// Example:
+//
+//	sw.JSONKeyInt("age", 30) // adds "age": 30
+func (sw *StringWeaver) JSONKeyInt(key string, value int) Weaver {
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	return sw
+}
+
+// JSONKeyBool adds a key-value pair where the value is a boolean.
+//
+// Example:
+//
+//	sw.JSONKeyBool("active", true) // adds "active": true
+func (sw *StringWeaver) JSONKeyBool(key string, value bool) Weaver {
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	// Use %t for proper JSON boolean formatting (true/false)
+	fmt.Fprintf(&sw.builder, "%t", value)
+	return sw
+}
+
+// JSONKeyFloat adds a key-value pair where the value is a float.
+//
+// Example:
+//
+//	sw.JSONKeyFloat("price", 19.99) // adds "price": 19.99
+func (sw *StringWeaver) JSONKeyFloat(key string, value float64) Weaver {
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	// Use %g for proper JSON float formatting (e.g., 19.99, not 19.990000)
+	fmt.Fprintf(&sw.builder, "%g", value)
+	return sw
+}
+
+// JSONField adds an indented JSON field (key: value) with optional comma and newline.
+//
+// Example:
+//
+//	sw.JSONField(1, "name", `"John"`, true) // adds '  "name": "John",\n'
+func (sw *StringWeaver) JSONField(level int, key, value string, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	sw.builder.WriteString(value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldInt adds an indented JSON field with an integer value.
+//
+// Example:
+//
+//	sw.JSONFieldInt(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldInt(level int, key string, value int, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// CommaIfNotLast adds a comma if the index is not the last item.
+//
+// Example:
+//
+//	sw.CommaIfNotLast(i, len(items)) // adds "," if i < len(items)-1
+func (sw *StringWeaver) CommaIfNotLast(index, total int) Weaver {
+	if index < total-1 {
+		sw.builder.WriteByte(',')
+	}
+	return sw
+}

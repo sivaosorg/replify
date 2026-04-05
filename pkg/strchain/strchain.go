@@ -1209,3 +1209,21 @@ func (sw *StringWeaver) CommaIfNotLast(index, total int) Weaver {
 	}
 	return sw
 }
+
+// JSONFieldArrayStart adds an indented JSON array start.
+//
+// Example:
+//
+//	sw.JSONFieldArrayStart(1, "items", true) // adds '  "items": ['
+func (sw *StringWeaver) JSONFieldArrayStart(level int, key string) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	sw.builder.WriteByte('[')
+	return sw
+}

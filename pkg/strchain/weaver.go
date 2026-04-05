@@ -277,4 +277,11 @@ type Weaver interface {
 
 	// EachCast executes a function for each item in the slice.
 	EachCast(items []string, fn func(w Weaver, item string)) Weaver
+
+	// JSONFieldArrayStart adds an indented JSON array start.
+	//
+	// Example:
+	//
+	//	sw.JSONFieldArrayStart(1, "items") // adds '  "items": ['
+	JSONFieldArrayStart(level int, key string) Weaver
 }

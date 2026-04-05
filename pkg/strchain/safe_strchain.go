@@ -1415,3 +1415,104 @@ func (sw *SafeStringWeaver) JSONFieldArrayEnd(level int) Weaver {
 	sw.builder.WriteByte(']')
 	return sw
 }
+
+// StartParenthesize adds an opening parenthesis.
+//
+// Example:
+//
+//	sw.StartParenthesize() // adds '('
+func (sw *SafeStringWeaver) StartParenthesize() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte('(')
+	return sw
+}
+
+// EndParenthesize adds a closing parenthesis.
+//
+// Example:
+//
+//	sw.EndParenthesize() // adds ')'
+func (sw *SafeStringWeaver) EndParenthesize() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte(')')
+	return sw
+}
+
+// StartBracket adds an opening bracket.
+//
+// Example:
+//
+//	sw.StartBracket() // adds '['
+func (sw *SafeStringWeaver) StartBracket() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte('[')
+	return sw
+}
+
+// EndBracket adds a closing bracket.
+//
+// Example:
+//
+//	sw.EndBracket() // adds ']'
+func (sw *SafeStringWeaver) EndBracket() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte(']')
+	return sw
+}
+
+// StartBrace adds an opening brace.
+//
+// Example:
+//
+//	sw.StartBrace() // adds '{'
+func (sw *SafeStringWeaver) StartBrace() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte('{')
+	return sw
+}
+
+// EndBrace adds a closing brace.
+//
+// Example:
+//
+//	sw.EndBrace() // adds '}'
+func (sw *SafeStringWeaver) EndBrace() Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	sw.builder.WriteByte('}')
+	return sw
+}
+
+// IndentOnly adds indentation (2 spaces per level) without appending text.
+//
+// Example:
+//
+//	sw.IndentOnly(1) // adds '  '
+func (sw *SafeStringWeaver) IndentOnly(level int) Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	return sw
+}
+
+// IndentOnlyLine adds indentation (2 spaces per level) followed by a newline.
+//
+// Example:
+//
+//	sw.IndentOnlyLine(1) // adds '  \n'
+func (sw *SafeStringWeaver) IndentOnlyLine(level int) Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}

@@ -1,18 +1,37 @@
-LOG_DIR=logs
-
 # Makefile for managing Go project tasks such as running, building, testing, and maintaining dependencies.
-.PHONY: run build test tidy deps-upgrade deps-clean-cache
+.PHONY: dev run build test tidy deps-upgrade deps-clean-cache clean
+
+LOG_DIR  := logs
+BIN_NAME := replify
+BIN_DIR  := bin
+
+# Detect OS for binary extension
+ifeq ($(OS),Windows_NT)
+	BIN_EXT := .exe
+else
+	BIN_EXT :=
+endif
+
+BIN_OUT := $(BIN_DIR)/$(BIN_NAME)$(BIN_EXT)
+
+# ==============================================================================
+# Development
+# Prints CLI help output for quick reference during development.
+# ==============================================================================
+dev:
+	go run ./main/main.go
 
 # ==============================================================================
 # Running the main application
 # Executes the main.go file, useful for development and quick testing
 run:
-	go run main/main.go
+	go run ./cmd/replify
 
 # Building the application
 # Compiles the main.go file into an executable, for production deployment
 build:
-	go build main/main.go
+	@mkdir -p $(BIN_DIR)
+	go build -o $(BIN_OUT) ./cmd/replify
 
 # ==============================================================================
 # Module support and testing
@@ -53,3 +72,10 @@ tree:
 	mkdir -p $(LOG_DIR)
 	tree -I ".gradle|.idea|build|logs|.vscode|.git|.github|vendor" > ./$(LOG_DIR)/tree_source_oss.txt
 	cat ./$(LOG_DIR)/tree_source_oss.txt
+
+# ==============================================================================
+# Clean
+# Removes the build directory and log directory.
+clean:
+	rm -rf $(BIN_DIR)
+	rm -rf $(LOG_DIR)

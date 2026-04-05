@@ -291,4 +291,60 @@ type Weaver interface {
 	//
 	//	sw.JSONFieldArrayEnd(1) // adds '  ]'
 	JSONFieldArrayEnd(level int) Weaver
+
+	// StartParenthesize adds an opening parenthesis.
+	//
+	// Example:
+	//
+	//	sw.StartParenthesize() // adds '('
+	StartParenthesize() Weaver
+
+	// EndParenthesize adds a closing parenthesis.
+	//
+	// Example:
+	//
+	//	sw.EndParenthesize() // adds ')'
+	EndParenthesize() Weaver
+
+	// StartBracket adds an opening bracket.
+	//
+	// Example:
+	//
+	//	sw.StartBracket() // adds '['
+	StartBracket() Weaver
+
+	// EndBracket adds a closing bracket.
+	//
+	// Example:
+	//
+	//	sw.EndBracket() // adds ']'
+	EndBracket() Weaver
+
+	// StartBrace adds an opening curly brace.
+	//
+	// Example:
+	//
+	//	sw.StartBrace() // adds '{'
+	StartBrace() Weaver
+
+	// EndBrace adds a closing curly brace.
+	//
+	// Example:
+	//
+	//	sw.EndBrace() // adds '}'
+	EndBrace() Weaver
+
+	// IndentOnly adds indentation (2 spaces per level) without appending text.
+	//
+	// Example:
+	//
+	//	sw.IndentOnly(1) // adds '  '
+	IndentOnly(level int) Weaver
+
+	// IndentOnlyLine adds indentation (2 spaces per level) followed by a newline.
+	//
+	// Example:
+	//
+	//	sw.IndentOnlyLine(1) // adds '  \n'
+	IndentOnlyLine(level int) Weaver
 }

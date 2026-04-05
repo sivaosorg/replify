@@ -1240,3 +1240,88 @@ func (sw *StringWeaver) JSONFieldArrayEnd(level int) Weaver {
 	sw.builder.WriteByte(']')
 	return sw
 }
+
+// StartParenthesize adds an opening parenthesis.
+//
+// Example:
+//
+//	sw.StartParenthesize() // adds '('
+func (sw *StringWeaver) StartParenthesize() Weaver {
+	sw.builder.WriteByte('(')
+	return sw
+}
+
+// EndParenthesize adds a closing parenthesis.
+//
+// Example:
+//
+//	sw.EndParenthesize() // adds ')'
+func (sw *StringWeaver) EndParenthesize() Weaver {
+	sw.builder.WriteByte(')')
+	return sw
+}
+
+// StartBracket adds an opening bracket.
+//
+// Example:
+//
+//	sw.StartBracket() // adds '['
+func (sw *StringWeaver) StartBracket() Weaver {
+	sw.builder.WriteByte('[')
+	return sw
+}
+
+// EndBracket adds a closing bracket.
+//
+// Example:
+//
+//	sw.EndBracket() // adds ']'
+func (sw *StringWeaver) EndBracket() Weaver {
+	sw.builder.WriteByte(']')
+	return sw
+}
+
+// StartBrace adds an opening brace.
+//
+// Example:
+//
+//	sw.StartBrace() // adds '{'
+func (sw *StringWeaver) StartBrace() Weaver {
+	sw.builder.WriteByte('{')
+	return sw
+}
+
+// EndBrace adds a closing brace.
+//
+// Example:
+//
+//	sw.EndBrace() // adds '}'
+func (sw *StringWeaver) EndBrace() Weaver {
+	sw.builder.WriteByte('}')
+	return sw
+}
+
+// IndentOnly adds indentation (2 spaces per level) without appending text.
+//
+// Example:
+//
+//	sw.IndentOnly(1) // adds '  '
+func (sw *StringWeaver) IndentOnly(level int) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	return sw
+}
+
+// IndentOnlyLine adds indentation (2 spaces per level) followed by a newline.
+//
+// Example:
+//
+//	sw.IndentOnlyLine(1) // adds '  \n'
+func (sw *StringWeaver) IndentOnlyLine(level int) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}

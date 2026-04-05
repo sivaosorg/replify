@@ -19,6 +19,7 @@ BIN_OUT := $(BIN_DIR)/$(BIN_NAME)$(BIN_EXT)
 # Prints CLI help output for quick reference during development.
 # ==============================================================================
 dev:
+	@mkdir -p ./main
 	go run ./main/main.go
 
 # ==============================================================================
@@ -69,7 +70,7 @@ coverage:
 # Generating project file tree
 # Creates a text file representing the project's directory structure, excluding certain directories
 tree:
-	mkdir -p $(LOG_DIR)
+	@mkdir -p $(LOG_DIR)
 	tree -I ".gradle|.idea|build|logs|.vscode|.git|.github|vendor" > ./$(LOG_DIR)/tree_source_oss.txt
 	cat ./$(LOG_DIR)/tree_source_oss.txt
 

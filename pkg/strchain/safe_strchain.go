@@ -1400,3 +1400,18 @@ func (sw *SafeStringWeaver) JSONFieldArrayStart(level int, key string) Weaver {
 	sw.builder.WriteByte('[')
 	return sw
 }
+
+// JSONFieldArrayEnd adds an indented JSON array end.
+//
+// Example:
+//
+//	sw.JSONFieldArrayEnd(1) // adds '  ]'
+func (sw *SafeStringWeaver) JSONFieldArrayEnd(level int) Weaver {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte(']')
+	return sw
+}

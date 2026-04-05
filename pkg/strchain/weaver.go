@@ -284,4 +284,11 @@ type Weaver interface {
 	//
 	//	sw.JSONFieldArrayStart(1, "items") // adds '  "items": ['
 	JSONFieldArrayStart(level int, key string) Weaver
+
+	// JSONFieldArrayEnd adds an indented JSON array end.
+	//
+	// Example:
+	//
+	//	sw.JSONFieldArrayEnd(1) // adds '  ]'
+	JSONFieldArrayEnd(level int) Weaver
 }

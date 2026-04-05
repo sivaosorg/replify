@@ -470,8 +470,6 @@ func (sw *SafeStringWeaver) AppendIfF(condition bool, format string, args ...any
 //	    s.Append("# ").Line(title)
 //	})
 func (sw *SafeStringWeaver) When(condition bool, fn func(*SafeStringWeaver)) *SafeStringWeaver {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
 	if condition {
 		fn(sw)
 	}
@@ -486,8 +484,6 @@ func (sw *SafeStringWeaver) When(condition bool, fn func(*SafeStringWeaver)) *Sa
 //	    s.NewLine().Indent(1, "")
 //	})
 func (sw *SafeStringWeaver) Unless(condition bool, fn func(*SafeStringWeaver)) *SafeStringWeaver {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
 	if !condition {
 		fn(sw)
 	}
@@ -502,8 +498,6 @@ func (sw *SafeStringWeaver) Unless(condition bool, fn func(*SafeStringWeaver)) *
 //	    s.Append(item).Comma()
 //	})
 func (sw *SafeStringWeaver) Each(items []string, fn func(*SafeStringWeaver, string)) *SafeStringWeaver {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
 	for _, item := range items {
 		fn(sw, item)
 	}
@@ -1340,9 +1334,7 @@ func (sw *SafeStringWeaver) JSONFieldBool(level int, key string, value bool, add
 //	})
 func (sw *SafeStringWeaver) WhenCast(condition bool, fn func(w Weaver)) Weaver {
 	if condition {
-		sw.mu.Lock()
 		fn(sw)
-		sw.mu.Unlock()
 	}
 	return sw
 }
@@ -1356,9 +1348,7 @@ func (sw *SafeStringWeaver) WhenCast(condition bool, fn func(w Weaver)) Weaver {
 //	})
 func (sw *SafeStringWeaver) UnlessCast(condition bool, fn func(w Weaver)) Weaver {
 	if !condition {
-		sw.mu.Lock()
 		fn(sw)
-		sw.mu.Unlock()
 	}
 	return sw
 }
@@ -1371,8 +1361,6 @@ func (sw *SafeStringWeaver) UnlessCast(condition bool, fn func(w Weaver)) Weaver
 //		w.Append(item).Comma()
 //	})
 func (sw *SafeStringWeaver) EachCast(items []string, fn func(w Weaver, item string)) Weaver {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
 	for _, item := range items {
 		fn(sw, item)
 	}

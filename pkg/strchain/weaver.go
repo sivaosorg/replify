@@ -224,12 +224,57 @@ type Weaver interface {
 	// JSONKeyFloat adds a key-value pair where the value is a float.
 	JSONKeyFloat(key string, value float64) Weaver
 
-	// JSONField adds an indented JSON field (key: value) with optional comma and newline.
-	JSONField(level int, key, value string, addComma bool) Weaver
+	// JSONFieldString adds an indented JSON field (key: value) with optional comma and newline.
+	JSONFieldString(level int, key, value string, addComma bool) Weaver
 
 	// JSONFieldInt adds an indented JSON field with an integer value.
 	JSONFieldInt(level int, key string, value int, addComma bool) Weaver
 
+	// JSONFieldInt8 adds an indented JSON field with an int8 value.
+	JSONFieldInt8(level int, key string, value int8, addComma bool) Weaver
+
+	// JSONFieldInt16 adds an indented JSON field with an int16 value.
+	JSONFieldInt16(level int, key string, value int16, addComma bool) Weaver
+
+	// JSONFieldInt32 adds an indented JSON field with an int32 value.
+	JSONFieldInt32(level int, key string, value int32, addComma bool) Weaver
+
+	// JSONFieldInt64 adds an indented JSON field with an int64 value.
+	JSONFieldInt64(level int, key string, value int64, addComma bool) Weaver
+
+	// JSONFieldUint adds an indented JSON field with a uint value.
+	JSONFieldUint(level int, key string, value uint, addComma bool) Weaver
+
+	// JSONFieldUint8 adds an indented JSON field with a uint8 value.
+	JSONFieldUint8(level int, key string, value uint8, addComma bool) Weaver
+
+	// JSONFieldUint16 adds an indented JSON field with a uint16 value.
+	JSONFieldUint16(level int, key string, value uint16, addComma bool) Weaver
+
+	// JSONFieldUint32 adds an indented JSON field with a uint32 value.
+	JSONFieldUint32(level int, key string, value uint32, addComma bool) Weaver
+
+	// JSONFieldUint64 adds an indented JSON field with a uint64 value.
+	JSONFieldUint64(level int, key string, value uint64, addComma bool) Weaver
+
+	// JSONFieldFloat32 adds an indented JSON field with a float32 value.
+	JSONFieldFloat32(level int, key string, value float32, addComma bool) Weaver
+
+	// JSONFieldFloat64 adds an indented JSON field with a float64 value.
+	JSONFieldFloat64(level int, key string, value float64, addComma bool) Weaver
+
+	// JSONFieldBool adds an indented JSON field with a bool value.
+	JSONFieldBool(level int, key string, value bool, addComma bool) Weaver
+
 	// CommaIfNotLast adds a comma if the index is not the last item.
 	CommaIfNotLast(index, total int) Weaver
+
+	// WhenCast executes a function with access to the current state without modification.
+	WhenCast(condition bool, fn func(w Weaver)) Weaver
+
+	// UnlessCast executes a function with access to the current state without modification.
+	UnlessCast(condition bool, fn func(w Weaver)) Weaver
+
+	// EachCast executes a function for each item in the slice.
+	EachCast(items []string, fn func(w Weaver, item string)) Weaver
 }

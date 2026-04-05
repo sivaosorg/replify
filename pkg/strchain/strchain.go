@@ -847,12 +847,12 @@ func (sw *StringWeaver) JSONKeyFloat(key string, value float64) Weaver {
 	return sw
 }
 
-// JSONField adds an indented JSON field (key: value) with optional comma and newline.
+// JSONFieldString adds an indented JSON field (key: value) with optional comma and newline.
 //
 // Example:
 //
-//	sw.JSONField(1, "name", `"John"`, true) // adds '  "name": "John",\n'
-func (sw *StringWeaver) JSONField(level int, key, value string, addComma bool) Weaver {
+//	sw.JSONFieldString(1, "name", `"John"`, true) // adds '  "name": "John",\n'
+func (sw *StringWeaver) JSONFieldString(level int, key, value string, addComma bool) Weaver {
 	for i := 0; i < level*2; i++ {
 		sw.builder.WriteByte(' ')
 	}
@@ -861,7 +861,8 @@ func (sw *StringWeaver) JSONField(level int, key, value string, addComma bool) W
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	sw.builder.WriteString(value)
+	// Use %q for proper JSON string formatting (adds quotes and escapes special characters)
+	fmt.Fprintf(&sw.builder, "%q", value)
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -888,6 +889,312 @@ func (sw *StringWeaver) JSONFieldInt(level int, key string, value int, addComma 
 		sw.builder.WriteByte(',')
 	}
 	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldInt8 adds an indented JSON field with an int8 value.
+//
+// Example:
+//
+//	sw.JSONFieldInt8(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldInt8(level int, key string, value int8, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldInt16 adds an indented JSON field with an int16 value.
+//
+// Example:
+//
+//	sw.JSONFieldInt16(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldInt16(level int, key string, value int16, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldInt32 adds an indented JSON field with an int32 value.
+//
+// Example:
+//
+//	sw.JSONFieldInt32(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldInt32(level int, key string, value int32, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldInt64 adds an indented JSON field with an int64 value.
+//
+// Example:
+//
+//	sw.JSONFieldInt64(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldInt64(level int, key string, value int64, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldUint adds an indented JSON field with a uint value.
+//
+// Example:
+//
+//	sw.JSONFieldUint(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldUint(level int, key string, value uint, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldUint8 adds an indented JSON field with a uint8 value.
+//
+// Example:
+//
+//	sw.JSONFieldUint8(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldUint8(level int, key string, value uint8, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldUint16 adds an indented JSON field with a uint16 value.
+//
+// Example:
+//
+//	sw.JSONFieldUint16(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldUint16(level int, key string, value uint16, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldUint32 adds an indented JSON field with a uint32 value.
+//
+// Example:
+//
+//	sw.JSONFieldUint32(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldUint32(level int, key string, value uint32, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldUint64 adds an indented JSON field with a uint64 value.
+//
+// Example:
+//
+//	sw.JSONFieldUint64(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldUint64(level int, key string, value uint64, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%d", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldFloat32 adds an indented JSON field with a float32 value.
+//
+// Example:
+//
+//	sw.JSONFieldFloat32(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldFloat32(level int, key string, value float32, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%f", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldFloat64 adds an indented JSON field with a float64 value.
+//
+// Example:
+//
+//	sw.JSONFieldFloat64(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldFloat64(level int, key string, value float64, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%f", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// JSONFieldBool adds an indented JSON field with a bool value.
+//
+// Example:
+//
+//	sw.JSONFieldBool(1, "age", 30, true) // adds '  "age": 30,\n'
+func (sw *StringWeaver) JSONFieldBool(level int, key string, value bool, addComma bool) Weaver {
+	for i := 0; i < level*2; i++ {
+		sw.builder.WriteByte(' ')
+	}
+	sw.builder.WriteByte('"')
+	sw.builder.WriteString(key)
+	sw.builder.WriteByte('"')
+	sw.builder.WriteByte(':')
+	sw.builder.WriteByte(' ')
+	fmt.Fprintf(&sw.builder, "%t", value)
+	if addComma {
+		sw.builder.WriteByte(',')
+	}
+	sw.builder.WriteByte('\n')
+	return sw
+}
+
+// WhenCast executes a function with access to the current state without modification.
+//
+// Example:
+//
+//	sw.WhenCast(isHeader, func(w Weaver) {
+//		w.Append("Header: ")
+//	})
+func (sw *StringWeaver) WhenCast(condition bool, fn func(w Weaver)) Weaver {
+	if condition {
+		fn(sw)
+	}
+	return sw
+}
+
+// UnlessCast executes a function with access to the current state without modification.
+//
+// Example:
+//
+//	sw.UnlessCast(isHeader, func(w Weaver) {
+//		w.Append("Header: ")
+//	})
+func (sw *StringWeaver) UnlessCast(condition bool, fn func(w Weaver)) Weaver {
+	if !condition {
+		fn(sw)
+	}
+	return sw
+}
+
+// EachCast executes a function for each item in the slice.
+//
+// Example:
+//
+//	sw.EachCast(items, func(w Weaver, item string) {
+//		w.Append(item)
+//	})
+func (sw *StringWeaver) EachCast(items []string, fn func(w Weaver, item string)) Weaver {
+	for _, item := range items {
+		fn(sw, item)
+	}
 	return sw
 }
 

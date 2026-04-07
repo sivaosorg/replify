@@ -7,6 +7,120 @@ import (
 	"os"
 )
 
+// Head reads the first n lines of the file at path and returns them as a
+// slice of strings with line endings stripped. If the file has fewer than n
+// lines, all lines are returned. n must be non-negative; passing 0 returns an
+// empty (non-nil) slice with no error.
+//
+// Parameters:
+//   - `path`: the file system path to read.
+//   - `n`:    the maximum number of lines to return.
+//
+// Returns:
+//
+//	([]string, error): up to n lines and nil on success, or a partial result
+//	and a non-nil error on failure.
+//
+// Example:
+//
+//	lines, err := sysx.Head("/var/log/app.log", 10)
+//	for _, l := range lines {
+//	    fmt.Println(l)
+//	}
+func Head(path string, n int) ([]string, error) {
+	if n < 0 {
+		n = 0
+	}
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	lines := make([]string, 0, n)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		if len(lines) >= n {
+			break
+		}
+		lines = append(lines, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return lines, err
+	}
+	return lines, nil
+}
+
+// Tail reads the last n lines of the file at path and returns them as a
+// slice of strings with line endings stripped. If the file has fewer than n
+// lines, all lines are returned.
+//
+// The function is memory-efficient: it seeks towards the end of the file and
+// reads only the necessary trailing portion.
+//
+// Parameters:
+//   - `path`: the file system path to read.
+//   - `n`:    the maximum number of lines to return.
+//
+// Returns:
+//
+//	([]string, error): up to n lines and nil on success, or nil and a non-nil
+//	error if the file cannot be opened or read.
+//
+// Example:
+//
+//	logs, err := sysx.Tail("/var/log/app.log", 20)
+//	for _, line := range logs {
+//	    fmt.Println(line)
+//	}
+func Tail(path string, n int) ([]string, error) {
+	if n <= 0 {
+		return []string{}, nil
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	stat, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	size := stat.Size()
+	var cursor int64 = size
+	var lineCount int
+	var buf []byte
+	chunkSize := int64(4096)
+
+	for cursor > 0 && lineCount <= n {
+		if cursor < chunkSize {
+			chunkSize = cursor
+		}
+		cursor -= chunkSize
+		_, err := f.Seek(cursor, io.SeekStart)
+		if err != nil {
+			return nil, err
+		}
+
+		chunk := make([]byte, chunkSize)
+		_, err = f.Read(chunk)
+		if err != nil {
+			return nil, err
+		}
+
+		buf = append(chunk, buf...)
+		lineCount = bytes.Count(buf, []byte{'\n'})
+	}
+
+	allLines := splitLines(string(buf))
+	if len(allLines) <= n {
+		return allLines, nil
+	}
+	return allLines[len(allLines)-n:], nil
+}
+
 // ReadBytes reads the entire contents of the file at path and returns them as
 // a byte slice.
 //
@@ -178,118 +292,4 @@ func CountLines(path string) (int, error) {
 		}
 	}
 	return count, nil
-}
-
-// Head reads the first n lines of the file at path and returns them as a
-// slice of strings with line endings stripped. If the file has fewer than n
-// lines, all lines are returned. n must be non-negative; passing 0 returns an
-// empty (non-nil) slice with no error.
-//
-// Parameters:
-//   - `path`: the file system path to read.
-//   - `n`:    the maximum number of lines to return.
-//
-// Returns:
-//
-//	([]string, error): up to n lines and nil on success, or a partial result
-//	and a non-nil error on failure.
-//
-// Example:
-//
-//	lines, err := sysx.Head("/var/log/app.log", 10)
-//	for _, l := range lines {
-//	    fmt.Println(l)
-//	}
-func Head(path string, n int) ([]string, error) {
-	if n < 0 {
-		n = 0
-	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	lines := make([]string, 0, n)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		if len(lines) >= n {
-			break
-		}
-		lines = append(lines, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return lines, err
-	}
-	return lines, nil
-}
-
-// Tail reads the last n lines of the file at path and returns them as a
-// slice of strings with line endings stripped. If the file has fewer than n
-// lines, all lines are returned.
-//
-// The function is memory-efficient: it seeks towards the end of the file and
-// reads only the necessary trailing portion.
-//
-// Parameters:
-//   - `path`: the file system path to read.
-//   - `n`:    the maximum number of lines to return.
-//
-// Returns:
-//
-//	([]string, error): up to n lines and nil on success, or nil and a non-nil
-//	error if the file cannot be opened or read.
-//
-// Example:
-//
-//	logs, err := sysx.Tail("/var/log/app.log", 20)
-//	for _, line := range logs {
-//	    fmt.Println(line)
-//	}
-func Tail(path string, n int) ([]string, error) {
-	if n <= 0 {
-		return []string{}, nil
-	}
-
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	stat, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	size := stat.Size()
-	var cursor int64 = size
-	var lineCount int
-	var buf []byte
-	chunkSize := int64(4096)
-
-	for cursor > 0 && lineCount <= n {
-		if cursor < chunkSize {
-			chunkSize = cursor
-		}
-		cursor -= chunkSize
-		_, err := f.Seek(cursor, io.SeekStart)
-		if err != nil {
-			return nil, err
-		}
-
-		chunk := make([]byte, chunkSize)
-		_, err = f.Read(chunk)
-		if err != nil {
-			return nil, err
-		}
-
-		buf = append(chunk, buf...)
-		lineCount = bytes.Count(buf, []byte{'\n'})
-	}
-
-	allLines := splitLines(string(buf))
-	if len(allLines) <= n {
-		return allLines, nil
-	}
-	return allLines[len(allLines)-n:], nil
 }

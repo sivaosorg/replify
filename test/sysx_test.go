@@ -1820,14 +1820,22 @@ func TestSysx_ListDirDirs(t *testing.T) {
 
 func TestSysx_BaseName(t *testing.T) {
 	t.Parallel()
+	// Relative-path cases work identically on all platforms.
 	cases := []struct {
 		path string
 		want string
 	}{
-		{"/etc/hosts", "hosts"},
-		{"/usr/bin/", "bin"},
 		{"file.txt", "file.txt"},
 		{"", "."},
+	}
+	// Unix-style absolute paths are only valid on non-Windows systems;
+	// filepath.Base on Windows uses '\' as the separator and would not
+	// split on '/', returning the full path instead of the base name.
+	if runtime.GOOS != "windows" {
+		cases = append(cases, []struct{ path, want string }{
+			{"/etc/hosts", "hosts"},
+			{"/usr/bin/", "bin"},
+		}...)
 	}
 	for _, tc := range cases {
 		got := sysx.BaseName(tc.path)
@@ -1849,7 +1857,10 @@ func TestSysx_DirName(t *testing.T) {
 		{"", "."},
 	}
 	for _, tc := range cases {
-		got := sysx.DirName(tc.path)
+		// filepath.Clean (called internally by filepath.Dir) converts '/' to
+		// the OS separator on Windows, so normalise to forward slashes before
+		// comparing.
+		got := filepath.ToSlash(sysx.DirName(tc.path))
 		if got != tc.want {
 			t.Errorf("DirName(%q) = %q; want %q", tc.path, got, tc.want)
 		}
@@ -1878,40 +1889,47 @@ func TestSysx_Ext(t *testing.T) {
 
 func TestSysx_AbsPath(t *testing.T) {
 	t.Parallel()
-	// An already-absolute path should be returned unchanged (modulo cleaning).
-	abs, err := sysx.AbsPath("/etc/hosts")
-	if err != nil {
-		t.Fatalf("AbsPath error = %v", err)
-	}
-	if abs != "/etc/hosts" {
-		t.Errorf("AbsPath(%q) = %q; want %q", "/etc/hosts", abs, "/etc/hosts")
-	}
-	// A relative path must produce an absolute result.
+	// A relative path must produce a platform-absolute result.
 	rel, err := sysx.AbsPath(".")
 	if err != nil {
 		t.Fatalf("AbsPath(.) error = %v", err)
 	}
-	if !strings.HasPrefix(rel, "/") {
+	if !filepath.IsAbs(rel) {
 		t.Errorf("AbsPath(.) = %q; want absolute path", rel)
+	}
+	// An already-absolute path (the OS temp dir) should round-trip as absolute.
+	// We use os.TempDir() because it is guaranteed to exist and be absolute on
+	// all platforms (unlike hardcoded Unix paths such as /etc/hosts).
+	tmp := os.TempDir()
+	abs, err := sysx.AbsPath(tmp)
+	if err != nil {
+		t.Fatalf("AbsPath(%q) error = %v", tmp, err)
+	}
+	if !filepath.IsAbs(abs) {
+		t.Errorf("AbsPath(%q) = %q; want absolute path", tmp, abs)
 	}
 }
 
 func TestSysx_JoinPath(t *testing.T) {
 	t.Parallel()
+	// filepath.Join uses the OS path separator; normalise to forward slashes
+	// before comparing so the test passes on both Unix and Windows.
 	got := sysx.JoinPath("/usr", "local", "bin")
-	if got != "/usr/local/bin" {
+	if filepath.ToSlash(got) != "/usr/local/bin" {
 		t.Errorf("JoinPath = %q; want %q", got, "/usr/local/bin")
 	}
 	got = sysx.JoinPath("a", "b", "c")
-	if got != "a/b/c" {
+	if filepath.ToSlash(got) != "a/b/c" {
 		t.Errorf("JoinPath(a,b,c) = %q; want %q", got, "a/b/c")
 	}
 }
 
 func TestSysx_CleanPath(t *testing.T) {
 	t.Parallel()
+	// filepath.Clean replaces '/' with the OS separator on Windows; normalise
+	// before comparing.
 	got := sysx.CleanPath("/usr//local/./bin/../lib")
-	if got != "/usr/local/lib" {
+	if filepath.ToSlash(got) != "/usr/local/lib" {
 		t.Errorf("CleanPath = %q; want %q", got, "/usr/local/lib")
 	}
 	if sysx.CleanPath("") != "." {
@@ -1922,7 +1940,9 @@ func TestSysx_CleanPath(t *testing.T) {
 func TestSysx_SplitPath(t *testing.T) {
 	t.Parallel()
 	dir, file := sysx.SplitPath("/usr/local/bin/git")
-	if dir != "/usr/local/bin/" {
+	// filepath.Split preserves the original separators in the dir component,
+	// but normalise with ToSlash for consistency across platforms.
+	if filepath.ToSlash(dir) != "/usr/local/bin/" {
 		t.Errorf("SplitPath dir = %q; want %q", dir, "/usr/local/bin/")
 	}
 	if file != "git" {

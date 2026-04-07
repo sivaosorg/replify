@@ -40,7 +40,7 @@ func (w *SafeFileWriter) WithPerm(perm os.FileMode) *SafeFileWriter {
 	return w
 }
 
-// Write appends data to the file, creating it if it does not exist.
+// WriteBytes appends data to the file, creating it if it does not exist.
 // The operation is serialised by an internal mutex, making it safe to call
 // concurrently from multiple goroutines.
 //
@@ -50,7 +50,7 @@ func (w *SafeFileWriter) WithPerm(perm os.FileMode) *SafeFileWriter {
 // Returns:
 //
 //	An error if the file could not be opened or written; nil on success.
-func (w *SafeFileWriter) Write(data []byte) error {
+func (w *SafeFileWriter) WriteBytes(data []byte) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	f, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, w.perm)
@@ -72,7 +72,7 @@ func (w *SafeFileWriter) Write(data []byte) error {
 //
 //	An error if the file could not be opened or written; nil on success.
 func (w *SafeFileWriter) WriteString(s string) error {
-	return w.Write([]byte(s))
+	return w.WriteBytes([]byte(s))
 }
 
 // Overwrite replaces the entire file content with data, atomically using the
@@ -88,7 +88,7 @@ func (w *SafeFileWriter) WriteString(s string) error {
 func (w *SafeFileWriter) Overwrite(data []byte) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
-	return AtomicWriteFile(w.path, data)
+	return AtomicWriteBytes(w.path, data)
 }
 
 // Path returns the file path targeted by this SafeFileWriter.
@@ -109,7 +109,7 @@ func (w *SafeFileWriter) Perm() os.FileMode {
 	return w.perm
 }
 
-// WriteFile writes data to the file at path, creating the file if it does not
+// WriteBytes writes data to the file at path, creating the file if it does not
 // exist or truncating it if it does. The file is created with permission 0644.
 //
 // Parameters:
@@ -122,34 +122,14 @@ func (w *SafeFileWriter) Perm() os.FileMode {
 //
 // Example:
 //
-//	if err := sysx.WriteFile("/tmp/output.bin", payload); err != nil {
+//	if err := sysx.WriteBytes("/tmp/output.bin", payload); err != nil {
 //	    log.Fatal(err)
 //	}
-func WriteFile(path string, data []byte) error {
+func WriteBytes(path string, data []byte) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-// WriteFileString writes content to the file at path, creating it if it does
-// not exist or truncating it if it does. The file is created with permission 0644.
-//
-// Parameters:
-//   - `path`:    the destination file path.
-//   - `content`: the string to write.
-//
-// Returns:
-//
-//	An error if the file could not be created or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.WriteFileString("/tmp/hello.txt", "hello world\n"); err != nil {
-//	    log.Fatal(err)
-//	}
-func WriteFileString(path string, content string) error {
-	return os.WriteFile(path, []byte(content), 0o644)
-}
-
-// WriteFileLocked writes data to path using a per-path in-process mutex,
+// WriteBytesWithLocked writes data to path using a per-path in-process mutex,
 // ensuring that concurrent calls with the same path value are serialised. The
 // file is created with permission 0644 if it does not exist, or truncated if
 // it does.
@@ -168,59 +148,33 @@ func WriteFileString(path string, content string) error {
 // Example:
 //
 //	// Safe to call concurrently from multiple goroutines targeting the same path.
-//	go sysx.WriteFileLocked("/tmp/shared.json", data1)
-//	go sysx.WriteFileLocked("/tmp/shared.json", data2)
-func WriteFileLocked(path string, data []byte) error {
+//	go sysx.WriteBytesWithLocked("/tmp/shared.json", data1)
+//	go sysx.WriteBytesWithLocked("/tmp/shared.json", data2)
+func WriteBytesWithLocked(path string, data []byte) error {
 	mu := getFileMutex(path)
 	mu.Lock()
 	defer mu.Unlock()
 	return os.WriteFile(path, data, 0o644)
 }
 
-// AppendFile appends data to the file at path, creating it with permission
-// 0644 if it does not exist.
-//
-// Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to append.
-//
-// Returns:
-//
-//	An error if the file could not be opened or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.AppendFile("/var/log/app.log", []byte("entry\n")); err != nil {
-//	    log.Fatal(err)
-//	}
-func AppendFile(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(data)
-	return err
-}
-
-// AppendString appends content to the file at path, creating it with
-// permission 0644 if it does not exist.
+// WriteString writes content to the file at path, creating it if it does
+// not exist or truncating it if it does. The file is created with permission 0644.
 //
 // Parameters:
 //   - `path`:    the destination file path.
-//   - `content`: the string to append.
+//   - `content`: the string to write.
 //
 // Returns:
 //
-//	An error if the file could not be opened or written; nil on success.
+//	An error if the file could not be created or written; nil on success.
 //
 // Example:
 //
-//	if err := sysx.AppendString("/var/log/app.log", "entry\n"); err != nil {
+//	if err := sysx.WriteString("/tmp/hello.txt", "hello world\n"); err != nil {
 //	    log.Fatal(err)
 //	}
-func AppendString(path string, content string) error {
-	return AppendFile(path, []byte(content))
+func WriteString(path string, content string) error {
+	return os.WriteFile(path, []byte(content), 0o644)
 }
 
 // WriteLines writes each element of lines to the file at path as a separate
@@ -255,7 +209,7 @@ func WriteLines(path string, lines []string) error {
 	return w.Flush()
 }
 
-// AtomicWriteFile writes data to path atomically using the
+// AtomicWriteBytes writes data to path atomically using the
 // temporary-file-and-rename pattern: data is first flushed to a temporary
 // file located in the same directory as path, then the temporary file is
 // renamed to path.
@@ -277,10 +231,10 @@ func WriteLines(path string, lines []string) error {
 //
 // Example:
 //
-//	if err := sysx.AtomicWriteFile("/etc/app/config.json", jsonData); err != nil {
+//	if err := sysx.AtomicWriteBytes("/etc/app/config.json", jsonData); err != nil {
 //	    log.Fatal(err)
 //	}
-func AtomicWriteFile(path string, data []byte) error {
+func AtomicWriteBytes(path string, data []byte) error {
 	dir := filepath.Dir(path)
 	tmp, err := os.CreateTemp(dir, ".tmp_atomic_*")
 	if err != nil {
@@ -305,4 +259,50 @@ func AtomicWriteFile(path string, data []byte) error {
 	}
 	renamed = true
 	return nil
+}
+
+// AppendBytes appends data to the file at path, creating it with permission
+// 0644 if it does not exist.
+//
+// Parameters:
+//   - `path`: the destination file path.
+//   - `data`: the bytes to append.
+//
+// Returns:
+//
+//	An error if the file could not be opened or written; nil on success.
+//
+// Example:
+//
+//	if err := sysx.AppendBytes("/var/log/app.log", []byte("entry\n")); err != nil {
+//	    log.Fatal(err)
+//	}
+func AppendBytes(path string, data []byte) error {
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.Write(data)
+	return err
+}
+
+// AppendString appends content to the file at path, creating it with
+// permission 0644 if it does not exist.
+//
+// Parameters:
+//   - `path`:    the destination file path.
+//   - `content`: the string to append.
+//
+// Returns:
+//
+//	An error if the file could not be opened or written; nil on success.
+//
+// Example:
+//
+//	if err := sysx.AppendString("/var/log/app.log", "entry\n"); err != nil {
+//	    log.Fatal(err)
+//	}
+func AppendString(path string, content string) error {
+	return AppendBytes(path, []byte(content))
 }

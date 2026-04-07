@@ -1057,7 +1057,7 @@ func TestSysx_WriteFile(t *testing.T) {
 	path := tmpPath(t, "write")
 	defer os.Remove(path)
 
-	if err := sysx.WriteFile(path, []byte("hello")); err != nil {
+	if err := sysx.WriteBytes(path, []byte("hello")); err != nil {
 		t.Fatalf("WriteFile error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1066,7 +1066,7 @@ func TestSysx_WriteFile(t *testing.T) {
 	}
 
 	// Overwrite
-	if err := sysx.WriteFile(path, []byte("world")); err != nil {
+	if err := sysx.WriteBytes(path, []byte("world")); err != nil {
 		t.Fatalf("WriteFile overwrite error = %v", err)
 	}
 	got, _ = os.ReadFile(path)
@@ -1080,7 +1080,7 @@ func TestSysx_WriteFileString(t *testing.T) {
 	path := tmpPath(t, "writestr")
 	defer os.Remove(path)
 
-	if err := sysx.WriteFileString(path, "string content"); err != nil {
+	if err := sysx.WriteString(path, "string content"); err != nil {
 		t.Fatalf("WriteFileString error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1094,10 +1094,10 @@ func TestSysx_AppendFile(t *testing.T) {
 	path := tmpPath(t, "append")
 	defer os.Remove(path)
 
-	if err := sysx.AppendFile(path, []byte("first")); err != nil {
+	if err := sysx.AppendBytes(path, []byte("first")); err != nil {
 		t.Fatalf("AppendFile (create) error = %v", err)
 	}
-	if err := sysx.AppendFile(path, []byte("second")); err != nil {
+	if err := sysx.AppendBytes(path, []byte("second")); err != nil {
 		t.Fatalf("AppendFile (append) error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1153,7 +1153,7 @@ func TestSysx_AtomicWriteFile(t *testing.T) {
 	defer os.Remove(path)
 
 	data := []byte("atomic content")
-	if err := sysx.AtomicWriteFile(path, data); err != nil {
+	if err := sysx.AtomicWriteBytes(path, data); err != nil {
 		t.Fatalf("AtomicWriteFile error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1167,8 +1167,8 @@ func TestSysx_AtomicWriteFile_Overwrite(t *testing.T) {
 	path := tmpPath(t, "atomic_overwrite")
 	defer os.Remove(path)
 
-	sysx.WriteFile(path, []byte("original"))
-	if err := sysx.AtomicWriteFile(path, []byte("replaced")); err != nil {
+	sysx.WriteBytes(path, []byte("original"))
+	if err := sysx.AtomicWriteBytes(path, []byte("replaced")); err != nil {
 		t.Fatalf("AtomicWriteFile overwrite error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1189,7 +1189,7 @@ func TestSysx_AtomicWriteFile_ConcurrentWrites(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 			data := []byte(strings.Repeat("x", n+1))
-			sysx.AtomicWriteFile(path, data)
+			sysx.AtomicWriteBytes(path, data)
 		}(i)
 	}
 	wg.Wait()
@@ -1213,7 +1213,7 @@ func TestSysx_SafeFileWriter_Write(t *testing.T) {
 	defer os.Remove(path)
 
 	w := sysx.NewSafeFileWriter(path)
-	if err := w.Write([]byte("line1\n")); err != nil {
+	if err := w.WriteBytes([]byte("line1\n")); err != nil {
 		t.Fatalf("SafeFileWriter.Write error = %v", err)
 	}
 	if err := w.WriteString("line2\n"); err != nil {
@@ -1231,7 +1231,7 @@ func TestSysx_SafeFileWriter_Overwrite(t *testing.T) {
 	defer os.Remove(path)
 
 	w := sysx.NewSafeFileWriter(path)
-	w.Write([]byte("old"))
+	w.WriteBytes([]byte("old"))
 	if err := w.Overwrite([]byte("new")); err != nil {
 		t.Fatalf("SafeFileWriter.Overwrite error = %v", err)
 	}
@@ -1276,7 +1276,7 @@ func TestSysx_WriteFileLocked(t *testing.T) {
 	path := tmpPath(t, "locked")
 	defer os.Remove(path)
 
-	if err := sysx.WriteFileLocked(path, []byte("locked content")); err != nil {
+	if err := sysx.WriteBytesWithLocked(path, []byte("locked content")); err != nil {
 		t.Fatalf("WriteFileLocked error = %v", err)
 	}
 	got, _ := os.ReadFile(path)
@@ -1296,7 +1296,7 @@ func TestSysx_WriteFileLocked_Concurrent(t *testing.T) {
 	for i := 0; i < goroutines; i++ {
 		go func(n int) {
 			defer wg.Done()
-			sysx.WriteFileLocked(path, []byte(strings.Repeat("y", n+1)))
+			sysx.WriteBytesWithLocked(path, []byte(strings.Repeat("y", n+1)))
 		}(i)
 	}
 	wg.Wait()

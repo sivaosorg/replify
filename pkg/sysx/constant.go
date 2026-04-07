@@ -43,11 +43,6 @@ const (
 	// Flag for opening a file for reading and writing with append mode.
 	ARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND)
 
-	// os.O_RDWR | os.O_APPEND | os.O_CREATE
-	// Flag for opening a file for reading and writing with append mode and creating it if it doesn't exist.
-	// Deprecated: CARW is an alias for CRWA and has identical bit values; prefer CRWA for consistency.
-	CARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND | os.O_CREATE)
-
 	// os.O_RDWR | os.O_APPEND | os.O_TRUNC
 	// Flag for opening a file for reading and writing with append and truncate mode and creating it if it doesn't exist.
 	TARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND | os.O_TRUNC)

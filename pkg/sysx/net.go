@@ -22,32 +22,6 @@ var (
 	_localCIDRs     []*net.IPNet
 )
 
-// getLocalCIDRs returns the package-level private/unique-local CIDR list,
-// initialising it on first call via sync.Once. The returned slice must not be
-// modified by callers.
-// Panics if any hardcoded CIDR block fails to parse, which would indicate a
-// programming error.
-func getLocalCIDRs() []*net.IPNet {
-	_localCIDRsOnce.Do(func() {
-		blocks := []string{
-			"10.0.0.0/8",
-			"172.16.0.0/12",
-			"192.168.0.0/16",
-			"fc00::/7",
-		}
-		nets := make([]*net.IPNet, 0, len(blocks))
-		for _, b := range blocks {
-			_, ipNet, err := net.ParseCIDR(b)
-			if err != nil {
-				panic("sysx: failed to parse hardcoded CIDR block " + b + ": " + err.Error())
-			}
-			nets = append(nets, ipNet)
-		}
-		_localCIDRs = nets
-	})
-	return _localCIDRs
-}
-
 // IsIPv4 reports whether the given string is a valid IPv4 address.
 //
 // The check uses net.ParseIP: the string must be a dotted-decimal notation
@@ -482,4 +456,30 @@ func CheckTCPConn(host string, port int, timeout time.Duration) error {
 	}
 	conn.Close()
 	return nil
+}
+
+// getLocalCIDRs returns the package-level private/unique-local CIDR list,
+// initialising it on first call via sync.Once. The returned slice must not be
+// modified by callers.
+// Panics if any hardcoded CIDR block fails to parse, which would indicate a
+// programming error.
+func getLocalCIDRs() []*net.IPNet {
+	_localCIDRsOnce.Do(func() {
+		blocks := []string{
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+			"fc00::/7",
+		}
+		nets := make([]*net.IPNet, 0, len(blocks))
+		for _, b := range blocks {
+			_, ipNet, err := net.ParseCIDR(b)
+			if err != nil {
+				panic("sysx: failed to parse hardcoded CIDR block " + b + ": " + err.Error())
+			}
+			nets = append(nets, ipNet)
+		}
+		_localCIDRs = nets
+	})
+	return _localCIDRs
 }

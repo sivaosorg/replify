@@ -211,6 +211,49 @@ func IsWritable(path string) bool {
 	return true
 }
 
+// IsBinary reports whether the file at the given path appears to be a binary
+// file.
+//
+// Detection is performed using a heuristic: the first 8 KiB of the file are
+// searched for a null byte (0x00). If one is found, the file is considered
+// binary. An empty file is not considered binary.
+//
+// Parameters:
+//   - `path`: the file system path to check.
+//
+// Returns:
+//
+//	(bool, error): true if the file is binary and nil on success, or false
+//	and a non-nil error if the file cannot be opened or read.
+//
+// Example:
+//
+//	isBin, err := sysx.IsBinary("/usr/bin/ls")
+//	if err == nil && isBin {
+//	    fmt.Println("binary file detected")
+//	}
+func IsBinary(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// Read first 8KB
+	buf := make([]byte, 8192)
+	n, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+
+	for i := 0; i < n; i++ {
+		if buf[i] == 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // FileSize returns the size of the file at the given path in bytes.
 //
 // Parameters:
@@ -453,49 +496,6 @@ func Touch(path string) error {
 	}
 	now := time.Now()
 	return os.Chtimes(path, now, now)
-}
-
-// IsBinary reports whether the file at the given path appears to be a binary
-// file.
-//
-// Detection is performed using a heuristic: the first 8 KiB of the file are
-// searched for a null byte (0x00). If one is found, the file is considered
-// binary. An empty file is not considered binary.
-//
-// Parameters:
-//   - `path`: the file system path to check.
-//
-// Returns:
-//
-//	(bool, error): true if the file is binary and nil on success, or false
-//	and a non-nil error if the file cannot be opened or read.
-//
-// Example:
-//
-//	isBin, err := sysx.IsBinary("/usr/bin/ls")
-//	if err == nil && isBin {
-//	    fmt.Println("binary file detected")
-//	}
-func IsBinary(path string) (bool, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return false, err
-	}
-	defer f.Close()
-
-	// Read first 8KB
-	buf := make([]byte, 8192)
-	n, err := f.Read(buf)
-	if err != nil && err != io.EOF {
-		return false, err
-	}
-
-	for i := 0; i < n; i++ {
-		if buf[i] == 0 {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // FileMD5 calculates the MD5 checksum of the file at the given path and

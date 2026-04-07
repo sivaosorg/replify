@@ -44,6 +44,14 @@ func initLocalCIDRs() {
 	_localCIDRs = nets
 }
 
+// getLocalCIDRs returns the package-level private/unique-local CIDR list,
+// initialising it on first call via sync.Once. The returned slice must not be
+// modified by callers.
+func getLocalCIDRs() []*net.IPNet {
+	_localCIDRsOnce.Do(initLocalCIDRs)
+	return _localCIDRs
+}
+
 // IsIPv4 reports whether the given string is a valid IPv4 address.
 //
 // The check uses net.ParseIP: the string must be a dotted-decimal notation
@@ -133,8 +141,7 @@ func IsLocalIP(ip string) bool {
 	}
 
 	// Private IPv4 ranges (RFC 1918) and IPv6 unique-local (fc00::/7)
-	_localCIDRsOnce.Do(initLocalCIDRs)
-	for _, cidr := range _localCIDRs {
+	for _, cidr := range getLocalCIDRs() {
 		if cidr.Contains(parsed) {
 			return true
 		}

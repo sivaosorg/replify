@@ -109,9 +109,9 @@ func (c *Converter) stringToBool(v string) (bool, error) {
 	}
 
 	switch v {
-	case "1", "t", "T", "true", "True", "TRUE", "y", "Y", "yes", "Yes", "YES", "on", "On", "ON", "enabled", "Enabled", "ENABLED":
+	case "1", "t", "T", "true", "True", "TRUE", "y", "Y", "yes", "Yes", "YES", "on", "On", "ON":
 		return true, nil
-	case "0", "f", "F", "false", "False", "FALSE", "n", "N", "no", "No", "NO", "off", "Off", "OFF", "disabled", "Disabled", "DISABLED":
+	case "0", "f", "F", "false", "False", "FALSE", "n", "N", "no", "No", "NO", "off", "Off", "OFF":
 		return false, nil
 	}
 

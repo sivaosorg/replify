@@ -2,47 +2,60 @@ package sysx
 
 import "os"
 
-// FileOpenFlags is a convenience type for file open flags.
 const (
 	// os.O_CREATE | os.O_WRONLY | os.O_APPEND
-	CWA = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	// Flag for opening a file for writing with append mode and creating it if it doesn't exist.
+	CWA FileOpenFlags = FileOpenFlags(os.O_CREATE | os.O_WRONLY | os.O_APPEND)
 
 	// os.O_CREATE | os.O_WRONLY | os.O_TRUNC
-	CWT = os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	// Flag for opening a file for writing with truncate mode and creating it if it doesn't exist.
+	CWT FileOpenFlags = FileOpenFlags(os.O_CREATE | os.O_WRONLY | os.O_TRUNC)
 
 	// os.O_CREATE | os.O_WRONLY
-	CW = os.O_CREATE | os.O_WRONLY
+	// Flag for opening a file for writing and creating it if it doesn't exist.
+	CW FileOpenFlags = FileOpenFlags(os.O_CREATE | os.O_WRONLY)
 
 	// os.O_APPEND | os.O_WRONLY
-	AW = os.O_APPEND | os.O_WRONLY
+	// Flag for opening a file for writing with append mode.
+	AW FileOpenFlags = FileOpenFlags(os.O_APPEND | os.O_WRONLY)
 
 	// os.O_TRUNC | os.O_WRONLY
-	TW = os.O_TRUNC | os.O_WRONLY
+	// Flag for opening a file for writing with truncate mode.
+	TW FileOpenFlags = FileOpenFlags(os.O_TRUNC | os.O_WRONLY)
 
 	// os.O_RDONLY
-	RO = os.O_RDONLY
+	// Flag for opening a file for reading only.
+	RO FileOpenFlags = FileOpenFlags(os.O_RDONLY)
 
 	// os.O_RDWR
-	RW = os.O_RDWR
+	// Flag for opening a file for reading and writing.
+	RW FileOpenFlags = FileOpenFlags(os.O_RDWR)
 
 	// os.O_RDWR | os.O_CREATE
-	CRW = os.O_RDWR | os.O_CREATE
+	// Flag for opening a file for reading and writing and creating it if it doesn't exist.
+	CRW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_CREATE)
 
 	// os.O_RDWR | os.O_CREATE | os.O_TRUNC
-	CRWT = os.O_RDWR | os.O_CREATE | os.O_TRUNC
+	// Flag for opening a file for reading and writing with truncate mode and creating it if it doesn't exist.
+	CRWT FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_CREATE | os.O_TRUNC)
 
 	// os.O_RDWR | os.O_APPEND
-	ARW = os.O_RDWR | os.O_APPEND
+	// Flag for opening a file for reading and writing with append mode.
+	ARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND)
 
 	// os.O_RDWR | os.O_APPEND | os.O_CREATE
-	CARW = os.O_RDWR | os.O_APPEND | os.O_CREATE
+	// Flag for opening a file for reading and writing with append mode and creating it if it doesn't exist.
+	CARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND | os.O_CREATE)
 
 	// os.O_RDWR | os.O_APPEND | os.O_TRUNC
-	TARW = os.O_RDWR | os.O_APPEND | os.O_TRUNC
+	// Flag for opening a file for reading and writing with append and truncate mode and creating it if it doesn't exist.
+	TARW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_APPEND | os.O_TRUNC)
 
 	// os.O_RDWR | os.O_TRUNC
-	TRW = os.O_RDWR | os.O_TRUNC
+	// Flag for opening a file for reading and writing with truncate mode.
+	TRW FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_TRUNC)
 
 	// os.O_RDWR | os.O_CREATE | os.O_APPEND
-	CRWA = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	// Flag for opening a file for reading and writing with append mode and creating it if it doesn't exist.
+	CRWA FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_CREATE | os.O_APPEND)
 )

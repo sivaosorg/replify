@@ -3,7 +3,6 @@ package sysx
 import (
 	"os"
 	"path/filepath"
-	"syscall"
 )
 
 // ProcessExists reports whether a process with the given PID is currently
@@ -36,12 +35,7 @@ func ProcessExists(pid int) bool {
 	if pid <= 0 {
 		return false
 	}
-	if IsWindows() {
-		p, err := os.FindProcess(pid)
-		return err == nil && p != nil
-	}
-	err := syscall.Kill(pid, syscall.Signal(0))
-	return err == nil || err == syscall.EPERM
+	return processExists(pid)
 }
 
 // KillProcess sends SIGTERM to the process identified by pid.
@@ -63,11 +57,7 @@ func ProcessExists(pid int) bool {
 //	    log.Printf("failed to SIGTERM process %d: %v", pid, err)
 //	}
 func KillProcess(pid int) error {
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		return err
-	}
-	return p.Signal(syscall.SIGTERM)
+	return killProcess(pid)
 }
 
 // KillProcessForcefully sends SIGKILL to the process identified by pid.
@@ -89,11 +79,7 @@ func KillProcess(pid int) error {
 //	    log.Printf("failed to SIGKILL process %d: %v", pid, err)
 //	}
 func KillProcessForcefully(pid int) error {
-	p, err := os.FindProcess(pid)
-	if err != nil {
-		return err
-	}
-	return p.Signal(syscall.SIGKILL)
+	return killProcessForcefully(pid)
 }
 
 // CurrentProcessName returns the base name of the executable that started

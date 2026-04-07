@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+// FileOpenFlags is a convenience type for file open flags that provides a
+// type-safe way to specify common flag combinations. When a function accepts
+// this type, IDEs will suggest the predefined constants (e.g. CWA, RO, RW).
+type FileOpenFlags int
+
 // Command holds the fully resolved configuration for a single external process.
 // Use NewCommand to create a Command, then chain With* methods to configure it
 // before calling Execute, Run, or Output.

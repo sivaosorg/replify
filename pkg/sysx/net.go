@@ -16,39 +16,35 @@ import (
 )
 
 // localCIDRs holds the parsed private and unique-local IP ranges used by
-// IsLocalIP. Parsing is performed exactly once on first use.
+// IsLocalIP. Parsing is performed exactly once on first use via getLocalCIDRs.
 var (
 	_localCIDRsOnce sync.Once
 	_localCIDRs     []*net.IPNet
 )
 
-// initLocalCIDRs parses the well-known private/unique-local CIDR blocks and
-// stores them in the package-level _localCIDRs slice. Called via sync.Once.
-// Panics if any hardcoded CIDR block fails to parse, which would indicate a
-// programming error.
-func initLocalCIDRs() {
-	blocks := []string{
-		"10.0.0.0/8",
-		"172.16.0.0/12",
-		"192.168.0.0/16",
-		"fc00::/7",
-	}
-	nets := make([]*net.IPNet, 0, len(blocks))
-	for _, b := range blocks {
-		_, ipNet, err := net.ParseCIDR(b)
-		if err != nil {
-			panic("sysx: failed to parse hardcoded CIDR block " + b + ": " + err.Error())
-		}
-		nets = append(nets, ipNet)
-	}
-	_localCIDRs = nets
-}
-
 // getLocalCIDRs returns the package-level private/unique-local CIDR list,
 // initialising it on first call via sync.Once. The returned slice must not be
 // modified by callers.
+// Panics if any hardcoded CIDR block fails to parse, which would indicate a
+// programming error.
 func getLocalCIDRs() []*net.IPNet {
-	_localCIDRsOnce.Do(initLocalCIDRs)
+	_localCIDRsOnce.Do(func() {
+		blocks := []string{
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.0/16",
+			"fc00::/7",
+		}
+		nets := make([]*net.IPNet, 0, len(blocks))
+		for _, b := range blocks {
+			_, ipNet, err := net.ParseCIDR(b)
+			if err != nil {
+				panic("sysx: failed to parse hardcoded CIDR block " + b + ": " + err.Error())
+			}
+			nets = append(nets, ipNet)
+		}
+		_localCIDRs = nets
+	})
 	return _localCIDRs
 }
 

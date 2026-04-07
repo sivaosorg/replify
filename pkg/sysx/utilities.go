@@ -89,6 +89,25 @@ func darwinOSVersion() string {
 	return v
 }
 
+// windowsOSVersion retrieves the Windows product version using the system's
+// cmd.exe and ver utility.
+//
+// Returns:
+//
+//	A string identifying the Windows version, or "windows" on fallback.
+func windowsOSVersion() string {
+	out, err := exec.Command("cmd", "/c", "ver").Output()
+	if err != nil {
+		return runtime.GOOS
+	}
+	v := strings.TrimSpace(string(out))
+	if strutil.IsEmpty(v) {
+		return runtime.GOOS
+	}
+	// example output: Microsoft Windows [Version 10.0.19045.2965]
+	return v
+}
+
 // getFileMutex retrieves the sync.Mutex associated with the given file path.
 //
 // It performs an atomic load-or-store operation on a global map of mutexes.

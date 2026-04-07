@@ -1,7 +1,6 @@
 package sysx
 
 import (
-	"fmt"
 	"runtime"
 )
 
@@ -176,8 +175,7 @@ func OSVersion() string {
 	case "darwin":
 		return darwinOSVersion()
 	case "windows":
-		// return runtime.GOOS + "/" + runtime.GOARCH
-		return fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH)
+		return windowsOSVersion()
 	default:
 		return runtime.GOOS
 	}

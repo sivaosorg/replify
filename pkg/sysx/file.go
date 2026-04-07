@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"os/user"
+	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -135,8 +137,9 @@ func IsSymlink(path string) bool {
 // IsExecutable reports whether the file at the given path is executable by
 // its owner.
 //
-// The check is based on file mode bits (0100). On Windows, mode bits are an
-// approximation; all files typically report as executable.
+// The check is based on file mode bits (0100). On Windows, it verifies
+// if the file ends with a known executable extension or matches the PATHEXT
+// environment variable.
 //
 // Parameters:
 //   - `path`: the file system path to check.
@@ -144,7 +147,7 @@ func IsSymlink(path string) bool {
 // Returns:
 //
 //	A boolean value:
-//	 - true  when the file exists and its owner-execute bit is set;
+//	 - true  when the file exists and its owner-execute bit is set (or is an executable on Windows);
 //	 - false otherwise.
 //
 // Example:
@@ -157,15 +160,28 @@ func IsExecutable(path string) bool {
 	if err != nil {
 		return false
 	}
-	// On Windows, mode bits are always reported as executable; instead probe
-	// by opening the file for execution (read-only is the safe equivalent).
 	if IsWindows() {
-		f, err := os.Open(path)
-		if err != nil {
+		if !fi.Mode().IsRegular() {
 			return false
 		}
-		f.Close()
-		return fi.Mode().IsRegular()
+		ext := strings.ToLower(filepath.Ext(path))
+		switch ext {
+		case ".exe", ".bat", ".cmd", ".com", ".ps1":
+			return true
+		default:
+			if ext == "" {
+				return false
+			}
+			pathext := os.Getenv("PATHEXT")
+			if pathext != "" {
+				for _, pe := range strings.Split(pathext, string(os.PathListSeparator)) {
+					if strings.EqualFold(ext, strings.TrimSpace(pe)) {
+						return true
+					}
+				}
+			}
+			return false
+		}
 	}
 	return fi.Mode()&0100 != 0
 }

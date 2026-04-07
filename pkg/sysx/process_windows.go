@@ -5,19 +5,17 @@ package sysx
 import (
 	"os"
 	"syscall"
-	"unsafe"
 )
 
 const (
 	processQueryLimitedInformation = 0x1000
-	stillActive                    = 259 // STILL_ACTIVE value returned by GetExitCodeProcess
 )
 
 var (
-	modkernel32Windows     = syscall.NewLazyDLL("kernel32.dll")
-	procOpenProcess        = modkernel32Windows.NewProc("OpenProcess")
-	procCloseHandle        = modkernel32Windows.NewProc("CloseHandle")
-	procGetExitCodeProcess = modkernel32Windows.NewProc("GetExitCodeProcess")
+	modkernel32Windows      = syscall.NewLazyDLL("kernel32.dll")
+	procOpenProcess         = modkernel32Windows.NewProc("OpenProcess")
+	procCloseHandle         = modkernel32Windows.NewProc("CloseHandle")
+	procWaitForSingleObject = modkernel32Windows.NewProc("WaitForSingleObject")
 )
 
 // processExists checks whether a process with the given PID is running on
@@ -38,13 +36,13 @@ func processExists(pid int) bool {
 	}
 	defer procCloseHandle.Call(handle)
 
-	var exitCode uint32
-	ret, _, _ := procGetExitCodeProcess.Call(handle, uintptr(unsafe.Pointer(&exitCode)))
-	if ret == 0 {
-		return false
+	// Wait on the process handle with a timeout of zero.
+	// If it returns WAIT_TIMEOUT (0x102), the process is still running.
+	waitResult, _, _ := procWaitForSingleObject.Call(handle, 0)
+	if uint32(waitResult) == 0x00000102 {
+		return true
 	}
-	// STILL_ACTIVE (259) means the process is still running.
-	return exitCode == stillActive
+	return false
 }
 
 // killProcess sends an interrupt signal to the process identified by pid.

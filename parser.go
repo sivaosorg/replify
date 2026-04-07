@@ -1,6 +1,11 @@
 package replify
 
-import "github.com/sivaosorg/replify/pkg/fj"
+import (
+	"reflect"
+
+	"github.com/sivaosorg/replify/pkg/encoding"
+	"github.com/sivaosorg/replify/pkg/fj"
+)
 
 // JSONBodyParser parses the body of the wrapper as JSON and returns a fj.Context for the
 // entire document. This is the entry point for all fj-based operations on the wrapper.
@@ -14,6 +19,29 @@ import "github.com/sivaosorg/replify/pkg/fj"
 //	fmt.Println(ctx.Get("user.name").String())
 func (w *wrapper) JSONBodyParser() fj.Context {
 	return fj.Parse(jsonpass(w.data))
+}
+
+// JSONBodyCast casts the body of the wrapper to the given type.
+//
+// Parameters:
+//   - v: The value to cast the body to. Must be a pointer.
+//
+// Returns:
+//   - An error if the cast fails.
+//
+// Example:
+//
+//	err := w.JSONBodyCast(&myStruct)
+func (w *wrapper) JSONBodyCast(v any) error {
+	if v == nil {
+		return NewError("value is required")
+	}
+	if reflect.TypeOf(v).Kind() != reflect.Ptr {
+		return NewError("value must be a pointer")
+	}
+	json := jsonpass(w.data)
+	err := encoding.SafeUnmarshalJSON(json, v)
+	return NewErrorAck(err)
 }
 
 // QueryJSONBody retrieves the value at the given fj dot-notation path from the wrapper's

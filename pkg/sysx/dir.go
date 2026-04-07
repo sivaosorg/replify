@@ -263,8 +263,18 @@ func CopyDir(src, dst string) error {
 			if err != nil {
 				return err
 			}
-			if err := os.Symlink(link, dstPath); err != nil {
-				return err
+			// On Windows, symlink creation requires elevated privileges or
+			// Developer Mode. Fall back to copying the target as a regular
+			// file so the operation succeeds without requiring special access.
+			if symlinkErr := os.Symlink(link, dstPath); symlinkErr != nil {
+				// Resolve the link relative to the source directory.
+				target := link
+				if !filepath.IsAbs(target) {
+					target = filepath.Join(filepath.Dir(srcPath), link)
+				}
+				if err := CopyFile(target, dstPath); err != nil {
+					return err
+				}
 			}
 		} else {
 			if err := CopyFile(srcPath, dstPath); err != nil {

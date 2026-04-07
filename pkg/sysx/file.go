@@ -154,7 +154,20 @@ func IsSymlink(path string) bool {
 //	}
 func IsExecutable(path string) bool {
 	fi, err := os.Stat(path)
-	return err == nil && fi.Mode()&0100 != 0
+	if err != nil {
+		return false
+	}
+	// On Windows, mode bits are always reported as executable; instead probe
+	// by opening the file for execution (read-only is the safe equivalent).
+	if IsWindows() {
+		f, err := os.Open(path)
+		if err != nil {
+			return false
+		}
+		f.Close()
+		return fi.Mode().IsRegular()
+	}
+	return fi.Mode()&0100 != 0
 }
 
 // IsReadable reports whether the file at the given path is readable by its
@@ -178,6 +191,16 @@ func IsExecutable(path string) bool {
 //	    fmt.Println("readable")
 //	}
 func IsReadable(path string) bool {
+	// On Windows, mode bits are unreliable. Probe by attempting to open
+	// the file for reading — the same approach IsWritable uses for writes.
+	if IsWindows() {
+		f, err := os.Open(path)
+		if err != nil {
+			return false
+		}
+		f.Close()
+		return true
+	}
 	fi, err := os.Stat(path)
 	return err == nil && fi.Mode()&0400 != 0
 }

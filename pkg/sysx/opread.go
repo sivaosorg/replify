@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-// ReadFile reads the entire contents of the file at path and returns them as
+// ReadBytes reads the entire contents of the file at path and returns them as
 // a byte slice.
 //
 // Parameters:
@@ -20,16 +20,16 @@ import (
 //
 // Example:
 //
-//	data, err := sysx.ReadFile("/etc/hosts")
+//	data, err := sysx.ReadBytes("/etc/hosts")
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	fmt.Printf("%d bytes read\n", len(data))
-func ReadFile(path string) ([]byte, error) {
+func ReadBytes(path string) ([]byte, error) {
 	return os.ReadFile(path)
 }
 
-// ReadFileString reads the entire contents of the file at path and returns
+// ReadString reads the entire contents of the file at path and returns
 // them as a string.
 //
 // Parameters:
@@ -42,12 +42,12 @@ func ReadFile(path string) ([]byte, error) {
 //
 // Example:
 //
-//	content, err := sysx.ReadFileString("/etc/hostname")
+//	content, err := sysx.ReadString("/etc/hostname")
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	fmt.Println(strings.TrimSpace(content))
-func ReadFileString(path string) (string, error) {
+func ReadString(path string) (string, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return "", err

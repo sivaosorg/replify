@@ -912,7 +912,7 @@ func TestSysx_ReadFile(t *testing.T) {
 	f.Close()
 	defer os.Remove(path)
 
-	got, err := sysx.ReadFile(path)
+	got, err := sysx.ReadBytes(path)
 	if err != nil {
 		t.Fatalf("ReadFile error = %v", err)
 	}
@@ -920,7 +920,7 @@ func TestSysx_ReadFile(t *testing.T) {
 		t.Errorf("ReadFile = %q, want %q", got, content)
 	}
 
-	_, err = sysx.ReadFile(path + "_nonexistent")
+	_, err = sysx.ReadBytes(path + "_nonexistent")
 	if err == nil {
 		t.Error("ReadFile on non-existent path should return error")
 	}
@@ -938,7 +938,7 @@ func TestSysx_ReadFileString(t *testing.T) {
 	f.Close()
 	defer os.Remove(path)
 
-	got, err := sysx.ReadFileString(path)
+	got, err := sysx.ReadString(path)
 	if err != nil {
 		t.Fatalf("ReadFileString error = %v", err)
 	}

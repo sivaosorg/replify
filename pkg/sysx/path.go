@@ -163,3 +163,28 @@ func CleanPath(path string) string {
 func SplitPath(path string) (dir, file string) {
 	return filepath.Split(path)
 }
+
+// IsAbsPath returns true if the path is absolute.
+//
+// It wraps filepath.IsAbs and is safe for concurrent use.
+//
+// Parameters:
+//   - `path`: the file system path to check.
+//
+// Returns:
+//
+//	bool: true if the path is absolute, false otherwise.
+//
+// Example:
+//
+//	sysx.IsAbsPath("/etc/hosts")   // true
+//	sysx.IsAbsPath("relative/dir") // false
+func IsAbsPath(path string) bool {
+	if len(path) > 0 {
+		if path[0] == '/' {
+			return true
+		}
+		return filepath.IsAbs(path)
+	}
+	return false
+}

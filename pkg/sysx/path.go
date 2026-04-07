@@ -2,6 +2,9 @@ package sysx
 
 import (
 	"path/filepath"
+	"strings"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // BaseName returns the last element of path. Trailing path separators are
@@ -69,6 +72,28 @@ func DirName(path string) string {
 //	sysx.Ext("README.md")      // ".md"
 func Ext(path string) string {
 	return filepath.Ext(path)
+}
+
+// Extname returns the file extension without the leading dot.
+//
+// Parameters:
+//   - `path`: the file system path.
+//
+// Returns:
+//
+//	A string containing the file extension without the leading dot, or an
+//	empty string when path has no extension.
+//
+// Example:
+//
+//	sysx.Extname("archive.tar.gz") // "gz"
+//	sysx.Extname("/etc/hosts")     // ""
+//	sysx.Extname("README.md")      // "md"
+func Extname(path string) string {
+	if ext := filepath.Ext(path); len(ext) > 0 {
+		return ext[1:]
+	}
+	return ""
 }
 
 // AbsPath returns an absolute representation of path. If path is not already
@@ -187,4 +212,50 @@ func IsAbsPath(path string) bool {
 		return filepath.IsAbs(path)
 	}
 	return false
+}
+
+// PathNoExt returns the path without the extension.
+//
+// Parameters:
+//   - `path`: the file system path.
+//
+// Returns:
+//
+//	A string containing the path without the extension.
+//
+// Example:
+//
+//	sysx.PathNoExt("/etc/hosts")   // "/etc/hosts"
+//	sysx.PathNoExt("/etc/archive.zip") // "/etc/archive"
+func PathNoExt(path string) string {
+	ext := filepath.Ext(path)
+	if el := len(ext); el > 0 {
+		return path[:len(path)-el]
+	}
+	return path
+}
+
+// NameNoExt returns the file name without the extension.
+//
+// Parameters:
+//   - `path`: the file system path.
+//
+// Returns:
+//
+//	A string containing the file name without the extension.
+//
+// Example:
+//
+//	sysx.NameNoExt("/etc/hosts")   // "hosts"
+//	sysx.NameNoExt("/etc/archive.zip") // "archive"
+func NameNoExt(path string) string {
+	if strutil.IsEmpty(path) {
+		return ""
+	}
+
+	name := filepath.Base(path)
+	if pos := strings.LastIndexByte(name, '.'); pos > 0 {
+		return name[:pos]
+	}
+	return name
 }

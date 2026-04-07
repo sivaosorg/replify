@@ -1,9 +1,13 @@
 package sysx
 
 import (
+	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
 // CreateDir creates the named directory, along with any necessary parent
@@ -26,6 +30,71 @@ import (
 //	}
 func CreateDir(path string) error {
 	return os.MkdirAll(path, 0o755)
+}
+
+// CreateDirs creates multiple directories with the given permission.
+//
+// It is equivalent to os.MkdirAll for each directory and is idempotent: calling it
+// on a directory that already exists is a no-op.
+//
+// Parameters:
+//   - `perm`: the permission to use for creating the directories.
+//   - `paths`: the directory paths to create.
+//
+// Returns:
+//
+//	An error if any of the directories could not be created; nil on success.
+//
+// Example:
+//
+//	if err := sysx.CreateDirs(0o755, "/tmp/app/logs", "/tmp/app/cache"); err != nil {
+//	    log.Fatal(err)
+//	}
+func CreateDirs(perm fs.FileMode, paths ...string) error {
+	for _, path := range paths {
+		if strutil.IsEmpty(path) {
+			continue
+		}
+		if err := os.MkdirAll(path, perm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// CreateSubDirs creates subdirectories under a parent directory with the given permission.
+//
+// It is equivalent to os.MkdirAll for each subdirectory and is idempotent: calling it
+// on a directory that already exists is a no-op.
+//
+// Parameters:
+//   - `perm`: the permission to use for creating the directories.
+//   - `parentDir`: the parent directory path.
+//   - `subDirs`: the subdirectory names to create.
+//
+// Returns:
+//
+//	An error if any of the subdirectories could not be created; nil on success.
+//
+// Example:
+//
+//	if err := sysx.CreateSubDirs(0o755, "/tmp/app", "logs", "cache"); err != nil {
+//	    log.Fatal(err)
+//	}
+func CreateSubDirs(perm fs.FileMode, parent string, subdirs ...string) error {
+	if strutil.IsEmpty(parent) {
+		return errors.New("parent directory is empty")
+	}
+	for _, dir := range subdirs {
+		if strutil.IsEmpty(dir) {
+			continue
+		}
+		fpath := filepath.Join(parent, dir)
+		if err := os.MkdirAll(fpath, perm); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // RemoveDir removes the directory at path together with all of its contents.

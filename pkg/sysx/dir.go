@@ -386,7 +386,7 @@ func IsSafeDirEmpty(path string) bool {
 //	}
 func RemoveDirIfExist(path string) error {
 	if DirExists(path) {
-		return os.Remove(path)
+		return os.RemoveAll(path)
 	}
 	return nil
 }

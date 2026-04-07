@@ -9,10 +9,40 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
+
+// localCIDRs holds the parsed private and unique-local IP ranges used by
+// IsLocalIP. Parsing is performed exactly once on first use.
+var (
+	_localCIDRsOnce sync.Once
+	_localCIDRs     []*net.IPNet
+)
+
+// initLocalCIDRs parses the well-known private/unique-local CIDR blocks and
+// stores them in the package-level _localCIDRs slice. Called via sync.Once.
+// Panics if any hardcoded CIDR block fails to parse, which would indicate a
+// programming error.
+func initLocalCIDRs() {
+	blocks := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+		"fc00::/7",
+	}
+	nets := make([]*net.IPNet, 0, len(blocks))
+	for _, b := range blocks {
+		_, ipNet, err := net.ParseCIDR(b)
+		if err != nil {
+			panic("sysx: failed to parse hardcoded CIDR block " + b + ": " + err.Error())
+		}
+		nets = append(nets, ipNet)
+	}
+	_localCIDRs = nets
+}
 
 // IsIPv4 reports whether the given string is a valid IPv4 address.
 //
@@ -102,26 +132,9 @@ func IsLocalIP(ip string) bool {
 		return true
 	}
 
-	// localCIDRs holds the parsed private/unique-local IP ranges used by IsLocalIP.
-	var localCIDRs = func() []*net.IPNet {
-		blocks := []string{
-			"10.0.0.0/8",
-			"172.16.0.0/12",
-			"192.168.0.0/16",
-			"fc00::/7",
-		}
-		nets := make([]*net.IPNet, 0, len(blocks))
-		for _, b := range blocks {
-			_, ipNet, err := net.ParseCIDR(b)
-			if err == nil {
-				nets = append(nets, ipNet)
-			}
-		}
-		return nets
-	}()
-
 	// Private IPv4 ranges (RFC 1918) and IPv6 unique-local (fc00::/7)
-	for _, cidr := range localCIDRs {
+	_localCIDRsOnce.Do(initLocalCIDRs)
+	for _, cidr := range _localCIDRs {
 		if cidr.Contains(parsed) {
 			return true
 		}

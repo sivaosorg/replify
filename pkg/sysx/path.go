@@ -206,13 +206,7 @@ func SplitPath(path string) (dir, file string) {
 //	sysx.IsAbsPath("/etc/hosts")   // true
 //	sysx.IsAbsPath("relative/dir") // false
 func IsAbsPath(path string) bool {
-	if len(path) > 0 {
-		if path[0] == '/' {
-			return true
-		}
-		return filepath.IsAbs(path)
-	}
-	return false
+	return filepath.IsAbs(path)
 }
 
 // PathNoExt returns the path without the extension.

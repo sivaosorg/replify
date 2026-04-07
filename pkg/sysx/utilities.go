@@ -133,12 +133,6 @@ func parseBool(s string) (bool, bool) {
 		return false, false
 	}
 	s = strings.ToLower(strings.TrimSpace(s))
-	switch s {
-	case "on":
-		return true, true
-	case "off":
-		return false, true
-	}
 	v, err := conv.Bool(s)
 	if err != nil {
 		return false, false

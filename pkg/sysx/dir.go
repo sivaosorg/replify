@@ -368,3 +368,25 @@ func IsSafeDirEmpty(path string) bool {
 	}
 	return ok
 }
+
+// RemoveDirIfExist removes the directory at path if it exists.
+//
+// Parameters:
+//   - `path`: the directory path to remove.
+//
+// Returns:
+//
+//	An error if the directory could not be removed; nil on success or if the
+//	directory does not exist.
+//
+// Example:
+//
+//	if err := sysx.RemoveDirIfExist("/tmp/cache"); err != nil {
+//	    log.Fatal(err)
+//	}
+func RemoveDirIfExist(path string) error {
+	if DirExists(path) {
+		return os.Remove(path)
+	}
+	return nil
+}

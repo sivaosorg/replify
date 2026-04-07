@@ -658,3 +658,25 @@ func CopyFile(src, dst string) error {
 func TruncateFile(path string, size int64) error {
 	return os.Truncate(path, size)
 }
+
+// RemoveFileIfExist removes the file at path if it exists.
+//
+// Parameters:
+//   - `path`: the file path to remove.
+//
+// Returns:
+//
+//	An error if the file could not be removed; nil on success or if the
+//	file does not exist.
+//
+// Example:
+//
+//	if err := sysx.RemoveFileIfExist("/tmp/app/cache/file.txt"); err != nil {
+//	    log.Fatal(err)
+//	}
+func RemoveFileIfExist(path string) error {
+	if FileExists(path) {
+		return os.Remove(path)
+	}
+	return nil
+}

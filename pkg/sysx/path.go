@@ -1,6 +1,7 @@
 package sysx
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -258,4 +259,43 @@ func NameNoExt(path string) string {
 		return name[:pos]
 	}
 	return name
+}
+
+// SafeRemove removes the file at path. If the file does not exist, it does
+// not return an error.
+//
+// Parameters:
+//   - `path`: the file path to remove.
+//
+// Example:
+//
+//	func main() {
+//		// Remove a file quietly
+//		sysx.SafeRemove("/tmp/app/cache/file.txt")
+//	}
+func SafeRemove(path string) {
+	_ = os.Remove(path)
+}
+
+// SafeRemoveAll removes the directory at path together with all of its contents.
+//
+// It wraps os.RemoveAll. Calling SafeRemoveAll on a path that does not exist is
+// not an error; the function returns nil in that case.
+//
+// Parameters:
+//   - `path`: the directory path to remove.
+//
+// Returns:
+//
+//	An error if the directory could not be removed; nil on success or if the
+//	path does not exist.
+//
+// Example:
+//
+//	func main() {
+//		// Remove a directory quietly
+//		sysx.SafeRemoveAll("/tmp/app/cache")
+//	}
+func SafeRemoveAll(path string) {
+	_ = os.RemoveAll(path)
 }

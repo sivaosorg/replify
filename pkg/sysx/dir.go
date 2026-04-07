@@ -1,7 +1,9 @@
 package sysx
 
 import (
+	"io"
 	"os"
+	"path/filepath"
 )
 
 // CreateDir creates the named directory, along with any necessary parent
@@ -140,4 +142,150 @@ func ListDirDirs(path string) ([]string, error) {
 		}
 	}
 	return names, nil
+}
+
+// CopyDir recursively copies the directory tree from src to dst.
+//
+// The destination directory is created with the same permissions as src.
+// Existing files in the destination are overwritten. Symbolic links within
+// the source are replicated at the destination (not followed).
+//
+// Parameters:
+//   - `src`: the source directory path.
+//   - `dst`: the destination directory path.
+//
+// Returns:
+//
+//	An error if the copy operation fails; nil on success.
+//
+// Example:
+//
+//	if err := sysx.CopyDir("/home/user/docs", "/tmp/docs_bak"); err != nil {
+//	    log.Fatal(err)
+//	}
+func CopyDir(src, dst string) error {
+	fi, err := os.Stat(src)
+	if err != nil {
+		return err
+	}
+	if !fi.IsDir() {
+		return &os.PathError{Op: "CopyDir", Path: src, Err: os.ErrInvalid}
+	}
+
+	if err := os.MkdirAll(dst, fi.Mode()); err != nil {
+		return err
+	}
+
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return err
+	}
+
+	for _, entry := range entries {
+		srcPath := filepath.Join(src, entry.Name())
+		dstPath := filepath.Join(dst, entry.Name())
+
+		if entry.IsDir() {
+			if err := CopyDir(srcPath, dstPath); err != nil {
+				return err
+			}
+		} else if entry.Type()&os.ModeSymlink != 0 {
+			link, err := os.Readlink(srcPath)
+			if err != nil {
+				return err
+			}
+			if err := os.Symlink(link, dstPath); err != nil {
+				return err
+			}
+		} else {
+			if err := CopyFile(srcPath, dstPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// ClearDir removes all files and subdirectories from the directory at path,
+// but leaves the directory itself intact.
+//
+// If path does not exist, an error is returned.
+//
+// Parameters:
+//   - `path`: the directory path to clear.
+//
+// Returns:
+//
+//	An error if the directory could not be read or its contents removed; nil
+//	on success.
+//
+// Example:
+//
+//	if err := sysx.ClearDir("/tmp/cache"); err != nil {
+//	    log.Fatal(err)
+//	}
+func ClearDir(path string) error {
+	entries, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join(path, entry.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// IsDirEmpty reports whether the directory at path exists and contains no entries.
+//
+// Parameters:
+//   - `path`: the directory path to check.
+//
+// Returns:
+//
+//	(bool, error): true if the directory is empty and nil on success, or false
+//	and a non-nil error if the directory does not exist or cannot be read.
+//
+// Example:
+//
+//	empty, err := sysx.IsDirEmpty("/tmp/empty_dir")
+//	if err == nil && empty {
+//	    fmt.Println("directory is empty")
+//	}
+func IsDirEmpty(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return true, nil
+	}
+	return false, err
+}
+
+// IsSafeDirEmpty reports whether the directory at path exists and contains no entries.
+//
+// Parameters:
+//   - `path`: the directory path to check.
+//
+// Returns:
+//
+//	true if the directory is empty and nil on success, or false if the directory does not exist or cannot be read.
+//
+// Example:
+//
+//	empty := sysx.IsSafeDirEmpty("/tmp/empty_dir")
+//	if empty {
+//	    fmt.Println("directory is empty")
+//	}
+func IsSafeDirEmpty(path string) bool {
+	ok, err := IsDirEmpty(path)
+	if err != nil {
+		return false
+	}
+	return ok
 }

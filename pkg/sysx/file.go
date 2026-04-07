@@ -2,10 +2,12 @@ package sysx
 
 import (
 	"bufio"
-	"fmt"
+	"crypto/md5"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
 	"os"
 	"os/user"
-	"path/filepath"
 	"time"
 )
 
@@ -387,426 +389,233 @@ func MustWorkingDir() string {
 	return wd
 }
 
-// ReadFile reads the entire contents of the file at path and returns them as
-// a byte slice.
+// Move renames (moves) src to dst. If dst already exists, it is overwritten.
+//
+// Move is more robust than os.Rename: it attempts an atomic rename first,
+// but if that fails because src and dst are on different logical devices
+// (cross-device link error), it falls back to a manual copy-and-delete
+// strategy.
 //
 // Parameters:
-//   - `path`: the file system path to read.
+//   - `src`: the source file or directory path.
+//   - `dst`: the destination path.
 //
 // Returns:
 //
-//	([]byte, error): the file contents and nil on success, or nil and a
-//	non-nil error if the file does not exist or cannot be read.
+//	An error if the move or fallback copy fails; nil on success.
 //
 // Example:
 //
-//	data, err := sysx.ReadFile("/etc/hosts")
-//	if err != nil {
+//	if err := sysx.Move("/tmp/data.txt", "/home/user/data.txt"); err != nil {
 //	    log.Fatal(err)
 //	}
-//	fmt.Printf("%d bytes read\n", len(data))
-func ReadFile(path string) ([]byte, error) {
-	return os.ReadFile(path)
+func Move(src, dst string) error {
+	err := os.Rename(src, dst)
+	if err == nil {
+		return nil
+	}
+
+	// Fallback for cross-device rename
+	if IsDir(src) {
+		if err := CopyDir(src, dst); err != nil {
+			return err
+		}
+	} else {
+		if err := CopyFile(src, dst); err != nil {
+			return err
+		}
+	}
+	return os.RemoveAll(src)
 }
 
-// ReadFileString reads the entire contents of the file at path and returns
-// them as a string.
+// Touch creates the file at path if it does not exist, or updates its access
+// and modification times to the current time if it does.
 //
 // Parameters:
-//   - `path`: the file system path to read.
+//   - `path`: the file system path to touch.
 //
 // Returns:
 //
-//	(string, error): the file contents and nil on success, or an empty string
-//	and a non-nil error if the file does not exist or cannot be read.
+//	An error if the file could not be created or its times updated; nil on success.
 //
 // Example:
 //
-//	content, err := sysx.ReadFileString("/etc/hostname")
+//	if err := sysx.Touch("/tmp/marker.lock"); err != nil {
+//	    log.Fatal(err)
+//	}
+func Touch(path string) error {
+	if !FileExists(path) {
+		f, err := os.Create(path)
+		if err != nil {
+			return err
+		}
+		return f.Close()
+	}
+	now := time.Now()
+	return os.Chtimes(path, now, now)
+}
+
+// IsBinary reports whether the file at the given path appears to be a binary
+// file.
+//
+// Detection is performed using a heuristic: the first 8 KiB of the file are
+// searched for a null byte (0x00). If one is found, the file is considered
+// binary. An empty file is not considered binary.
+//
+// Parameters:
+//   - `path`: the file system path to check.
+//
+// Returns:
+//
+//	(bool, error): true if the file is binary and nil on success, or false
+//	and a non-nil error if the file cannot be opened or read.
+//
+// Example:
+//
+//	isBin, err := sysx.IsBinary("/usr/bin/ls")
+//	if err == nil && isBin {
+//	    fmt.Println("binary file detected")
+//	}
+func IsBinary(path string) (bool, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	// Read first 8KB
+	buf := make([]byte, 8192)
+	n, err := f.Read(buf)
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+
+	for i := 0; i < n; i++ {
+		if buf[i] == 0 {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// FileMD5 calculates the MD5 checksum of the file at the given path and
+// returns it as a lowercase hexadecimal string.
+//
+// Parameters:
+//   - `path`: the file system path to hash.
+//
+// Returns:
+//
+//	(string, error): the MD5 hash and nil on success, or an empty string and
+//	a non-nil error if the file cannot be opened or read.
+//
+// Example:
+//
+//	hash, err := sysx.FileMD5("/etc/hosts")
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-//	fmt.Println(strings.TrimSpace(content))
-func ReadFileString(path string) (string, error) {
-	data, err := os.ReadFile(path)
+//	fmt.Println(hash)
+func FileMD5(path string) (string, error) {
+	f, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	defer f.Close()
+
+	h := md5.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// ReadLines reads the file at path and returns its contents as a slice of
-// strings, one element per line. Line endings ("\n" and "\r\n") are stripped
-// from each element. An empty file returns a non-nil empty slice.
-//
-// The file is read with a buffered scanner, making it efficient even for
-// large files as long as no single line exceeds bufio.MaxScanTokenSize
-// (64 KiB by default).
+// FileSHA256 calculates the SHA256 checksum of the file at the given path and
+// returns it as a lowercase hexadecimal string.
 //
 // Parameters:
-//   - `path`: the file system path to read.
+//   - `path`: the file system path to hash.
 //
 // Returns:
 //
-//	([]string, error): lines of the file and nil on success, or a partial
-//	result and a non-nil error on failure.
+//	(string, error): the SHA256 hash and nil on success, or an empty string
+//	and a non-nil error if the file cannot be opened or read.
 //
 // Example:
 //
-//	lines, err := sysx.ReadLines("/var/log/app.log")
-//	for _, l := range lines {
-//	    fmt.Println(l)
+//	hash, err := sysx.FileSHA256("/etc/hosts")
+//	if err != nil {
+//	    log.Fatal(err)
 //	}
-func ReadLines(path string) ([]string, error) {
+//	fmt.Println(hash)
+func FileSHA256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer f.Close()
-	lines := make([]string, 0, 64)
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		lines = append(lines, scanner.Text())
+
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
 	}
-	if err := scanner.Err(); err != nil {
-		return lines, err
-	}
-	return lines, nil
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
-// StreamLines opens the file at path and calls handler for each line in order.
-// Processing stops immediately and the handler's error is returned when handler
-// returns a non-nil value. A bufio.Scanner error encountered during reading is
-// also returned. Line endings are stripped before handler is invoked.
-//
-// StreamLines is designed for memory-efficient processing of large files: only
-// one line is held in memory at a time.
+// CopyFile copies the contents of the file at src to a new or truncated file
+// at dst. The destination file is created with permission 0644 if it does not
+// exist, or truncated if it does. The copy is performed using io.Copy with a
+// buffered writer for efficiency.
 //
 // Parameters:
-//   - `path`:    the file system path to read.
-//   - `handler`: the function called for each line; return a non-nil error to stop.
+//   - `src`: the source file path to read from.
+//   - `dst`: the destination file path to write to.
 //
 // Returns:
 //
-//	An error if the file could not be opened, the scanner failed, or handler
-//	returned a non-nil error; nil on success.
+//	An error if the source cannot be opened, the destination cannot be
+//	created, or the copy fails; nil on success.
 //
 // Example:
 //
-//	count := 0
-//	err := sysx.StreamLines("/var/log/access.log", func(line string) error {
-//	    if strings.Contains(line, "ERROR") {
-//	        count++
-//	    }
-//	    return nil
-//	})
-func StreamLines(path string, handler func(string) error) error {
-	f, err := os.Open(path)
+//	if err := sysx.CopyFile("/etc/hosts", "/tmp/hosts.bak"); err != nil {
+//	    log.Fatal(err)
+//	}
+func CopyFile(src, dst string) error {
+	in, err := os.Open(src)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		if err := handler(scanner.Text()); err != nil {
-			return err
-		}
-	}
-	return scanner.Err()
-}
-
-// WriteFile writes data to the file at path, creating the file if it does not
-// exist or truncating it if it does. The file is created with permission 0644.
-//
-// Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to write.
-//
-// Returns:
-//
-//	An error if the file could not be created or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.WriteFile("/tmp/output.bin", payload); err != nil {
-//	    log.Fatal(err)
-//	}
-func WriteFile(path string, data []byte) error {
-	return os.WriteFile(path, data, 0o644)
-}
-
-// WriteFileString writes content to the file at path, creating it if it does
-// not exist or truncating it if it does. The file is created with permission 0644.
-//
-// Parameters:
-//   - `path`:    the destination file path.
-//   - `content`: the string to write.
-//
-// Returns:
-//
-//	An error if the file could not be created or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.WriteFileString("/tmp/hello.txt", "hello world\n"); err != nil {
-//	    log.Fatal(err)
-//	}
-func WriteFileString(path string, content string) error {
-	return os.WriteFile(path, []byte(content), 0o644)
-}
-
-// WriteFileLocked writes data to path using a per-path in-process mutex,
-// ensuring that concurrent calls with the same path value are serialised. The
-// file is created with permission 0644 if it does not exist, or truncated if
-// it does.
-//
-// Note: this provides in-process synchronisation only. For cross-process
-// safety, use AtomicWriteFile or a platform-specific file locking mechanism.
-//
-// Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to write.
-//
-// Returns:
-//
-//	An error if the write failed; nil on success.
-//
-// Example:
-//
-//	// Safe to call concurrently from multiple goroutines targeting the same path.
-//	go sysx.WriteFileLocked("/tmp/shared.json", data1)
-//	go sysx.WriteFileLocked("/tmp/shared.json", data2)
-func WriteFileLocked(path string, data []byte) error {
-	mu := getFileMutex(path)
-	mu.Lock()
-	defer mu.Unlock()
-	return os.WriteFile(path, data, 0o644)
-}
-
-// AppendFile appends data to the file at path, creating it with permission
-// 0644 if it does not exist.
-//
-// Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to append.
-//
-// Returns:
-//
-//	An error if the file could not be opened or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.AppendFile("/var/log/app.log", []byte("entry\n")); err != nil {
-//	    log.Fatal(err)
-//	}
-func AppendFile(path string, data []byte) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	defer in.Close()
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	_, err = f.Write(data)
-	return err
-}
-
-// AppendString appends content to the file at path, creating it with
-// permission 0644 if it does not exist.
-//
-// Parameters:
-//   - `path`:    the destination file path.
-//   - `content`: the string to append.
-//
-// Returns:
-//
-//	An error if the file could not be opened or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.AppendString("/var/log/app.log", "entry\n"); err != nil {
-//	    log.Fatal(err)
-//	}
-func AppendString(path string, content string) error {
-	return AppendFile(path, []byte(content))
-}
-
-// WriteLines writes each element of lines to the file at path as a separate
-// line terminated by "\n", creating or truncating the file. A buffered writer
-// is used for efficiency.
-//
-// Parameters:
-//   - `path`:  the destination file path.
-//   - `lines`: the slice of strings to write.
-//
-// Returns:
-//
-//	An error if the file could not be created or written; nil on success.
-//
-// Example:
-//
-//	if err := sysx.WriteLines("/tmp/list.txt", []string{"alpha", "beta", "gamma"}); err != nil {
-//	    log.Fatal(err)
-//	}
-func WriteLines(path string, lines []string) error {
-	f, err := os.Create(path)
-	if err != nil {
+	defer out.Close()
+	w := bufio.NewWriter(out)
+	if _, err := io.Copy(w, in); err != nil {
 		return err
-	}
-	defer f.Close()
-	w := bufio.NewWriter(f)
-	for _, line := range lines {
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
 	}
 	return w.Flush()
 }
 
-// AtomicWriteFile writes data to path atomically using the
-// temporary-file-and-rename pattern: data is first flushed to a temporary
-// file located in the same directory as path, then the temporary file is
-// renamed to path.
-//
-// On POSIX systems, os.Rename is atomic when the source and destination share
-// the same filesystem, so readers will never observe a partial write.
-//
-// The temporary file is created with permission 0644. If the rename fails,
-// the temporary file is cleaned up automatically.
+// TruncateFile truncates or extends the file at path to the given size in
+// bytes. If size is greater than the current file size, the file is extended
+// with zero bytes. If the file does not exist, an error is returned.
 //
 // Parameters:
-//   - `path`: the destination file path.
-//   - `data`: the bytes to write.
+//   - `path`: the file system path to truncate.
+//   - `size`: the desired file size in bytes; must be non-negative.
 //
 // Returns:
 //
-//	An error if the temporary file could not be created, written, or renamed;
-//	nil on success.
+//	An error if the file does not exist or the truncation fails; nil on success.
 //
 // Example:
 //
-//	if err := sysx.AtomicWriteFile("/etc/app/config.json", jsonData); err != nil {
+//	if err := sysx.TruncateFile("/tmp/output.bin", 0); err != nil {
 //	    log.Fatal(err)
 //	}
-func AtomicWriteFile(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	tmp, err := os.CreateTemp(dir, ".tmp_atomic_*")
-	if err != nil {
-		return err
-	}
-	tmpPath := tmp.Name()
-	renamed := false
-	defer func() {
-		if !renamed {
-			os.Remove(tmpPath)
-		}
-	}()
-	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		return err
-	}
-	renamed = true
-	return nil
+func TruncateFile(path string, size int64) error {
+	return os.Truncate(path, size)
 }
-
-// NewSafeFileWriter creates a SafeFileWriter targeting path with the default
-// file permission of 0644.
-//
-// Parameters:
-//   - `path`: the file path to write to.
-//
-// Returns:
-//
-//	A pointer to a new SafeFileWriter.
-//
-// Example:
-//
-//	w := sysx.NewSafeFileWriter("/var/log/app.log")
-//	go w.WriteString("line from goroutine 1\n")
-//	go w.WriteString("line from goroutine 2\n")
-func NewSafeFileWriter(path string) *SafeFileWriter {
-	return &SafeFileWriter{path: path, perm: 0o644}
-}
-
-// WithPerm overrides the file permission used when creating the file.
-// The default is 0644.
-//
-// Parameters:
-//   - `perm`: the os.FileMode to apply on file creation.
-//
-// Returns:
-//
-//	The receiver, enabling method chaining.
-func (w *SafeFileWriter) WithPerm(perm os.FileMode) *SafeFileWriter {
-	w.perm = perm
-	return w
-}
-
-// Write appends data to the file, creating it if it does not exist.
-// The operation is serialised by an internal mutex, making it safe to call
-// concurrently from multiple goroutines.
-//
-// Parameters:
-//   - `data`: the bytes to append.
-//
-// Returns:
-//
-//	An error if the file could not be opened or written; nil on success.
-func (w *SafeFileWriter) Write(data []byte) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	f, err := os.OpenFile(w.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, w.perm)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	_, err = f.Write(data)
-	return err
-}
-
-// WriteString appends s to the file, creating it if it does not exist.
-// The operation is serialised by an internal mutex.
-//
-// Parameters:
-//   - `s`: the string to append.
-//
-// Returns:
-//
-//	An error if the file could not be opened or written; nil on success.
-func (w *SafeFileWriter) WriteString(s string) error {
-	return w.Write([]byte(s))
-}
-
-// Overwrite replaces the entire file content with data, atomically using the
-// temporary-file-and-rename pattern. The operation is serialised by an
-// internal mutex.
-//
-// Parameters:
-//   - `data`: the bytes to write.
-//
-// Returns:
-//
-//	An error if the write or rename failed; nil on success.
-func (w *SafeFileWriter) Overwrite(data []byte) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	return AtomicWriteFile(w.path, data)
-}
-
-// Path returns the file path targeted by this SafeFileWriter.
-//
-// Returns:
-//
-//	A string containing the file path.
-func (w *SafeFileWriter) Path() string { return w.path }
-
-// Perm returns the file permission used when creating the file.
-//
-// Returns:
-//
-//	An os.FileMode representing the file permission.
-func (w *SafeFileWriter) Perm() os.FileMode { return w.perm }

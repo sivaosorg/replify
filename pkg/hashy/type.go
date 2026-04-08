@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// HashAlgorithm represents a hash algorithm.
+type HashAlgorithm string
+
 // hashOptions contains configuration for hash generation.
 type hashOptions struct {
 	// Hasher is the hash function to use. If this isn't set, it will

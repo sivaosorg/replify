@@ -1,13 +1,70 @@
 package hashy
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
+	"hash"
+	"hash/crc32"
+	"hash/crc64"
+	"hash/fnv"
 	"reflect"
 	"strconv"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
+
+// NewHash creates a new hash.Hash instance for the given algorithm.
+//
+// Parameters:
+//   - algo: The hash algorithm to use.
+//
+// Returns:
+//   - hash.Hash: The hash.Hash instance.
+func NewHash(algo HashAlgorithm) hash.Hash {
+	switch algo {
+	case H_CRC32:
+		return crc32.NewIEEE()
+	case H_CRC64:
+		return crc64.New(crc64.MakeTable(crc64.ISO))
+	case H_MD5:
+		return md5.New()
+	case H_SHA1:
+		return sha1.New()
+	case H_SHA224:
+		return sha256.New224()
+	case H_SHA256:
+		return sha256.New()
+	case H_SHA384:
+		return sha512.New384()
+	case H_SHA512:
+		return sha512.New()
+	case H_SHA512_224:
+		return sha512.New512_224()
+	case H_SHA512_256:
+		return sha512.New512_256()
+	default:
+		return fnv.New64a()
+	}
+}
+
+// NewHash64 creates a new hash.Hash64 instance for the given algorithm.
+//
+// Parameters:
+//   - algo: The hash algorithm to use.
+//
+// Returns:
+//   - hash.Hash64: The hash.Hash64 instance.
+func NewHash64(algo HashAlgorithm) hash.Hash64 {
+	h := NewHash(algo)
+	if h == nil {
+		return fnv.New64a()
+	}
+	return h.(hash.Hash64)
+}
 
 // HashValue generates a 64-bit hash value for a single value with options.
 // This is the primary hashing function.

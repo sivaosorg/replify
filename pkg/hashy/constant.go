@@ -29,4 +29,10 @@ const (
 
 	// H_SHA512 is a SHA512 hash algorithm.
 	H_SHA512 HashAlgorithm = "sha512"
+
+	// H_SHA512_224 is a SHA512_224 hash algorithm.
+	H_SHA512_224 HashAlgorithm = "sha512_224"
+
+	// H_SHA512_256 is a SHA512_256 hash algorithm.
+	H_SHA512_256 HashAlgorithm = "sha512_256"
 )

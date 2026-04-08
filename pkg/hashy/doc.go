@@ -21,7 +21,7 @@
 // common formats:
 //
 //	Hash256(v)    → SHA-256 of the uint64, as a hex string
-//	HashHex(v)    → zero-padded 16-character hex string
+//	Hash16Padded(v)    → zero-padded 16-character hex string
 //	Hash16(v) → hexadecimal string
 //	Hash10(v) → decimal string
 //	Hash32(v) → base-32 string

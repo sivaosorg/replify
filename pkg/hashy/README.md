@@ -97,11 +97,11 @@ hash256, _ := hashy.Hash256("data")
 fmt.Println(hash256) // "a1b2c3d4..."
 
 // Hexadecimal (16-character, zero-padded)
-hexHash, _ := hashy.HashHex("data")
+hexHash, _ := hashy.Hash16Padded("data")
 fmt.Println(hexHash) // "000000000a1b2c3d"
 
 // Hexadecimal (short, no padding)
-hexShort, _ := hashy.HashHexShort("data")
+hexShort, _ := hashy.HashHex16("data")
 fmt.Println(hexShort) // "a1b2c3d"
 
 // Base64 encoded
@@ -376,7 +376,7 @@ type APIResponse struct {
 }
 
 func generateETag(response APIResponse) (string, error) {
-    hash, err := hashy.HashHex(response)
+    hash, err := hashy.Hash16Padded(response)
     if err != nil {
         return "", err
     }
@@ -403,8 +403,8 @@ func main() {
 | `Hash(data ...any)` | Generate 64-bit hash | `uint64, error` |
 | `HashValue(value any, opts)` | Hash single value with options | `uint64, error` |
 | `Hash256(data ...any)` | Generate SHA-256 hash string | `string, error` |
-| `HashHex(data ...any)` | 16-char hex hash (zero-padded) | `string, error` |
-| `HashHexShort(data ...any)` | Hex hash (no padding) | `string, error` |
+| `Hash16Padded(data ...any)` | 16-char hex hash (zero-padded) | `string, error` |
+| `HashHex16(data ...any)` | Hex hash (no padding) | `string, error` |
 | `Hash10(data ...any)` | Decimal string hash | `string, error` |
 | `Hash16(data ...any)` | Hexadecimal string | `string, error` |
 | `Hash32(data ...any)` | Base32 string | `string, error` |
@@ -492,7 +492,7 @@ type SelectMapEntry func(field string, k, v any) (bool, error)
 
 ✅ **Use `FieldSelector`** for complex inclusion rules
 
-✅ **Generate string hashes** for cache keys and ETags (`Hash256`, `HashHex`)
+✅ **Generate string hashes** for cache keys and ETags (`Hash256`, `Hash16Padded`)
 
 ✅ **Test hash stability** across versions if persisting hashes
 
@@ -563,7 +563,7 @@ type VersionedData struct {
 }
 
 func hashWithVersion(data VersionedData) (string, error) {
-    hash, err := hashy.HashHex(data)
+    hash, err := hashy.Hash16Padded(data)
     if err != nil {
         return "", err
     }

@@ -143,6 +143,31 @@ func Hash16(data ...any) (string, error) {
 	return strconv.FormatUint(hash, 16), nil
 }
 
+// Hash16Padded generates a hexadecimal hash string for the given data.
+// It accepts variadic arguments - if only one argument is provided, it hashes
+// that value. If multiple arguments are provided, it hashes them as a tuple.
+// The last argument can optionally be *Options.
+//
+// Returns:
+//   - string: The computed hash string (never empty for valid inputs)
+//   - error: Non-nil if hashing fails
+//
+// Example:
+//
+//	hash, err := Hash16Padded(myStruct)                    // Single value
+//	hash, err := Hash16Padded(val1, val2, val3)            // Multiple values
+//	hash, err := Hash16Padded(myStruct, opts)              // With options
+//	hash, err := Hash16Padded(val1, val2, val3, opts)      // Multiple values with options
+//
+// The hash is deterministic: identical values always produce identical hashes.
+func Hash16Padded(data ...any) (string, error) {
+	hash, err := Hash(data...)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%016x", hash), nil
+}
+
 // Hash32 generates a base32 encoded hash string for the given data.
 // It accepts variadic arguments - if only one argument is provided, it hashes
 // that value. If multiple arguments are provided, it hashes them as a tuple.
@@ -218,7 +243,7 @@ func Hash256(data ...any) (string, error) {
 	return strutil.Hash256(fmt.Sprintf("%v", hash)), nil
 }
 
-// HashHex generates a hexadecimal hash string for the given data.
+// HashHex16 generates a hexadecimal hash string for the given data.
 // It accepts variadic arguments - if only one argument is provided, it hashes
 // that value. If multiple arguments are provided, it hashes them as a tuple.
 // The last argument can optionally be *Options.
@@ -229,38 +254,13 @@ func Hash256(data ...any) (string, error) {
 //
 // Example:
 //
-//	hash, err := HashHex(myStruct)                    // Single value
-//	hash, err := HashHex(val1, val2, val3)            // Multiple values
-//	hash, err := HashHex(myStruct, opts)              // With options
-//	hash, err := HashHex(val1, val2, val3, opts)      // Multiple values with options
+//	hash, err := HashHex16(myStruct)                    // Single value
+//	hash, err := HashHex16(val1, val2, val3)            // Multiple values
+//	hash, err := HashHex16(myStruct, opts)              // With options
+//	hash, err := HashHex16(val1, val2, val3, opts)      // Multiple values with options
 //
 // The hash is deterministic: identical values always produce identical hashes.
-func HashHex(data ...any) (string, error) {
-	hash, err := Hash(data...)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%016x", hash), nil
-}
-
-// HashHexShort generates a hexadecimal hash string for the given data.
-// It accepts variadic arguments - if only one argument is provided, it hashes
-// that value. If multiple arguments are provided, it hashes them as a tuple.
-// The last argument can optionally be *Options.
-//
-// Returns:
-//   - string: The computed hash string (never empty for valid inputs)
-//   - error: Non-nil if hashing fails
-//
-// Example:
-//
-//	hash, err := HashHexShort(myStruct)                    // Single value
-//	hash, err := HashHexShort(val1, val2, val3)            // Multiple values
-//	hash, err := HashHexShort(myStruct, opts)              // With options
-//	hash, err := HashHexShort(val1, val2, val3, opts)      // Multiple values with options
-//
-// The hash is deterministic: identical values always produce identical hashes.
-func HashHexShort(data ...any) (string, error) {
+func HashHex16(data ...any) (string, error) {
 	hash, err := Hash(data...)
 	if err != nil {
 		return "", err

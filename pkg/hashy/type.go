@@ -128,4 +128,4 @@ type visitOptions struct {
 }
 
 // timeType is the type of time.Time.
-var timeType = reflect.TypeOf(time.Time{})
+var timeType = reflect.TypeFor[time.Time]()

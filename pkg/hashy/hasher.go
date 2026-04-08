@@ -23,7 +23,7 @@ import (
 //	unwrappedValue := h.unwrapValue(value)
 //	fmt.Println(unwrappedValue) // 1
 func (h *hasher) unwrapValue(value reflect.Value) reflect.Value {
-	targetType := reflect.TypeOf(0)
+	targetType := reflect.TypeFor[int]()
 
 	for {
 		if value.Kind() == reflect.Interface {

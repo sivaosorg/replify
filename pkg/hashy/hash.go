@@ -93,6 +93,106 @@ func Hash(data ...any) (uint64, error) {
 	return HashValue(values, opts)
 }
 
+// Hash10 generates a decimal hash string for the given data.
+// It accepts variadic arguments - if only one argument is provided, it hashes
+// that value. If multiple arguments are provided, it hashes them as a tuple.
+// The last argument can optionally be *Options.
+//
+// Returns:
+//   - string: The computed hash string (never empty for valid inputs)
+//   - error: Non-nil if hashing fails
+//
+// Example:
+//
+//	hash, err := Hash10(myStruct)                    // Single value
+//	hash, err := Hash10(val1, val2, val3)            // Multiple values
+//	hash, err := Hash10(myStruct, opts)              // With options
+//	hash, err := Hash10(val1, val2, val3, opts)      // Multiple values with options
+//
+// The hash is deterministic: identical values always produce identical hashes.
+func Hash10(data ...any) (string, error) {
+	hash, err := Hash(data...)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatUint(hash, 10), nil
+}
+
+// Hash16 generates a hexadecimal hash string for the given data.
+// It accepts variadic arguments - if only one argument is provided, it hashes
+// that value. If multiple arguments are provided, it hashes them as a tuple.
+// The last argument can optionally be *Options.
+//
+// Returns:
+//   - string: The computed hash string (never empty for valid inputs)
+//   - error: Non-nil if hashing fails
+//
+// Example:
+//
+//	hash, err := Hash16(myStruct)                    // Single value
+//	hash, err := Hash16(val1, val2, val3)            // Multiple values
+//	hash, err := Hash16(myStruct, opts)              // With options
+//	hash, err := Hash16(val1, val2, val3, opts)      // Multiple values with options
+//
+// The hash is deterministic: identical values always produce identical hashes.
+func Hash16(data ...any) (string, error) {
+	hash, err := Hash(data...)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatUint(hash, 16), nil
+}
+
+// Hash32 generates a base32 encoded hash string for the given data.
+// It accepts variadic arguments - if only one argument is provided, it hashes
+// that value. If multiple arguments are provided, it hashes them as a tuple.
+// The last argument can optionally be *Options.
+//
+// Returns:
+//   - string: The computed hash string (never empty for valid inputs)
+//   - error: Non-nil if hashing fails
+//
+// Example:
+//
+//	hash, err := Hash32(myStruct)                    // Single value
+//	hash, err := Hash32(val1, val2, val3)            // Multiple values
+//	hash, err := Hash32(myStruct, opts)              // With options
+//	hash, err := Hash32(val1, val2, val3, opts)      // Multiple values with options
+//
+// The hash is deterministic: identical values always produce identical hashes.§
+func Hash32(data ...any) (string, error) {
+	hash, err := Hash(data...)
+	if err != nil {
+		return "", err
+	}
+	return strconv.FormatUint(hash, 32), nil
+}
+
+// Hash64 generates a base64 encoded hash string for the given data.
+// It accepts variadic arguments - if only one argument is provided, it hashes
+// that value. If multiple arguments are provided, it hashes them as a tuple.
+// The last argument can optionally be *Options.
+//
+// Returns:
+//   - string: The computed hash string (never empty for valid inputs)
+//   - error: Non-nil if hashing fails
+//
+// Example:
+//
+//	hash, err := Hash64(myStruct)                    // Single value
+//	hash, err := Hash64(val1, val2, val3)            // Multiple values
+//	hash, err := Hash64(myStruct, opts)              // With options
+//	hash, err := Hash64(val1, val2, val3, opts)      // Multiple values with options
+//
+// The hash is deterministic: identical values always produce identical hashes.
+func Hash64(data ...any) (string, error) {
+	hash, err := Hash(data...)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString([]byte(fmt.Appendf(nil, "%v", hash))), nil
+}
+
 // Hash256 generates a 256-bit hash string for the given data.
 // It accepts variadic arguments - if only one argument is provided, it hashes
 // that value. If multiple arguments are provided, it hashes them as a tuple.
@@ -116,106 +216,6 @@ func Hash256(data ...any) (string, error) {
 		return "", err
 	}
 	return strutil.Hash256(fmt.Sprintf("%v", hash)), nil
-}
-
-// HashBase10 generates a decimal hash string for the given data.
-// It accepts variadic arguments - if only one argument is provided, it hashes
-// that value. If multiple arguments are provided, it hashes them as a tuple.
-// The last argument can optionally be *Options.
-//
-// Returns:
-//   - string: The computed hash string (never empty for valid inputs)
-//   - error: Non-nil if hashing fails
-//
-// Example:
-//
-//	hash, err := HashBase10(myStruct)                    // Single value
-//	hash, err := HashBase10(val1, val2, val3)            // Multiple values
-//	hash, err := HashBase10(myStruct, opts)              // With options
-//	hash, err := HashBase10(val1, val2, val3, opts)      // Multiple values with options
-//
-// The hash is deterministic: identical values always produce identical hashes.
-func HashBase10(data ...any) (string, error) {
-	hash, err := Hash(data...)
-	if err != nil {
-		return "", err
-	}
-	return strconv.FormatUint(hash, 10), nil
-}
-
-// HashBase16 generates a hexadecimal hash string for the given data.
-// It accepts variadic arguments - if only one argument is provided, it hashes
-// that value. If multiple arguments are provided, it hashes them as a tuple.
-// The last argument can optionally be *Options.
-//
-// Returns:
-//   - string: The computed hash string (never empty for valid inputs)
-//   - error: Non-nil if hashing fails
-//
-// Example:
-//
-//	hash, err := HashBase16(myStruct)                    // Single value
-//	hash, err := HashBase16(val1, val2, val3)            // Multiple values
-//	hash, err := HashBase16(myStruct, opts)              // With options
-//	hash, err := HashBase16(val1, val2, val3, opts)      // Multiple values with options
-//
-// The hash is deterministic: identical values always produce identical hashes.
-func HashBase16(data ...any) (string, error) {
-	hash, err := Hash(data...)
-	if err != nil {
-		return "", err
-	}
-	return strconv.FormatUint(hash, 16), nil
-}
-
-// HashBase32 generates a base32 encoded hash string for the given data.
-// It accepts variadic arguments - if only one argument is provided, it hashes
-// that value. If multiple arguments are provided, it hashes them as a tuple.
-// The last argument can optionally be *Options.
-//
-// Returns:
-//   - string: The computed hash string (never empty for valid inputs)
-//   - error: Non-nil if hashing fails
-//
-// Example:
-//
-//	hash, err := HashBase32(myStruct)                    // Single value
-//	hash, err := HashBase32(val1, val2, val3)            // Multiple values
-//	hash, err := HashBase32(myStruct, opts)              // With options
-//	hash, err := HashBase32(val1, val2, val3, opts)      // Multiple values with options
-//
-// The hash is deterministic: identical values always produce identical hashes.§
-func HashBase32(data ...any) (string, error) {
-	hash, err := Hash(data...)
-	if err != nil {
-		return "", err
-	}
-	return strconv.FormatUint(hash, 32), nil
-}
-
-// HashEncoded generates a base64 encoded hash string for the given data.
-// It accepts variadic arguments - if only one argument is provided, it hashes
-// that value. If multiple arguments are provided, it hashes them as a tuple.
-// The last argument can optionally be *Options.
-//
-// Returns:
-//   - string: The computed hash string (never empty for valid inputs)
-//   - error: Non-nil if hashing fails
-//
-// Example:
-//
-//	hash, err := HashEncoded(myStruct)                    // Single value
-//	hash, err := HashEncoded(val1, val2, val3)            // Multiple values
-//	hash, err := HashEncoded(myStruct, opts)              // With options
-//	hash, err := HashEncoded(val1, val2, val3, opts)      // Multiple values with options
-//
-// The hash is deterministic: identical values always produce identical hashes.
-func HashEncoded(data ...any) (string, error) {
-	hash, err := Hash(data...)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString([]byte(fmt.Appendf(nil, "%v", hash))), nil
 }
 
 // HashHex generates a hexadecimal hash string for the given data.

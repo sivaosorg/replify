@@ -22,10 +22,10 @@
 //
 //	Hash256(v)    → SHA-256 of the uint64, as a hex string
 //	HashHex(v)    → zero-padded 16-character hex string
-//	HashBase16(v) → hexadecimal string
-//	HashBase10(v) → decimal string
-//	HashBase32(v) → base-32 string
-//	HashEncoded(v)→ base-64 string
+//	Hash16(v) → hexadecimal string
+//	Hash10(v) → decimal string
+//	Hash32(v) → base-32 string
+//	Hash64(v)→ base-64 string
 //
 // # Configuration
 //

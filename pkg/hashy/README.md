@@ -105,19 +105,19 @@ hexShort, _ := hashy.HashHexShort("data")
 fmt.Println(hexShort) // "a1b2c3d"
 
 // Base64 encoded
-encoded, _ := hashy.HashEncoded("data")
+encoded, _ := hashy.Hash64("data")
 fmt.Println(encoded)
 
 // Decimal string
-decimal, _ := hashy.HashBase10("data")
+decimal, _ := hashy.Hash10("data")
 fmt.Println(decimal) // "12345678901234567"
 
 // Hexadecimal string (lowercase)
-hex16, _ := hashy.HashBase16("data")
+hex16, _ := hashy.Hash16("data")
 fmt.Println(hex16) // "abc123def456"
 
 // Base32 string
-base32, _ := hashy.HashBase32("data")
+base32, _ := hashy.Hash32("data")
 fmt.Println(base32)
 ```
 
@@ -405,10 +405,10 @@ func main() {
 | `Hash256(data ...any)` | Generate SHA-256 hash string | `string, error` |
 | `HashHex(data ...any)` | 16-char hex hash (zero-padded) | `string, error` |
 | `HashHexShort(data ...any)` | Hex hash (no padding) | `string, error` |
-| `HashBase10(data ...any)` | Decimal string hash | `string, error` |
-| `HashBase16(data ...any)` | Hexadecimal string | `string, error` |
-| `HashBase32(data ...any)` | Base32 string | `string, error` |
-| `HashEncoded(data ...any)` | Base64 encoded hash | `string, error` |
+| `Hash10(data ...any)` | Decimal string hash | `string, error` |
+| `Hash16(data ...any)` | Hexadecimal string | `string, error` |
+| `Hash32(data ...any)` | Base32 string | `string, error` |
+| `Hash64(data ...any)` | Base64 encoded hash | `string, error` |
 
 ### Options Builder
 

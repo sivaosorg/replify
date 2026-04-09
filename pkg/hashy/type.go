@@ -13,7 +13,18 @@ type HashAlgorithm string
 type hashOptions struct {
 	// Hasher is the hash function to use. If this isn't set, it will
 	// default to FNV-1a.
+	//
+	// Deprecated: prefer HasherFunc for concurrent-safe use. When
+	// the same *hashOptions is passed to Hash/HashValue from multiple
+	// goroutines simultaneously, a shared Hasher instance causes a data
+	// race. Use HasherFunc instead, which creates a fresh hash.Hash64 for
+	// every operation.
 	Hasher hash.Hash64 `json:"-"`
+
+	// HasherFunc is a factory that produces a fresh hash.Hash64 for each
+	// hashing operation. It is safe for concurrent use and takes precedence
+	// over Hasher when both are set.
+	HasherFunc func() hash.Hash64 `json:"-"`
 
 	// TagName is the struct tag to look at when hashing the structure.
 	// By default this is "hash".

@@ -3,6 +3,7 @@ package hashy
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"reflect"
 	"time"
 
@@ -169,7 +170,7 @@ func (h *hasher) hashTime(value reflect.Value) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	if err := binary.Write(h.hash, binary.LittleEndian, data); err != nil {
+	if _, err := h.hash.Write(data); err != nil {
 		return 0, err
 	}
 	return h.hash.Sum64(), nil
@@ -190,7 +191,7 @@ func (h *hasher) hashTime(value reflect.Value) (uint64, error) {
 //	fmt.Println(hash, err) // "hello" nil
 func (h *hasher) hashString(value reflect.Value) (uint64, error) {
 	h.hash.Reset()
-	if _, err := h.hash.Write([]byte(value.String())); err != nil {
+	if _, err := io.WriteString(h.hash, value.String()); err != nil {
 		return 0, err
 	}
 	return h.hash.Sum64(), nil
@@ -211,15 +212,15 @@ func (h *hasher) hashString(value reflect.Value) (uint64, error) {
 //	b := 2
 //	hash, err := h.hashUpdateOrdered(a, b)
 //	fmt.Println(hash, err) // 3 nil
-func (h *hasher) hashUpdateOrdered(a, b uint64) uint64 {
+func (h *hasher) hashUpdateOrdered(a, b uint64) (uint64, error) {
 	h.hash.Reset()
 	if err := binary.Write(h.hash, binary.LittleEndian, a); err != nil {
-		panic(fmt.Sprintf("hash write failed: %v", err))
+		return 0, fmt.Errorf("pkg.hash: ordered write failed: %w", err)
 	}
 	if err := binary.Write(h.hash, binary.LittleEndian, b); err != nil {
-		panic(fmt.Sprintf("hash write failed: %v", err))
+		return 0, fmt.Errorf("pkg.hash: ordered write failed: %w", err)
 	}
-	return h.hash.Sum64()
+	return h.hash.Sum64(), nil
 }
 
 // hashFinishUnordered "hardens" the XOR result to prevent cancellation issues.
@@ -238,12 +239,12 @@ func (h *hasher) hashUpdateOrdered(a, b uint64) uint64 {
 //	a := 1
 //	hash, err := h.hashFinishUnordered(a)
 //	fmt.Println(hash, err) // 1 nil
-func (h *hasher) hashFinishUnordered(a uint64) uint64 {
+func (h *hasher) hashFinishUnordered(a uint64) (uint64, error) {
 	h.hash.Reset()
 	if err := binary.Write(h.hash, binary.LittleEndian, a); err != nil {
-		panic(fmt.Sprintf("hash write failed: %v", err))
+		return 0, fmt.Errorf("pkg.hash: unordered finish write failed: %w", err)
 	}
-	return h.hash.Sum64()
+	return h.hash.Sum64(), nil
 }
 
 // hashArray hashes an array value.
@@ -269,7 +270,10 @@ func (h *hasher) hashArray(value reflect.Value, options *visitOptions) (uint64, 
 		if err != nil {
 			return 0, err
 		}
-		accumulated = h.hashUpdateOrdered(accumulated, current)
+		accumulated, err = h.hashUpdateOrdered(accumulated, current)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return accumulated, nil
@@ -308,12 +312,19 @@ func (h *hasher) hashSlice(value reflect.Value, options *visitOptions) (uint64, 
 		if isSet {
 			accumulated = hashUpdateUnordered(accumulated, current)
 		} else {
-			accumulated = h.hashUpdateOrdered(accumulated, current)
+			accumulated, err = h.hashUpdateOrdered(accumulated, current)
+			if err != nil {
+				return 0, err
+			}
 		}
 	}
 
 	if isSet {
-		accumulated = h.hashFinishUnordered(accumulated)
+		var err error
+		accumulated, err = h.hashFinishUnordered(accumulated)
+		if err != nil {
+			return 0, err
+		}
 	}
 
 	return accumulated, nil
@@ -366,11 +377,17 @@ func (h *hasher) hashMap(value reflect.Value, options *visitOptions) (uint64, er
 			return 0, err
 		}
 
-		fieldHash := h.hashUpdateOrdered(keyHash, valueHash)
+		fieldHash, err := h.hashUpdateOrdered(keyHash, valueHash)
+		if err != nil {
+			return 0, err
+		}
 		accumulated = hashUpdateUnordered(accumulated, fieldHash)
 	}
 
-	accumulated = h.hashFinishUnordered(accumulated)
+	accumulated, err := h.hashFinishUnordered(accumulated)
+	if err != nil {
+		return 0, err
+	}
 	return accumulated, nil
 }
 
@@ -476,11 +493,17 @@ func (h *hasher) hashStruct(value reflect.Value, options *visitOptions) (uint64,
 			return 0, err
 		}
 
-		fieldHash := h.hashUpdateOrdered(nameHash, valueHash)
+		fieldHash, err := h.hashUpdateOrdered(nameHash, valueHash)
+		if err != nil {
+			return 0, err
+		}
 		accumulated = hashUpdateUnordered(accumulated, fieldHash)
 	}
 
-	accumulated = h.hashFinishUnordered(accumulated)
+	accumulated, err = h.hashFinishUnordered(accumulated)
+	if err != nil {
+		return 0, err
+	}
 	return accumulated, nil
 }
 

@@ -414,7 +414,8 @@ func main() {
 
 ```go
 opts := hashy.NewOptions().
-    WithHasher(customHasher).      // Custom hash.Hash64 implementation
+    WithHasher(customHasher).      // Single hash.Hash64 — not safe to share across goroutines
+    WithHasherFunc(fnv.New64a).    // Factory function — safe to share across goroutines (preferred)
     WithTagName("json").            // Use different struct tag
     WithZeroNil(true).              // Treat nil pointers as zero values
     WithIgnoreZeroValue(true).      // Skip zero-value fields
@@ -500,19 +501,45 @@ type SelectMapEntry func(field string, k, v any) (bool, error)
 
 ### 🔒 Thread Safety
 
-All hashing functions are safe for concurrent use. The FNV-1a hasher is recreated for each operation.
+**`Hash`/`HashValue` called with `nil` options** are always safe for concurrent
+use — `DefaultOptions()` creates a fresh `hash.Hash64` instance for every
+call.
+
+When **reusing a pre-built `*hashOptions`** across goroutines, use
+`WithHasherFunc` (a factory function) instead of `WithHasher` (a single
+instance). A shared `hash.Hash64` instance carries internal mutable state, so
+concurrent calls that share it produce a data race.
 
 ```go
-// Safe - concurrent hashing
+// ✅ Safe - each call gets its own hasher via the factory
+opts := hashy.NewOptions().WithHasherFunc(fnv.New64a).Build()
+
 var wg sync.WaitGroup
 for i := 0; i < 10; i++ {
     wg.Add(1)
     go func(val int) {
         defer wg.Done()
-        hashy.Hash(val)
+        hashy.Hash(val, opts)
     }(i)
 }
 wg.Wait()
+
+// ✅ Also safe - nil options always use DefaultOptions (fresh hasher per call)
+for i := 0; i < 10; i++ {
+    wg.Add(1)
+    go func(val int) {
+        defer wg.Done()
+        hashy.Hash(val) // nil opts
+    }(i)
+}
+wg.Wait()
+
+// ❌ NOT safe - sharing a single hash.Hash64 instance causes a data race
+shared := fnv.New64a()
+opts2 := hashy.NewOptions().WithHasher(shared).Build()
+for i := 0; i < 10; i++ {
+    go func(val int) { hashy.Hash(val, opts2) }(i) // DATA RACE
+}
 ```
 
 ### ⚡ Performance Tips

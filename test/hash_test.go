@@ -795,3 +795,147 @@ func BenchmarkHash_DeepNesting(b *testing.B) {
 		hashy.Hash(root)
 	}
 }
+
+// ============================================================================
+// NEW-HASH / NEW-HASH64 TESTS
+// ============================================================================
+
+// TestNewHash64_NonHash64Algorithms verifies that NewHash64 does not panic
+// when called with algorithms that implement hash.Hash but not hash.Hash64
+// (e.g. MD5, SHA-*). It must return a valid hash.Hash64 (FNV-1a fallback).
+func TestNewHash64_NonHash64Algorithms(t *testing.T) {
+	nonHash64Algos := []hashy.HashAlgorithm{
+		hashy.H_MD5,
+		hashy.H_SHA1,
+		hashy.H_SHA224,
+		hashy.H_SHA256,
+		hashy.H_SHA384,
+		hashy.H_SHA512,
+		hashy.H_SHA512_224,
+		hashy.H_SHA512_256,
+	}
+
+	for _, algo := range nonHash64Algos {
+		algo := algo
+		t.Run(string(algo), func(t *testing.T) {
+			var h hashy.HashAlgorithm = algo
+			// Must not panic.
+			result := hashy.NewHash64(h)
+			if result == nil {
+				t.Fatalf("NewHash64(%s) returned nil", algo)
+			}
+			// The returned instance must be usable.
+			result.Reset()
+			if _, err := result.Write([]byte("test")); err != nil {
+				t.Fatalf("NewHash64(%s).Write() error = %v", algo, err)
+			}
+			_ = result.Sum64()
+		})
+	}
+}
+
+// TestNewHash64_Hash64Algorithms verifies that NewHash64 returns the native
+// hash.Hash64 implementation for algorithms that do support it.
+func TestNewHash64_Hash64Algorithms(t *testing.T) {
+	hash64Algos := []hashy.HashAlgorithm{
+		hashy.H_CRC64,
+	}
+
+	for _, algo := range hash64Algos {
+		algo := algo
+		t.Run(string(algo), func(t *testing.T) {
+			result := hashy.NewHash64(algo)
+			if result == nil {
+				t.Fatalf("NewHash64(%s) returned nil", algo)
+			}
+		})
+	}
+}
+
+// ============================================================================
+// CONCURRENCY SAFETY TESTS
+// ============================================================================
+
+// TestHash_ConcurrentSafety_NilOptions verifies that calling Hash concurrently
+// with nil options (each call gets its own DefaultOptions) is race-free.
+func TestHash_ConcurrentSafety_NilOptions(t *testing.T) {
+	const goroutines = 50
+	type item struct {
+		Name  string
+		Value int
+	}
+
+	done := make(chan struct{}, goroutines)
+	for i := 0; i < goroutines; i++ {
+		i := i
+		go func() {
+			defer func() { done <- struct{}{} }()
+			_, err := hashy.Hash(item{Name: fmt.Sprintf("g%d", i), Value: i})
+			if err != nil {
+				t.Errorf("goroutine %d: Hash() error = %v", i, err)
+			}
+		}()
+	}
+	for i := 0; i < goroutines; i++ {
+		<-done
+	}
+}
+
+// TestHash_ConcurrentSafety_SharedOptsWithHasherFunc verifies that reusing
+// *hashOptions built with WithHasherFunc across goroutines is race-free.
+func TestHash_ConcurrentSafety_SharedOptsWithHasherFunc(t *testing.T) {
+	opts := hashy.NewOptions().WithHasherFunc(fnv.New64a).Build()
+
+	const goroutines = 50
+	done := make(chan struct{}, goroutines)
+	for i := 0; i < goroutines; i++ {
+		i := i
+		go func() {
+			defer func() { done <- struct{}{} }()
+			_, err := hashy.Hash(i, opts)
+			if err != nil {
+				t.Errorf("goroutine %d: Hash() error = %v", i, err)
+			}
+		}()
+	}
+	for i := 0; i < goroutines; i++ {
+		<-done
+	}
+}
+
+// TestHash_WithHasherFunc_Determinism verifies that using WithHasherFunc
+// produces the same hashes as the default (FNV-1a) options.
+func TestHash_WithHasherFunc_Determinism(t *testing.T) {
+	value := struct {
+		Name string
+		Age  int
+	}{Name: "Alice", Age: 30}
+
+	hash1, err := hashy.Hash(value)
+	if err != nil {
+		t.Fatalf("Hash() error = %v", err)
+	}
+
+	opts := hashy.NewOptions().WithHasherFunc(fnv.New64a).Build()
+	hash2, err := hashy.Hash(value, opts)
+	if err != nil {
+		t.Fatalf("Hash(opts) error = %v", err)
+	}
+
+	if hash1 != hash2 {
+		t.Errorf("WithHasherFunc(fnv.New64a) hash = %d, default hash = %d, want equal", hash2, hash1)
+	}
+}
+
+// TestHash_ValidateNilHasher verifies that passing options with both Hasher
+// and HasherFunc nil returns an error instead of panicking.
+func TestHash_ValidateNilHasher(t *testing.T) {
+	// Build options with a nil Hasher and nil HasherFunc via the builder's
+	// exported fields (testing internal validate path via HashValue).
+	opts := hashy.NewOptions().WithHasher(nil).WithHasherFunc(nil).Build()
+	_, err := hashy.Hash("test", opts)
+	if err == nil {
+		t.Error("expected error when both Hasher and HasherFunc are nil")
+	}
+}
+

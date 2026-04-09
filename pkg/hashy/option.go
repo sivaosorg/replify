@@ -15,12 +15,35 @@ import (
 // Returns:
 //   - A pointer to the `OptionsBuilder` struct.
 //
+// Deprecated: prefer WithHasherFunc for concurrent-safe use. A single
+// hash.Hash64 instance is stateful; passing the same *hashOptions to
+// Hash/HashValue from multiple goroutines concurrently causes a data race.
+//
 // Example:
 //
 //	builder := NewOptions().WithHasher(fnv.New64a())
 //	opts := builder.Build()
 func (b *OptionsBuilder) WithHasher(h hash.Hash64) *OptionsBuilder {
 	b.opts.Hasher = h
+	return b
+}
+
+// WithHasherFunc sets a factory function that creates a fresh hash.Hash64
+// for every hashing operation. Using a factory function is safe for
+// concurrent use by multiple goroutines.
+//
+// Parameters:
+//   - fn: A function that returns a new hash.Hash64 instance each time it is called.
+//
+// Returns:
+//   - A pointer to the `OptionsBuilder` struct.
+//
+// Example:
+//
+//	builder := NewOptions().WithHasherFunc(fnv.New64a)
+//	opts := builder.Build()
+func (b *OptionsBuilder) WithHasherFunc(fn func() hash.Hash64) *OptionsBuilder {
+	b.opts.HasherFunc = fn
 	return b
 }
 
@@ -130,7 +153,7 @@ func (b *OptionsBuilder) Build() *hashOptions {
 // Returns:
 //   - An error if the options are invalid, otherwise nil.
 func (o *hashOptions) validate() error {
-	if o.Hasher == nil {
+	if o.HasherFunc == nil && o.Hasher == nil {
 		return fmt.Errorf("pkg.hash.options: hasher cannot be nil")
 	}
 	if strutil.IsEmpty(o.TagName) {

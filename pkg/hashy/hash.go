@@ -52,6 +52,8 @@ func NewHash(algo HashAlgorithm) hash.Hash {
 }
 
 // NewHash64 creates a new hash.Hash64 instance for the given algorithm.
+// Algorithms that do not natively implement hash.Hash64 (e.g. MD5, SHA-*)
+// fall back to FNV-1a rather than panicking.
 //
 // Parameters:
 //   - algo: The hash algorithm to use.
@@ -63,7 +65,12 @@ func NewHash64(algo HashAlgorithm) hash.Hash64 {
 	if h == nil {
 		return fnv.New64a()
 	}
-	return h.(hash.Hash64)
+	if h64, ok := h.(hash.Hash64); ok {
+		return h64
+	}
+	// Algorithms such as MD5 and SHA-* implement hash.Hash but not hash.Hash64.
+	// Fall back to FNV-1a to avoid a runtime panic.
+	return fnv.New64a()
 }
 
 // HashValue generates a 64-bit hash value for a single value with options.
@@ -76,6 +83,12 @@ func NewHash64(algo HashAlgorithm) hash.Hash64 {
 // Returns:
 //   - uint64: The computed hash value (never zero for valid inputs)
 //   - error: Non-nil if hashing fails
+//
+// Concurrency: HashValue is safe for concurrent use provided that either
+// (a) options is nil, or (b) the options were built with WithHasherFunc so
+// that a fresh hash.Hash64 is created for every call. Reusing options that
+// carry a single hash.Hash64 instance (via WithHasher) from multiple
+// goroutines simultaneously causes a data race.
 //
 // Example:
 //
@@ -91,8 +104,16 @@ func HashValue(value any, options *hashOptions) (uint64, error) {
 		return 0, err
 	}
 
+	// Prefer HasherFunc (factory) over a shared instance for concurrency safety.
+	var h hash.Hash64
+	if options.HasherFunc != nil {
+		h = options.HasherFunc()
+	} else {
+		h = options.Hasher
+	}
+
 	hasher := &hasher{
-		hash:            options.Hasher,
+		hash:            h,
 		tagName:         options.TagName,
 		treatNilAsZero:  options.ZeroNil,
 		ignoreZeroValue: options.IgnoreZeroValue,

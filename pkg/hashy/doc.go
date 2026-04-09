@@ -45,5 +45,7 @@
 // Structs may implement the Hashable, FieldSelector, or MapSelector
 // interfaces to customise how they are hashed.
 //
-// hashy is safe for concurrent use by multiple goroutines.
+// hashy is safe for concurrent use when options are nil or were built with
+// WithHasherFunc. Sharing options built with WithHasher across goroutines
+// causes a data race because a single hash.Hash64 instance is not goroutine-safe.
 package hashy

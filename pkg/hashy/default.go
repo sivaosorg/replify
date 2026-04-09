@@ -8,8 +8,9 @@ import "hash/fnv"
 //   - A pointer to a newly created `Options` instance with the default values.
 func DefaultOptions() *hashOptions {
 	return &hashOptions{
-		Hasher:  fnv.New64a(),
-		TagName: "hash",
+		Hasher:     fnv.New64a(),
+		HasherFunc: fnv.New64a,
+		TagName:    "hash",
 	}
 }
 
@@ -20,8 +21,9 @@ func DefaultOptions() *hashOptions {
 func NewOptions() *OptionsBuilder {
 	return &OptionsBuilder{
 		opts: hashOptions{
-			Hasher:  fnv.New64a(),
-			TagName: "hash",
+			Hasher:     fnv.New64a(),
+			HasherFunc: fnv.New64a,
+			TagName:    "hash",
 		},
 	}
 }

@@ -935,7 +935,11 @@ func TestHash_ValidateNilHasher(t *testing.T) {
 	opts := hashy.NewOptions().WithHasher(nil).WithHasherFunc(nil).Build()
 	_, err := hashy.Hash("test", opts)
 	if err == nil {
-		t.Error("expected error when both Hasher and HasherFunc are nil")
+		t.Fatal("expected error when both Hasher and HasherFunc are nil")
+	}
+	const want = "hasher cannot be nil"
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("error %q does not contain %q", err.Error(), want)
 	}
 }
 

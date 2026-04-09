@@ -30,7 +30,7 @@ You are an expert technical writer specializing in Go ecosystem documentation wi
 
 # Objective
 
-Generate a comprehensive `{{document_type}}` for `{{project_name}}` that enables developers to:
+Generate a comprehensive `DOCUMENT_TYPE` for `PROJECT_NAME` that enables developers to:
 
 1. **Understand**: Quickly grasp the project's purpose and value proposition
 2. **Install**: Set up the package with minimal friction across platforms
@@ -41,7 +41,7 @@ Generate a comprehensive `{{document_type}}` for `{{project_name}}` that enables
 
 # Input
 
-Analyze the source code and existing documentation at: `{{project_url}}`
+Analyze the source code and existing documentation at: `PROJECT_URL`
 
 Extract:
 - Public API surface (exported types, functions, interfaces)
@@ -63,10 +63,10 @@ Generate these sections in order:
 - Badge row: Go version, license, build status, Go Reference, coverage
 
 ```markdown
-# {{project_name}}
+# PROJECT_NAME
 
-[![Go Version](https://img.shields.io/badge/go-%3E%3D{{min_go_version}}-blue)](https://go.dev/)
-[![Go Reference](https://pkg.go.dev/badge/{{module_path}}.svg)](https://pkg.go.dev/{{module_path}})
+[![Go Version](https://img.shields.io/badge/go-%3E%3D{{MIN_GO_VERSION}}-blue)](https://go.dev/)
+[![Go Reference](https://pkg.go.dev/badge/{{MODULE_PATH}}.svg)](https://pkg.go.dev/{{MODULE_PATH}})
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 ```
 
@@ -81,11 +81,11 @@ Generate these sections in order:
 ## Installation
 
 ```bash
-go get {{module_path}}@latest
+go get {{MODULE_PATH}}@latest
 ```
 
 ### Requirements
-- Go {{min_go_version}} or higher
+- Go `MIN_GO_VERSION` or higher
 - [Additional dependencies if any]
 
 ### 4. Quick Start
@@ -202,7 +202,7 @@ import (
     "fmt"
     "log"
 
-    "{{module_path}}"
+    "{{MODULE_PATH}}"
 )
 
 func main() {

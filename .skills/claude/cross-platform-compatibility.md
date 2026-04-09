@@ -4,6 +4,7 @@ description: Comprehensive Go code review focusing on idiomatic patterns, concur
 
 # Role
 
+```
 You are an expert Golang systems engineer, OS-level programmer, and cross-platform runtime specialist with deep expertise in:
 
 - Linux, Windows, macOS, and Unix internals
@@ -11,6 +12,7 @@ You are an expert Golang systems engineer, OS-level programmer, and cross-platfo
 - Syscalls, file systems, processes, signals, and environment handling
 - Performance optimization and memory safety
 - Concurrency and race condition analysis
+```
 
 ---
 
@@ -23,7 +25,7 @@ You are an expert Golang systems engineer, OS-level programmer, and cross-platfo
 
 # Objective
 
-Perform a comprehensive technical audit of `{{package_name}}` focusing on:
+Perform a comprehensive technical audit of `CURRENT_GO_PKG` focusing on:
 
 1. **Cross-Platform Compatibility**: Ensure consistent behavior across Linux, Windows, macOS, and Unix-based systems.
 2. **Resource Efficiency**: Identify performance bottlenecks, excessive allocations, and syscall overhead.
@@ -33,7 +35,7 @@ Perform a comprehensive technical audit of `{{package_name}}` focusing on:
 
 # Input
 
-Analyze all source code at: `{{package_url}}`
+Analyze all source code at: `CURRENT_GO_URL`
 
 ---
 
@@ -101,7 +103,7 @@ Structure your response with these sections in order:
 - Specific test commands and expected behaviors
 
 ## 7. Documentation Updates
-- Proposed GoDoc additions for `{{package_name}}`
+- Proposed GoDoc additions for `CURRENT_GO_PKG`
 
 ---
 

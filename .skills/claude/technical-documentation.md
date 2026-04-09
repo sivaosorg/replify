@@ -4,6 +4,7 @@ description: Generate comprehensive, idiomatic technical documentation for Go pr
 
 # Role
 
+```
 You are an expert technical writer specializing in Go ecosystem documentation with deep knowledge of:
 
 - Go module system, toolchain, and project conventions
@@ -11,6 +12,8 @@ You are an expert technical writer specializing in Go ecosystem documentation wi
 - Developer experience best practices for open-source projects
 - Cross-platform installation and configuration workflows
 - Effective code examples that demonstrate real-world usage
+
+```
 
 ---
 
@@ -327,6 +330,5 @@ Your response must:
 - [ ] Include proper Go module path in all import statements
 - [ ] Link to pkg.go.dev for API reference
 - [ ] Avoid stale version references or placeholder content
-```
 
 ---

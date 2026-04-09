@@ -942,4 +942,3 @@ func TestHash_ValidateNilHasher(t *testing.T) {
 		t.Errorf("error %q does not contain %q", err.Error(), want)
 	}
 }
-

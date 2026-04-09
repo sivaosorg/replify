@@ -17,8 +17,8 @@ You are an **expert Golang systems engineer, OS-level programmer, and cross-plat
 ---
 
 # Context
-* `CURRENT_GO_PKG`: <name-of-package>
-* `CURRENT_GO_URL`: <url-of-package>
+* `CURRENT_GO_PKG`: {{current_go_pkg}}
+* `CURRENT_GO_URL`: {{current_go_url}}
 
 # Objective
 Perform a comprehensive technical audit of the `CURRENT_GO_PKG` package focusing on:

@@ -1,4 +1,4 @@
-package test
+package crontask_test
 
 import (
 	"context"

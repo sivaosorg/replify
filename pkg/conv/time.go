@@ -17,8 +17,8 @@ import (
 
 var (
 	emptyTime      = time.Time{}
-	typeOfTime     = reflect.TypeOf(emptyTime)
-	typeOfDuration = reflect.TypeOf(time.Duration(0))
+	typeOfTime     = reflect.TypeFor[time.Time]()
+	typeOfDuration = reflect.TypeFor[time.Duration]()
 )
 
 // ///////////////////////////

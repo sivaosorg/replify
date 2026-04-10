@@ -1,4 +1,4 @@
-package test
+package common_test
 
 import (
 	"reflect"

@@ -5,17 +5,6 @@ import (
 	"sort"
 )
 
-// sliceTypeOf returns the reflect.Type of a slice whose element type matches the
-// element type of v.  When v is already a slice its type is returned as-is;
-// when v is an array, reflect.SliceOf(elem) is returned so that reflect.MakeSlice
-// does not panic (reflect.MakeSlice only accepts slice types, never array types).
-func sliceTypeOf(v reflect.Value) reflect.Type {
-	if v.Kind() == reflect.Array {
-		return reflect.SliceOf(v.Type().Elem())
-	}
-	return v.Type()
-}
-
 // Transform applies a transformation function to each element of a collection (slice, array, or map) and returns
 // a new collection with the transformed values.
 //
@@ -74,7 +63,7 @@ func Transform(collection any, predicate func(value any) any) any {
 			mapped[i] = predicate(v.Index(i).Interface())
 		}
 		// Determine the result-slice element type from the first non-nil value.
-		elemType := reflect.TypeOf((*any)(nil)).Elem()
+		elemType := reflect.TypeFor[any]()
 		for _, m := range mapped {
 			if m != nil {
 				elemType = reflect.TypeOf(m)

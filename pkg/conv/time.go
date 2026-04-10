@@ -292,8 +292,8 @@ func (c *Converter) float64ToDuration(v float64) time.Duration {
 	// Compute the duration in nanoseconds as a float64, then check for overflow
 	// before casting to int64. math.MaxInt64 / 1e9 ≈ 9.22e9, so durations beyond
 	// roughly ±292 years would overflow.
-	const secondsPerNano = float64(time.Second) // 1e9
-	nanos := v * secondsPerNano
+	const nanosPerSecond = float64(time.Second) // 1e9 nanoseconds per second
+	nanos := v * nanosPerSecond
 	if nanos >= float64(math.MaxInt64) {
 		return time.Duration(math.MaxInt64)
 	}
@@ -365,10 +365,11 @@ func (c *Converter) stringToTime(v string) (time.Time, error) {
 		v = strings.TrimSpace(v)
 	}
 
-	// Take a read-locked snapshot of dateFormats so that concurrent calls to
-	// WithDateFormats cannot mutate the slice while we are iterating over it.
+	// Take a defensive copy of dateFormats under the read lock so that concurrent
+	// calls to WithDateFormats (which replaces the slice) cannot affect iteration,
+	// and individual elements cannot be mutated underneath the caller.
 	c.mu.RLock()
-	formats := c.dateFormats
+	formats := append([]string(nil), c.dateFormats...)
 	c.mu.RUnlock()
 
 	// Try each configured format

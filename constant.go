@@ -436,150 +436,224 @@ const (
 
 var (
 	// 1xx Informational responses
+	// ////////////////////////
+
 	// Continue indicates that the initial part of the request has been received and has not yet been rejected by the server.
 	Continue = Header().WithCode(100).WithText("Continue").WithType("Informational")
+
 	// SwitchingProtocols indicates that the server will switch protocols as requested by the client.
 	SwitchingProtocols = Header().WithCode(101).WithText("Switching Protocols").WithType("Informational")
+
 	// Processing indicates that the server has received and is processing the request but no response is available yet.
 	Processing = Header().WithCode(102).WithText("Processing").WithType("Informational")
 
 	// 2xx Successful responses
+	// ////////////////////////
+
 	// OK indicates that the request has succeeded.
 	OK = Header().WithCode(200).WithText("OK").WithType("Successful")
+
 	// Created indicates that the request has been fulfilled and has resulted in a new resource being created.
 	Created = Header().WithCode(201).WithText("Created").WithType("Successful")
+
 	// Accepted indicates that the request has been accepted for processing, but the processing has not been completed.
 	Accepted = Header().WithCode(202).WithText("Accepted").WithType("Successful")
+
 	// NonAuthoritativeInformation indicates that the request was successful, but the enclosed metadata may be from a different source.
 	NonAuthoritativeInformation = Header().WithCode(203).WithText("Non-Authoritative Information").WithType("Successful")
+
 	// NoContent indicates that the server successfully processed the request, but is not returning any content.
 	NoContent = Header().WithCode(204).WithText("No Content").WithType("Successful")
+
 	// ResetContent indicates that the server successfully processed the request and requests the client to reset the document view.
 	ResetContent = Header().WithCode(205).WithText("Reset Content").WithType("Successful")
+
 	// PartialContent indicates that the server is delivering only part of the resource due to a range request.
 	PartialContent = Header().WithCode(206).WithText("Partial Content").WithType("Successful")
+
 	// MultiStatus provides status for multiple independent operations.
 	MultiStatus = Header().WithCode(207).WithText("Multi-Status").WithType("Successful")
+
 	// AlreadyReported indicates that the members of a DAV binding have already been enumerated in a previous reply.
 	AlreadyReported = Header().WithCode(208).WithText("Already Reported").WithType("Successful")
+
 	// IMUsed indicates that the server has fulfilled a GET request for the resource and the response is a representation of the result.
 	IMUsed = Header().WithCode(226).WithText("IM Used").WithType("Successful")
 
 	// 3xx Redirection responses
+	// ////////////////////////
+
 	// MultipleChoices indicates multiple options for the resource are available.
 	MultipleChoices = Header().WithCode(300).WithText("Multiple Choices").WithType("Redirection")
+
 	// MovedPermanently indicates that the resource has been permanently moved to a new URI.
 	MovedPermanently = Header().WithCode(301).WithText("Moved Permanently").WithType("Redirection")
+
 	// Found indicates that the resource has been temporarily moved to a different URI.
 	Found = Header().WithCode(302).WithText("Found").WithType("Redirection")
+
 	// SeeOther indicates that the response to the request can be found under another URI.
 	SeeOther = Header().WithCode(303).WithText("See Other").WithType("Redirection")
+
 	// NotModified indicates that the resource has not been modified since the last request.
 	NotModified = Header().WithCode(304).WithText("Not Modified").WithType("Redirection")
+
 	// UseProxy indicates that the requested resource must be accessed through the proxy given by the location field.
 	UseProxy = Header().WithCode(305).WithText("Use Proxy").WithType("Redirection")
+
 	// Reserved is a deprecated status code reserved for future use.
 	Reserved = Header().WithCode(306).WithText("Reserved").WithType("Redirection")
+
 	// TemporaryRedirect indicates that the resource has been temporarily moved to a different URI and will return to the original URI later.
 	TemporaryRedirect = Header().WithCode(307).WithText("Temporary Redirect").WithType("Redirection")
+
 	// PermanentRedirect indicates that the resource has been permanently moved to a new URI and future requests should use this URI.
 	PermanentRedirect = Header().WithCode(308).WithText("Permanent Redirect").WithType("Redirection")
 
 	// 4xx Client error responses
+	// ////////////////////////
+
 	// BadRequest indicates that the server could not understand the request due to invalid syntax.
 	BadRequest = Header().WithCode(400).WithText("Bad Request").WithType("Client Error")
+
 	// Unauthorized indicates that the client must authenticate itself to get the requested response.
 	Unauthorized = Header().WithCode(401).WithText("Unauthorized").WithType("Client Error")
+
 	// PaymentRequired is reserved for future use, indicating payment is required to access the resource.
 	PaymentRequired = Header().WithCode(402).WithText("Payment Required").WithType("Client Error")
+
 	// Forbidden indicates that the server understands the request but refuses to authorize it.
 	Forbidden = Header().WithCode(403).WithText("Forbidden").WithType("Client Error")
+
 	// NotFound indicates that the server can't find the requested resource.
 	NotFound = Header().WithCode(404).WithText("Not Found").WithType("Client Error")
+
 	// MethodNotAllowed indicates that the server knows the request method but the target resource doesn't support this method.
 	MethodNotAllowed = Header().WithCode(405).WithText("Method Not Allowed").WithType("Client Error")
+
 	// NotAcceptable indicates that the server cannot produce a response matching the list of acceptable values defined in the request's headers.
 	NotAcceptable = Header().WithCode(406).WithText("Not Acceptable").WithType("Client Error")
+
 	// ProxyAuthenticationRequired indicates that the client must first authenticate itself with the proxy.
 	ProxyAuthenticationRequired = Header().WithCode(407).WithText("Proxy Authentication Required").WithType("Client Error")
+
 	// RequestTimeout indicates that the server timed out waiting for the request.
 	RequestTimeout = Header().WithCode(408).WithText("Request Timeout").WithType("Client Error")
+
 	// Conflict indicates that the request conflicts with the current state of the server.
 	Conflict = Header().WithCode(409).WithText("Conflict").WithType("Client Error")
+
 	// Gone indicates that the requested resource is no longer available and will not be available again.
 	Gone = Header().WithCode(410).WithText("Gone").WithType("Client Error")
+
 	// LengthRequired indicates that the server requires the request to be sent with a Content-Length header.
 	LengthRequired = Header().WithCode(411).WithText("Length Required").WithType("Client Error")
+
 	// PreconditionFailed indicates that the server does not meet one of the preconditions set by the client.
 	PreconditionFailed = Header().WithCode(412).WithText("Precondition Failed").WithType("Client Error")
+
 	// RequestEntityTooLarge indicates that the request entity is larger than what the server is willing or able to process.
 	RequestEntityTooLarge = Header().WithCode(413).WithText("Request Entity Too Large").WithType("Client Error")
+
 	// RequestURITooLong indicates that the URI provided was too long for the server to process.
 	RequestURITooLong = Header().WithCode(414).WithText("Request-URI Too Long").WithType("Client Error")
+
 	// UnsupportedMediaType indicates that the media format of the requested data is not supported by the server.
 	UnsupportedMediaType = Header().WithCode(415).WithText("Unsupported Media Type").WithType("Client Error")
+
 	// RequestedRangeNotSatisfiable indicates that the range specified by the Range header cannot be satisfied.
 	RequestedRangeNotSatisfiable = Header().WithCode(416).WithText("Requested Range Not Satisfiable").WithType("Client Error")
+
 	// ExpectationFailed indicates that the server cannot meet the requirements of the Expect request-header field.
 	ExpectationFailed = Header().WithCode(417).WithText("Expectation Failed").WithType("Client Error")
+
 	// ImATeapot is a humorous response code indicating that the server is a teapot and refuses to brew coffee.
-	ImATeapot = Header().WithCode(418).WithText("I’m a teapot").WithType("Client Error")
+	ImATeapot = Header().WithCode(418).WithText("I'm a teapot").WithType("Client Error")
+
 	// EnhanceYourCalm is a non-standard response code used to ask the client to reduce its request rate.
 	EnhanceYourCalm = Header().WithCode(420).WithText("Enhance Your Calm").WithType("Client Error")
+
 	// UnprocessableEntity indicates that the request was well-formed but could not be followed due to semantic errors.
 	UnprocessableEntity = Header().WithCode(422).WithText("Unprocessable Entity").WithType("Client Error")
+
 	// Locked indicates that the resource being accessed is locked.
 	Locked = Header().WithCode(423).WithText("Locked").WithType("Client Error")
+
 	// FailedDependency indicates that the request failed due to failure of a previous request.
 	FailedDependency = Header().WithCode(424).WithText("Failed Dependency").WithType("Client Error")
+
 	// UnorderedCollection is a non-standard response code indicating an unordered collection.
 	UnorderedCollection = Header().WithCode(425).WithText("Unordered Collection").WithType("Client Error")
+
 	// UpgradeRequired indicates that the client should switch to a different protocol.
 	UpgradeRequired = Header().WithCode(426).WithText("Upgrade Required").WithType("Client Error")
+
 	// PreconditionRequired indicates that the origin server requires the request to be conditional.
 	PreconditionRequired = Header().WithCode(428).WithText("Precondition Required").WithType("Client Error")
+
 	// TooManyRequests indicates that the user has sent too many requests in a given time.
 	TooManyRequests = Header().WithCode(429).WithText("Too Many Requests").WithType("Client Error")
+
 	// RequestHeaderFieldsTooLarge indicates that one or more header fields in the request are too large.
 	RequestHeaderFieldsTooLarge = Header().WithCode(431).WithText("Request Header Fields Too Large").WithType("Client Error")
+
 	// NoResponse is a non-standard code indicating that the server has no response to provide.
 	NoResponse = Header().WithCode(444).WithText("No Response").WithType("Client Error")
+
 	// RetryWith is a non-standard code indicating that the client should retry with different parameters.
 	RetryWith = Header().WithCode(449).WithText("Retry With").WithType("Client Error")
+
 	// BlockedByWindowsParentalControls is a non-standard code indicating that the request was blocked by parental controls.
 	BlockedByWindowsParentalControls = Header().WithCode(450).WithText("Blocked by Windows Parental Controls").WithType("Client Error")
+
 	// UnavailableForLegalReasons indicates that the server is denying access to the resource for legal reasons.
 	UnavailableForLegalReasons = Header().WithCode(451).WithText("Unavailable For Legal Reasons").WithType("Client Error")
+
 	// ClientClosedRequest is a non-standard code indicating that the client closed the connection before the server's response.
 	ClientClosedRequest = Header().WithCode(499).WithText("Client Closed Request").WithType("Client Error")
 
 	// 5xx Server error responses
+	// ////////////////////////
+
 	// InternalServerError indicates that the server encountered an unexpected condition that prevented it from fulfilling the request.
 	InternalServerError = Header().WithCode(500).WithText("Internal Server Error").WithType("Server Error")
+
 	// NotImplemented indicates that the server does not support the functionality required to fulfill the request.
 	NotImplemented = Header().WithCode(501).WithText("Not Implemented").WithType("Server Error")
+
 	// BadGateway indicates that the server received an invalid response from an upstream server.
 	BadGateway = Header().WithCode(502).WithText("Bad Gateway").WithType("Server Error")
+
 	// ServiceUnavailable indicates that the server is currently unavailable (e.g., overloaded or under maintenance).
 	ServiceUnavailable = Header().WithCode(503).WithText("Service Unavailable").WithType("Server Error")
+
 	// GatewayTimeout indicates that the server did not receive a timely response from an upstream server.
 	GatewayTimeout = Header().WithCode(504).WithText("Gateway Timeout").WithType("Server Error")
+
 	// HTTPVersionNotSupported indicates that the server does not support the HTTP protocol version used in the request.
 	HTTPVersionNotSupported = Header().WithCode(505).WithText("HTTP Version Not Supported").WithType("Server Error")
+
 	// VariantAlsoNegotiates indicates an internal server configuration error leading to circular references.
 	VariantAlsoNegotiates = Header().WithCode(506).WithText("Variant Also Negotiates").WithType("Server Error")
+
 	// InsufficientStorage indicates that the server is unable to store the representation needed to complete the request.
 	InsufficientStorage = Header().WithCode(507).WithText("Insufficient Storage").WithType("Server Error")
+
 	// LoopDetected indicates that the server detected an infinite loop while processing the request.
 	LoopDetected = Header().WithCode(508).WithText("Loop Detected").WithType("Server Error")
+
 	// BandwidthLimitExceeded is a non-standard code indicating that the server's bandwidth limit has been exceeded.
 	BandwidthLimitExceeded = Header().WithCode(509).WithText("Bandwidth Limit Exceeded").WithType("Server Error")
+
 	// NotExtended indicates that further extensions to the request are required for the server to fulfill it.
 	NotExtended = Header().WithCode(510).WithText("Not Extended").WithType("Server Error")
+
 	// NetworkAuthenticationRequired indicates that the client needs to authenticate to gain network access.
 	NetworkAuthenticationRequired = Header().WithCode(511).WithText("Network Authentication Required").WithType("Server Error")
+
 	// NetworkReadTimeoutError is a non-standard code indicating a network read timeout error.
 	NetworkReadTimeoutError = Header().WithCode(598).WithText("Network Read Timeout Error").WithType("Server Error")
+
 	// NetworkConnectTimeoutError is a non-standard code indicating a network connection timeout error.
 	NetworkConnectTimeoutError = Header().WithCode(599).WithText("Network Connect Timeout Error").WithType("Server Error")
 )

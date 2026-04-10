@@ -1,4 +1,4 @@
-package test
+package encoding_test
 
 import (
 	"encoding/json"

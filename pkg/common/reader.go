@@ -113,14 +113,17 @@ func SlurpAll(in io.Reader) (string, error) {
 	var out bytes.Buffer
 	for {
 		n, err := in.Read(buf)
-
+		if n > 0 {
+			if _, werr := out.Write(buf[:n]); werr != nil {
+				return "", werr
+			}
+		}
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			return "", err
 		}
-		out.Write(buf[:n])
 	}
 	return out.String(), nil
 }
@@ -181,13 +184,15 @@ func SlurpLines(in io.Reader) ([]string, error) {
 	scanner := bufio.NewReader(in)
 	for {
 		line, err := scanner.ReadString('\n')
+		if len(line) > 0 {
+			lines = append(lines, line)
+		}
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
 			return lines, err
 		}
-		lines = append(lines, line)
 	}
 	return lines, nil
 }
@@ -246,13 +251,15 @@ func SlurpLine(in io.Reader) (string, error) {
 	scanner := bufio.NewReader(in)
 	for {
 		line, err := scanner.ReadString('\n')
+		if len(line) > 0 {
+			lines.WriteString(line)
+		}
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			if err == io.EOF {
-				break
-			}
 			return "", err
 		}
-		lines.WriteString(line)
 	}
 	return lines.String(), nil
 }

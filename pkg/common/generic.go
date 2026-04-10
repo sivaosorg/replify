@@ -5,6 +5,17 @@ import (
 	"sort"
 )
 
+// sliceTypeOf returns the reflect.Type of a slice whose element type matches the
+// element type of v.  When v is already a slice its type is returned as-is;
+// when v is an array, reflect.SliceOf(elem) is returned so that reflect.MakeSlice
+// does not panic (reflect.MakeSlice only accepts slice types, never array types).
+func sliceTypeOf(v reflect.Value) reflect.Type {
+	if v.Kind() == reflect.Array {
+		return reflect.SliceOf(v.Type().Elem())
+	}
+	return v.Type()
+}
+
 // Transform applies a transformation function to each element of a collection (slice, array, or map) and returns
 // a new collection with the transformed values.
 //
@@ -50,23 +61,51 @@ import (
 //     original collection.
 func Transform(collection any, predicate func(value any) any) any {
 	v := reflect.ValueOf(collection)
-	result := reflect.MakeSlice(reflect.SliceOf(reflect.TypeOf(predicate(v.Index(0).Interface()))), 0, 0)
-
-	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
-		for i := 0; i < v.Len(); i++ {
-			mappedValue := predicate(v.Index(i).Interface())
-			result = reflect.Append(result, reflect.ValueOf(mappedValue))
+	switch v.Kind() {
+	case reflect.Slice, reflect.Array:
+		length := v.Len()
+		if length == 0 {
+			return []any{}
 		}
-	} else if v.Kind() == reflect.Map {
+		// Apply the predicate to every element once (avoids a double call on
+		// element 0 that the original type-inference approach caused).
+		mapped := make([]any, length)
+		for i := 0; i < length; i++ {
+			mapped[i] = predicate(v.Index(i).Interface())
+		}
+		// Determine the result-slice element type from the first non-nil value.
+		elemType := reflect.TypeOf((*any)(nil)).Elem()
+		for _, m := range mapped {
+			if m != nil {
+				elemType = reflect.TypeOf(m)
+				break
+			}
+		}
+		result := reflect.MakeSlice(reflect.SliceOf(elemType), 0, length)
+		for _, m := range mapped {
+			if m == nil {
+				result = reflect.Append(result, reflect.Zero(elemType))
+			} else {
+				result = reflect.Append(result, reflect.ValueOf(m))
+			}
+		}
+		return result.Interface()
+	case reflect.Map:
 		keys := v.MapKeys()
-		for _, key := range keys {
-			mappedKey := predicate(key.Interface())
-			mappedValue := predicate(v.MapIndex(key).Interface())
-			result = reflect.Append(result, reflect.ValueOf(mappedKey))
-			result = reflect.Append(result, reflect.ValueOf(mappedValue))
+		if len(keys) == 0 {
+			return []any{}
 		}
+		// Map entries interleave keys and values which may have different types,
+		// so always use []any as the result element type.
+		result := make([]any, 0, len(keys)*2)
+		for _, key := range keys {
+			result = append(result, predicate(key.Interface()))
+			result = append(result, predicate(v.MapIndex(key).Interface()))
+		}
+		return result
+	default:
+		return []any{}
 	}
-	return result.Interface()
 }
 
 // Filter filters a collection (slice or array) based on a predicate function and returns a new collection
@@ -107,16 +146,17 @@ func Transform(collection any, predicate func(value any) any) any {
 //     the original collection.
 func Filter(collection any, predicate func(value any) bool) any {
 	v := reflect.ValueOf(collection)
-	result := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v), 0, 0)
 		for i := 0; i < v.Len(); i++ {
 			item := v.Index(i).Interface()
 			if predicate(item) {
 				result = reflect.Append(result, reflect.ValueOf(item))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Iterate iterates over a collection (slice, array, or map) and applies a callback function on each element.
@@ -451,16 +491,17 @@ func Count(collection any, condition func(value any) bool) int {
 //	// result will be []int{1, 3, 5}
 func Remove(collection any, condition func(value any) bool) any {
 	v := reflect.ValueOf(collection)
-	result := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v), 0, 0)
 		for i := 0; i < v.Len(); i++ {
 			item := v.Index(i).Interface()
 			if !condition(item) {
 				result = reflect.Append(result, reflect.ValueOf(item))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Sort sorts a collection (slice or array) in-place according to a custom comparison function.
@@ -539,9 +580,9 @@ func Reverse(collection any) {
 //	// result will be []int{1, 2, 3, 4, 5}
 func Unique(collection any) any {
 	v := reflect.ValueOf(collection)
-	uniqueMap := make(map[any]struct{})
-	result := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		uniqueMap := make(map[any]struct{})
+		result := reflect.MakeSlice(sliceTypeOf(v), 0, 0)
 		for i := 0; i < v.Len(); i++ {
 			item := v.Index(i).Interface()
 			if _, found := uniqueMap[item]; !found {
@@ -549,8 +590,9 @@ func Unique(collection any) any {
 				result = reflect.Append(result, reflect.ValueOf(item))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Contains checks if a given element exists within a collection (slice or array).
@@ -605,16 +647,17 @@ func Contains(collection any, element any) bool {
 //	// result will be []int{1, 2, 5}, as these are the elements in numbers1 that are not in numbers2.
 func Difference(collection1 any, collection2 any) any {
 	v1 := reflect.ValueOf(collection1)
-	result := reflect.MakeSlice(v1.Type(), 0, 0)
 	if v1.Kind() == reflect.Slice || v1.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v1), 0, 0)
 		for i := 0; i < v1.Len(); i++ {
 			item := v1.Index(i).Interface()
 			if !Contains(collection2, item) {
 				result = reflect.Append(result, v1.Index(i))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Intersection returns a new collection (slice or array) containing elements that are present in both coll.
@@ -638,16 +681,17 @@ func Difference(collection1 any, collection2 any) any {
 //	// result will be []int{3, 4}, as these are the elements common to both numbers1 and numbers2.
 func Intersection(collection1 any, collection2 any) any {
 	v1 := reflect.ValueOf(collection1)
-	result := reflect.MakeSlice(v1.Type(), 0, 0)
 	if v1.Kind() == reflect.Slice || v1.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v1), 0, 0)
 		for i := 0; i < v1.Len(); i++ {
 			item := v1.Index(i).Interface()
 			if Contains(collection2, item) {
 				result = reflect.Append(result, v1.Index(i))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Slice returns a new collection (slice or array) that is a sub-range of the input collection,
@@ -677,8 +721,8 @@ func Intersection(collection1 any, collection2 any) any {
 //   - If `end` is greater than the length of the collection, it is adjusted to the collection's length.
 func Slice(collection any, start, end int) any {
 	v := reflect.ValueOf(collection)
-	result := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v), 0, 0)
 		if start < 0 {
 			start = 0
 		}
@@ -688,8 +732,9 @@ func Slice(collection any, start, end int) any {
 		for i := start; i < end; i++ {
 			result = reflect.Append(result, v.Index(i))
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // SliceWithIndices returns a new collection (slice or array) containing elements from the input collection
@@ -719,15 +764,16 @@ func Slice(collection any, start, end int) any {
 //     it is ignored.
 func SliceWithIndices(collection any, indices []int) any {
 	v := reflect.ValueOf(collection)
-	result := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		result := reflect.MakeSlice(sliceTypeOf(v), 0, 0)
 		for _, index := range indices {
 			if index >= 0 && index < v.Len() {
 				result = reflect.Append(result, v.Index(index))
 			}
 		}
+		return result.Interface()
 	}
-	return result.Interface()
+	return []any{}
 }
 
 // Partition splits a collection (slice or array) into two parts based on a condition function.
@@ -760,9 +806,10 @@ func SliceWithIndices(collection any, indices []int) any {
 //   - The returned collections are of the same type as the input collection (slice or array).
 func Partition(collection any, condition func(value any) bool) (any, any) {
 	v := reflect.ValueOf(collection)
-	truePartition := reflect.MakeSlice(v.Type(), 0, 0)
-	falsePartition := reflect.MakeSlice(v.Type(), 0, 0)
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		st := sliceTypeOf(v)
+		truePartition := reflect.MakeSlice(st, 0, 0)
+		falsePartition := reflect.MakeSlice(st, 0, 0)
 		for i := 0; i < v.Len(); i++ {
 			item := v.Index(i).Interface()
 			if condition(item) {
@@ -771,8 +818,9 @@ func Partition(collection any, condition func(value any) bool) (any, any) {
 				falsePartition = reflect.Append(falsePartition, reflect.ValueOf(item))
 			}
 		}
+		return truePartition.Interface(), falsePartition.Interface()
 	}
-	return truePartition.Interface(), falsePartition.Interface()
+	return []any{}, []any{}
 }
 
 // Zip combines multiple collections (slices or arrays) element-wise into a new collection of tuples.
@@ -850,14 +898,17 @@ func Zip(collections ...any) []any {
 //   - If the collection is not a slice or array, the original collection is returned unchanged.
 func RotateLeft(collection any, positions int) any {
 	v := reflect.ValueOf(collection)
-	length := v.Len()
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		length := v.Len()
+		if length == 0 {
+			return collection
+		}
 		if positions < 0 {
 			positions = (positions%length + length) % length
 		} else {
 			positions = positions % length
 		}
-		result := reflect.MakeSlice(v.Type(), length, length)
+		result := reflect.MakeSlice(sliceTypeOf(v), length, length)
 		for i := 0; i < length; i++ {
 			result.Index((i - positions + length) % length).Set(v.Index(i))
 		}
@@ -893,14 +944,17 @@ func RotateLeft(collection any, positions int) any {
 //   - If the collection is not a slice or array, the original collection is returned unchanged.
 func RotateRight(collection any, positions int) any {
 	v := reflect.ValueOf(collection)
-	length := v.Len()
 	if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+		length := v.Len()
+		if length == 0 {
+			return collection
+		}
 		if positions < 0 {
 			positions = (-positions%length + length) % length
 		} else {
 			positions = positions % length
 		}
-		result := reflect.MakeSlice(v.Type(), length, length)
+		result := reflect.MakeSlice(sliceTypeOf(v), length, length)
 		for i := 0; i < length; i++ {
 			result.Index((i + positions) % length).Set(v.Index(i))
 		}

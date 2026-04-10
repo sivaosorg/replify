@@ -162,10 +162,10 @@ func TestStack_PushPopPeek(t *testing.T) {
 
 func TestDifference_SymmetricDifference(t *testing.T) {
 	tests := []struct {
-		name   string
-		s1     []int
-		s2     []int
-		wantIn []int // all of these must be present
+		name    string
+		s1      []int
+		s2      []int
+		wantIn  []int // all of these must be present
 		wantNot []int // none of these should be present
 	}{
 		{

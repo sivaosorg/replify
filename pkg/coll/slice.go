@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/sivaosorg/replify/pkg/encoding"
@@ -352,12 +353,12 @@ func IndexOf[T comparable](slice []T, item T) int {
 //	uniqueEmpty := Unique(empty)
 //	// uniqueEmpty will be []int{}
 func Unique[T comparable](slice []T) []T {
-	uniqueMap := make(map[T]bool)
-	uniqueValues := make([]T, 0)
+	seen := make(map[T]struct{}, len(slice))
+	uniqueValues := make([]T, 0, len(slice))
 	for _, value := range slice {
-		if _, found := uniqueMap[value]; !found {
+		if _, found := seen[value]; !found {
 			uniqueValues = append(uniqueValues, value)
-			uniqueMap[value] = true
+			seen[value] = struct{}{}
 		}
 	}
 	return uniqueValues
@@ -407,8 +408,8 @@ func Flatten[T any](s []any) []T {
 		case []any:
 			result = append(result, Flatten[T](val)...)
 		default:
-			if _, ok := val.(T); ok {
-				result = append(result, val.(T))
+			if typed, ok := val.(T); ok {
+				result = append(result, typed)
 			}
 		}
 	}
@@ -554,14 +555,14 @@ func GroupBy[T any, K comparable](slice []T, getKey func(T) K) map[K][]T {
 //	joinedEmpty := Join(emptySlice, ",")
 //	// joinedEmpty will be ""
 func Join[T any](slice []T, separator string) string {
-	result := ""
+	var b strings.Builder
 	for i, item := range slice {
 		if i > 0 {
-			result += separator
+			b.WriteString(separator)
 		}
-		result += fmt.Sprintf("%v", encoding.JSON(item))
+		fmt.Fprintf(&b, "%v", encoding.JSON(item))
 	}
-	return result
+	return b.String()
 }
 
 // ReverseN reverses the order of elements in the input slice and returns a new slice
@@ -736,7 +737,7 @@ func Chunk[T any](slice []T, chunkSize int) [][]T {
 //	// shuffledEmpty will be []int{}
 func Shuffle[T any](slice []T) []T {
 	shuffledSlice := make([]T, len(slice))
-	r := rand.New(rand.NewSource(time.Now().Unix()))
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	perm := r.Perm(len(slice))
 	for i, randIndex := range perm {
 		shuffledSlice[i] = slice[randIndex]
@@ -1177,14 +1178,18 @@ func AppendIf[T comparable](slice []T, element T) []T {
 //	intersectEmpty := Intersect(numbers1, empty)
 //	// intersectEmpty will be []int{}
 func Intersect[T comparable](slice1, slice2 []T) []T {
-	set := make(map[T]bool)
-	result := []T{}
+	set := make(map[T]struct{}, len(slice1))
 	for _, item := range slice1 {
-		set[item] = true
+		set[item] = struct{}{}
 	}
+	seen := make(map[T]struct{})
+	result := make([]T, 0)
 	for _, item := range slice2 {
-		if set[item] {
-			result = append(result, item)
+		if _, ok := set[item]; ok {
+			if _, dup := seen[item]; !dup {
+				result = append(result, item)
+				seen[item] = struct{}{}
+			}
 		}
 	}
 	return result
@@ -1227,18 +1232,22 @@ func Intersect[T comparable](slice1, slice2 []T) []T {
 //	uniqueFromEmpty := Difference(numbers1, empty)
 //	// uniqueFromEmpty will be []int{1, 2, 3, 4}
 func Difference[T comparable](slice1, slice2 []T) []T {
-	set := make(map[T]bool)
-	result := []T{}
+	set1 := make(map[T]struct{}, len(slice1))
 	for _, item := range slice1 {
-		set[item] = true
+		set1[item] = struct{}{}
 	}
+	set2 := make(map[T]struct{}, len(slice2))
 	for _, item := range slice2 {
-		if !set[item] {
+		set2[item] = struct{}{}
+	}
+	result := make([]T, 0)
+	for _, item := range slice2 {
+		if _, ok := set1[item]; !ok {
 			result = append(result, item)
 		}
 	}
 	for _, item := range slice1 {
-		if !set[item] {
+		if _, ok := set2[item]; !ok {
 			result = append(result, item)
 		}
 	}

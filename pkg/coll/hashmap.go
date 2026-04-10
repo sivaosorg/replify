@@ -120,6 +120,7 @@ func (hash *HashMap[K, V]) KeySet() []K {
 	i := 0
 	for key := range hash.items {
 		keys[i] = key
+		i++
 	}
 	return keys
 }

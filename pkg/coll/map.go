@@ -452,11 +452,11 @@ func ValuesComp[K comparable, V, U any](m map[K]V, fn func(V) U) map[K]U {
 //	joinedKeys = JoinKeySep(emptyMap, ",")
 //	// joinedKeys will be ""
 func JoinKeySep[V any](m map[string]V, separator string) string {
-	joined_keys := []string{}
+	joinedKeys := make([]string, 0, len(m))
 	for key := range m {
-		joined_keys = append(joined_keys, key)
+		joinedKeys = append(joinedKeys, key)
 	}
-	return strings.Join(joined_keys, separator)
+	return strings.Join(joinedKeys, separator)
 }
 
 // KeyComp returns all keys of a map.

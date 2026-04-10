@@ -2,13 +2,8 @@ package coll
 
 import (
 	"fmt"
-
-	"github.com/sivaosorg/replify/pkg/strutil"
+	"strings"
 )
-
-// itemExists is an empty struct used as a placeholder for values in the `HashSet` map.
-// Using an empty struct saves memory, as it does not allocate any space in Go.
-var itemExists struct{}
 
 // HashSet is a generic set data structure that stores unique elements of type `T`.
 // It is implemented using a map where the keys are the elements and the values are
@@ -45,7 +40,7 @@ func NewHashSet[T comparable](elements ...T) *HashSet[T] {
 //
 //	hashSet.Add(4) // Adds the element 4 to the set.
 func (hash *HashSet[T]) Add(element T) {
-	hash.items[element] = itemExists
+	hash.items[element] = struct{}{}
 }
 
 // AddAll inserts multiple elements into the HashSet. If any element already exists, it is ignored.
@@ -226,13 +221,14 @@ func (hash *HashSet[T]) Slice() []T {
 //
 //	str := hashSet.String() // Returns a string representation of the set.
 func (hash *HashSet[T]) String() string {
-	s := ""
+	var b strings.Builder
+	first := true
 	for val := range hash.items {
-		if strutil.IsEmpty(s) {
-			s = fmt.Sprintf("%v", val)
-		} else {
-			s = fmt.Sprintf("%s,%v", s, val)
+		if !first {
+			b.WriteByte(',')
 		}
+		fmt.Fprintf(&b, "%v", val)
+		first = false
 	}
-	return s
+	return b.String()
 }

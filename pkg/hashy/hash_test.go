@@ -1,4 +1,4 @@
-package test
+package hashy_test
 
 import (
 	"fmt"

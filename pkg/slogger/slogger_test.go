@@ -1,4 +1,4 @@
-package test
+package slogger_test
 
 import (
 	"bytes"

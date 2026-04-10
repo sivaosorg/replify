@@ -1,4 +1,4 @@
-package test
+package replify_test
 
 import (
 	"errors"

@@ -132,6 +132,9 @@ func (c *Converter) Uint(from any) (uint, error) {
 
 	// Handle overflow on 32-bit systems
 	if to64 > mathMaxUint {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows uint (size=%d bits)", to64, mathIntSize)
+		}
 		to64 = mathMaxUint
 	}
 
@@ -158,6 +161,9 @@ func (c *Converter) Uint8(from any) (uint8, error) {
 	}
 
 	if to64 > math.MaxUint8 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows uint8", to64)
+		}
 		to64 = math.MaxUint8
 	}
 
@@ -184,6 +190,9 @@ func (c *Converter) Uint16(from any) (uint16, error) {
 	}
 
 	if to64 > math.MaxUint16 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows uint16", to64)
+		}
 		to64 = math.MaxUint16
 	}
 
@@ -210,6 +219,9 @@ func (c *Converter) Uint32(from any) (uint32, error) {
 	}
 
 	if to64 > math.MaxUint32 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows uint32", to64)
+		}
 		to64 = math.MaxUint32
 	}
 

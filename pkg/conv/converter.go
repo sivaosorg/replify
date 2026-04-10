@@ -1,6 +1,7 @@
 package conv
 
 import (
+	"sync"
 	"time"
 )
 
@@ -10,13 +11,19 @@ import (
 
 // Converter implements type conversions with configurable options.
 // It is safe for concurrent use by multiple goroutines.
+//
+// Builder methods (WithXxx, EnableXxx, DisableXxx, Reset) mutate the Converter
+// and must not be called concurrently with each other or with conversion methods.
+// The intended usage is to configure the Converter once during initialization
+// and then share the configured instance across goroutines for conversions.
 type Converter struct {
-	strictMode  bool     // If true, returns error for lossy conversions
-	dateFormats []string // Custom date formats for time parsing
-	locale      string   // Locale for parsing (future use)
-	trimStrings bool     // If true, trims whitespace from strings before conversion
-	nilAsZero   bool     // If true, nil values return zero value instead of error
-	emptyAsZero bool     // If true, empty strings return zero value instead of error
+	mu          sync.RWMutex // Protects dateFormats during concurrent use
+	strictMode  bool         // If true, returns error for lossy conversions
+	dateFormats []string     // Custom date formats for time parsing
+	locale      string       // Locale for parsing (future use)
+	trimStrings bool         // If true, trims whitespace from strings before conversion
+	nilAsZero   bool         // If true, nil values return zero value instead of error
+	emptyAsZero bool         // If true, empty strings return zero value instead of error
 }
 
 // ///////////////////////////
@@ -58,7 +65,9 @@ func (c *Converter) WithStrictMode(v bool) *Converter {
 // Returns:
 //   - A pointer to the modified Converter instance (enabling method chaining).
 func (c *Converter) WithDateFormats(formats ...string) *Converter {
+	c.mu.Lock()
 	c.dateFormats = formats
+	c.mu.Unlock()
 	return c
 }
 
@@ -175,6 +184,8 @@ func (c *Converter) IsStrictMode() bool {
 // Returns:
 //   - A slice of strings representing the date formats.
 func (c *Converter) DateFormats() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	return c.dateFormats
 }
 
@@ -195,6 +206,8 @@ func (c *Converter) Locale() string {
 // Returns:
 //   - A pointer to the cloned Converter instance.
 func (c *Converter) Clone() *Converter {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	clone := &Converter{
 		strictMode:  c.strictMode,
 		locale:      c.locale,
@@ -214,12 +227,14 @@ func (c *Converter) Clone() *Converter {
 // Returns:
 //   - A pointer to the reset Converter instance.
 func (c *Converter) Reset() *Converter {
+	c.mu.Lock()
 	c.strictMode = false
 	c.dateFormats = defaultDateFormats()
 	c.locale = ""
 	c.trimStrings = true
 	c.nilAsZero = true
 	c.emptyAsZero = true
+	c.mu.Unlock()
 	return c
 }
 

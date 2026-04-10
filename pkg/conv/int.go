@@ -89,8 +89,14 @@ func (c *Converter) Int64(from any) (int64, error) {
 	case string:
 		return c.stringToInt64(v)
 	case float64:
+		if c.strictMode && v != math.Trunc(v) {
+			return 0, newConvErrorf("lossy conversion: %v has fractional part, cannot convert to int64 in strict mode", v)
+		}
 		return int64(v), nil
 	case float32:
+		if c.strictMode && float64(v) != math.Trunc(float64(v)) {
+			return 0, newConvErrorf("lossy conversion: %v has fractional part, cannot convert to int64 in strict mode", v)
+		}
 		return int64(v), nil
 	case bool:
 		if v {
@@ -143,10 +149,15 @@ func (c *Converter) Int(from any) (int, error) {
 	}
 
 	// Handle overflow on 32-bit systems
-	if to64 > mathMaxInt {
-		to64 = mathMaxInt
-	} else if to64 < mathMinInt {
-		to64 = mathMinInt
+	if to64 > mathMaxInt || to64 < mathMinInt {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows int (size=%d bits)", to64, mathIntSize)
+		}
+		if to64 > mathMaxInt {
+			to64 = mathMaxInt
+		} else {
+			to64 = mathMinInt
+		}
 	}
 
 	return int(to64), nil
@@ -171,10 +182,15 @@ func (c *Converter) Int8(from any) (int8, error) {
 		return 0, newConvError(from, "int8")
 	}
 
-	if to64 > math.MaxInt8 {
-		to64 = math.MaxInt8
-	} else if to64 < math.MinInt8 {
-		to64 = math.MinInt8
+	if to64 > math.MaxInt8 || to64 < math.MinInt8 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows int8", to64)
+		}
+		if to64 > math.MaxInt8 {
+			to64 = math.MaxInt8
+		} else {
+			to64 = math.MinInt8
+		}
 	}
 
 	return int8(to64), nil
@@ -199,10 +215,15 @@ func (c *Converter) Int16(from any) (int16, error) {
 		return 0, newConvError(from, "int16")
 	}
 
-	if to64 > math.MaxInt16 {
-		to64 = math.MaxInt16
-	} else if to64 < math.MinInt16 {
-		to64 = math.MinInt16
+	if to64 > math.MaxInt16 || to64 < math.MinInt16 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows int16", to64)
+		}
+		if to64 > math.MaxInt16 {
+			to64 = math.MaxInt16
+		} else {
+			to64 = math.MinInt16
+		}
 	}
 
 	return int16(to64), nil
@@ -227,10 +248,15 @@ func (c *Converter) Int32(from any) (int32, error) {
 		return 0, newConvError(from, "int32")
 	}
 
-	if to64 > math.MaxInt32 {
-		to64 = math.MaxInt32
-	} else if to64 < math.MinInt32 {
-		to64 = math.MinInt32
+	if to64 > math.MaxInt32 || to64 < math.MinInt32 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %d overflows int32", to64)
+		}
+		if to64 > math.MaxInt32 {
+			to64 = math.MaxInt32
+		} else {
+			to64 = math.MinInt32
+		}
 	}
 
 	return int32(to64), nil
@@ -263,6 +289,9 @@ func (c *Converter) stringToInt64(v string) (int64, error) {
 
 	// Try parsing as float and truncate
 	if parsed, err := strconv.ParseFloat(v, 64); err == nil {
+		if c.strictMode && parsed != math.Trunc(parsed) {
+			return 0, newConvErrorf("lossy conversion: %q has fractional part, cannot convert to int64 in strict mode", v)
+		}
 		return int64(parsed), nil
 	}
 
@@ -307,7 +336,11 @@ func (c *Converter) int64FromReflect(from any) (int64, error) {
 		}
 		return int64(val), nil
 	case isKindFloat(kind):
-		return int64(value.Float()), nil
+		f := value.Float()
+		if c.strictMode && f != math.Trunc(f) {
+			return 0, newConvErrorf("lossy conversion: %v has fractional part, cannot convert to int64 in strict mode", f)
+		}
+		return int64(f), nil
 	case isKindComplex(kind):
 		return int64(real(value.Complex())), nil
 	case kind == reflect.Bool:

@@ -124,10 +124,15 @@ func (c *Converter) Float32(from any) (float32, error) {
 	}
 
 	// Overflow protection
-	if f64 > math.MaxFloat32 {
-		f64 = math.MaxFloat32
-	} else if f64 < -math.MaxFloat32 {
-		f64 = -math.MaxFloat32
+	if f64 > math.MaxFloat32 || f64 < -math.MaxFloat32 {
+		if c.strictMode {
+			return 0, newConvErrorf("value %v overflows float32", f64)
+		}
+		if f64 > math.MaxFloat32 {
+			f64 = math.MaxFloat32
+		} else {
+			f64 = -math.MaxFloat32
+		}
 	}
 
 	return float32(f64), nil

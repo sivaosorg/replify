@@ -149,6 +149,11 @@ func (c *Converter) Time(from any) (time.Time, error) {
 	case int:
 		return time.Unix(int64(v), 0), nil
 	case uint64:
+		// Guard against values that exceed the int64 range (time.Unix takes int64).
+		// Clamping to math.MaxInt64 avoids silent wrap-around to negative timestamps.
+		if v > math.MaxInt64 {
+			v = math.MaxInt64
+		}
 		return time.Unix(int64(v), 0), nil
 	case float64:
 		// Treat as Unix timestamp with fractional seconds
@@ -272,6 +277,9 @@ func (c *Converter) stringToDuration(v string) (time.Duration, error) {
 
 // float64ToDuration converts a float64 value representing seconds to time.Duration.
 //
+// Values that would overflow or underflow int64 (the underlying type of time.Duration)
+// are clamped to the maximum or minimum representable duration.
+//
 // Parameters:
 //   - v: The float64 value to convert.
 //
@@ -281,7 +289,18 @@ func (c *Converter) float64ToDuration(v float64) time.Duration {
 	if math.IsNaN(v) || math.IsInf(v, 0) {
 		return 0
 	}
-	return time.Duration(v * float64(time.Second))
+	// Compute the duration in nanoseconds as a float64, then check for overflow
+	// before casting to int64. math.MaxInt64 / 1e9 ≈ 9.22e9, so durations beyond
+	// roughly ±292 years would overflow.
+	const secondsPerNano = float64(time.Second) // 1e9
+	nanos := v * secondsPerNano
+	if nanos >= float64(math.MaxInt64) {
+		return time.Duration(math.MaxInt64)
+	}
+	if nanos <= float64(math.MinInt64) {
+		return time.Duration(math.MinInt64)
+	}
+	return time.Duration(nanos)
 }
 
 // durationFromReflect converts a reflect.Value to time.Duration.
@@ -346,8 +365,14 @@ func (c *Converter) stringToTime(v string) (time.Time, error) {
 		v = strings.TrimSpace(v)
 	}
 
+	// Take a read-locked snapshot of dateFormats so that concurrent calls to
+	// WithDateFormats cannot mutate the slice while we are iterating over it.
+	c.mu.RLock()
+	formats := c.dateFormats
+	c.mu.RUnlock()
+
 	// Try each configured format
-	for _, format := range c.dateFormats {
+	for _, format := range formats {
 		if t, err := time.Parse(format, v); err == nil {
 			return t, nil
 		}

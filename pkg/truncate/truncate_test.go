@@ -1,4 +1,4 @@
-package test
+package truncate_test
 
 import (
 	"testing"

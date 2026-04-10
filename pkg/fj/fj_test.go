@@ -1,4 +1,4 @@
-package test
+package fj_test
 
 import (
 	"testing"

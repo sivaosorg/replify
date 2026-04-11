@@ -5,8 +5,6 @@ import (
 	"database/sql/driver"
 	"encoding/binary"
 	"fmt"
-	"hash/crc32"
-	"os"
 	"sync/atomic"
 	"time"
 )
@@ -19,12 +17,10 @@ func init() {
 		decodeBytes[encoding[i]] = byte(i)
 	}
 
-	// Read /proc/self/cpuset to further randomize the PID.
-	// This helps ensure uniqueness in containerized environments.
-	b, err := os.ReadFile("/proc/self/cpuset")
-	if err == nil && len(b) > 1 {
-		pid ^= int(crc32.ChecksumIEEE(b))
-	}
+	// XOR the PID with a platform-specific offset to help ensure uniqueness in
+	// containerized environments (e.g., Linux cgroups). On non-Linux platforms
+	// pidContainerOffset returns 0 and this is a no-op.
+	pid ^= pidContainerOffset()
 }
 
 // NewXID generates a new unique XID using the current time.

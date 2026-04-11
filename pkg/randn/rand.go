@@ -7,61 +7,41 @@ import (
 	cr "crypto/rand"
 	"encoding/hex"
 	"fmt"
-	"log"
-	"os"
 )
 
-var r *rand.Rand // Package-level random generator
-
-func init() {
-	// Initialize the package-level random generator with a seed
-	src := rand.NewSource(time.Now().UTC().UnixNano())
-	r = rand.New(src)
-}
-
-// UUID generates a new universally unique identifier (UUID) using random data from /dev/urandom (Unix-based systems).
+// UUID generates a new universally unique identifier (UUID) (RFC 4122 version 4)
+// using crypto/rand for cryptographically secure randomness.
 //
-// This function opens the special file /dev/urandom to read 16 random bytes, which are then used to construct a UUID
-// in the standard format (8-4-4-4-12 hex characters). It ensures that the file is properly closed after reading, even
-// if an error occurs. If there's an error opening or reading from /dev/urandom, the function returns an appropriate error.
-//
-// UUID Format: The generated UUID is formatted as a string in the following structure:
-// XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX, where X is a hexadecimal digit.
+// UUID Format: XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX (version 4, variant 1).
 //
 // Returns:
 //   - A string representing the newly generated UUID.
-//   - An error if there is an issue opening or reading from /dev/urandom.
+//   - An error if the random source is unavailable.
 //
 // Example:
 //
-//	 uuid, err := UUID()
-//		if err != nil {
-//		    log.Fatalf("Failed to generate UUID: %v", err)
-//		}
-//	 fmt.Println("Generated UUID:", uuid)
-//
-// Notes:
-//   - This function is designed for Unix-based systems. On non-Unix systems, this may not work because /dev/urandom
-//     may not be available.
+//	uuid, err := UUID()
+//	if err != nil {
+//	    log.Fatalf("Failed to generate UUID: %v", err)
+//	}
+//	fmt.Println("Generated UUID:", uuid)
 func UUID() (string, error) {
-	dash := "-"
-	return UUIDJoin(dash)
+	return UUIDJoin("-")
 }
 
-// UUIDJoin generates a new universally unique identifier (UUID) using random data from /dev/urandom
-// (Unix-based systems) with a customizable delimiter.
+// UUIDJoin generates a new universally unique identifier (UUID) (RFC 4122 version 4)
+// using crypto/rand, with a customizable delimiter between UUID sections.
 //
-// This function is similar to GenerateUUID but allows the user to specify a custom delimiter to separate
-// different sections of the UUID. It opens the special file /dev/urandom to read 16 random bytes,
-// which are then used to construct a UUID. The UUID is returned as a string in the format:
-// XXXXXXXX<delimiter>XXXX<delimiter>XXXX<delimiter>XXXX<delimiter>XXXXXXXXXXXX, where X is a hexadecimal digit.
+// This function is cross-platform: it does not rely on /dev/urandom or any
+// OS-specific file, and works correctly on Linux, macOS, Windows, and other
+// platforms supported by the Go crypto/rand package.
 //
 // Parameters:
-//   - delimiter: A string used to separate sections of the UUID. Common choices are "-" or "" (no delimiter).
+//   - delimiter: A string used to separate sections of the UUID. Common choices are "-" or "".
 //
 // Returns:
 //   - A string representing the newly generated UUID with the specified delimiter.
-//   - An error if there is an issue opening or reading from /dev/urandom.
+//   - An error if crypto/rand fails to produce random bytes.
 //
 // Example:
 //
@@ -70,27 +50,14 @@ func UUID() (string, error) {
 //	    log.Fatalf("Failed to generate UUID: %v", err)
 //	}
 //	fmt.Println("Generated UUID:", uuid)
-//
-// Notes:
-//   - This function is designed for Unix-based systems. On non-Unix systems, it may not work because /dev/urandom
-//     may not be available.
 func UUIDJoin(delimiter string) (string, error) {
-	file, err := os.Open("/dev/urandom")
-	if err != nil {
-		return "", fmt.Errorf("failed to open /dev/urandom: %v", err)
-	}
-	defer func() {
-		if err := file.Close(); err != nil {
-			fmt.Printf("Error closing file: %s\n", err)
-		}
-	}()
 	b := make([]byte, 16)
-	_, err = file.Read(b)
-	if err != nil {
-		return "", err
+	if _, err := cr.Read(b); err != nil {
+		return "", fmt.Errorf("randn: failed to generate UUID random bytes: %w", err)
 	}
-	// Format the bytes as a UUID string with the specified delimiter.
-	// The UUID is structured as XXXXXXXX<delimiter>XXXX<delimiter>XXXX<delimiter>XXXX<delimiter>XXXXXXXXXXXX.
+	// Set RFC 4122 version 4 and variant 1 bits.
+	b[6] = (b[6] & 0x0f) | 0x40 // version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // variant 1
 	uuid := fmt.Sprintf("%x%s%x%s%x%s%x%s%x", b[0:4], delimiter, b[4:6], delimiter, b[6:8], delimiter, b[8:10], delimiter, b[10:])
 	return uuid, nil
 }
@@ -105,10 +72,9 @@ func UUIDJoin(delimiter string) (string, error) {
 // Returns:
 //   - A string of random alphanumeric characters with the specified length.
 //
-// The function uses a custom random source seeded with the current Unix timestamp
-// in nanoseconds to ensure that each call produces a unique sequence.
-// This function is intended to generate random strings quickly and is not
-// cryptographically secure.
+// The function uses the goroutine-safe global math/rand source (automatically seeded
+// in Go 1.20+). This function is intended to generate random strings quickly and is
+// not cryptographically secure.
 //
 // Example:
 //
@@ -117,14 +83,12 @@ func UUIDJoin(delimiter string) (string, error) {
 //
 // Notes:
 //   - This function is suitable for use cases where simple random IDs are needed.
-//     However, for cryptographic purposes, consider using more secure random generation.
+//     However, for cryptographic purposes, consider using CryptoID instead.
 func RandID(length int) string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	seededRand := rand.New(rand.NewSource(time.Now().UnixNano())) // Create a seeded random generator for unique results each call
-	// Allocate a byte slice for the generated ID and populate it with random characters
 	id := make([]byte, length)
 	for i := range id {
-		id[i] = charset[seededRand.Intn(len(charset))]
+		id[i] = charset[rand.Intn(len(charset))]
 	}
 	return string(id)
 }
@@ -148,13 +112,12 @@ func RandID(length int) string {
 //   - This function is suitable for use cases where high security is required in the generated ID.
 //   - It is not recommended for use cases where deterministic or non-cryptographic IDs are preferred.
 func CryptoID() string {
-	bytes := make([]byte, 16)
+	b := make([]byte, 16)
 	// Use crypto/rand.Read for cryptographically secure random byte generation.
-	if _, err := cr.Read(bytes); err != nil {
-		log.Fatalf("Failed to generate secure random bytes: %v", err)
-		return ""
+	if _, err := cr.Read(b); err != nil {
+		panic(fmt.Sprintf("randn: failed to generate secure random bytes: %v", err))
 	}
-	return hex.EncodeToString(bytes)
+	return hex.EncodeToString(b)
 }
 
 // TimeID generates a unique identifier based on the current Unix timestamp in nanoseconds,
@@ -181,10 +144,9 @@ func TimeID() string {
 	return fmt.Sprintf("%d%d", time.Now().UnixNano(), rand.Int())
 }
 
-// RandUUID generates and returns a new UUID using the GenerateUUID function.
+// RandUUID generates and returns a new UUID (RFC 4122 version 4).
 //
-// If an error occurs during UUID generation (for example, if there is an issue reading from /dev/urandom),
-// the function returns an empty string.
+// If an error occurs during UUID generation, the function returns an empty string.
 //
 // This function is useful when you want a simple UUID generation without handling errors directly.
 // It abstracts away the error handling by returning an empty string in case of failure.
@@ -220,20 +182,13 @@ func RandInt() int {
 	return rand.Int()
 }
 
-// RandIntr generates a random integer within the specified range, inclusive,
-// and reseeds the random number generator with a new value each time it is called.
+// RandIntr generates a random integer within the specified range [min, max], inclusive.
 //
-// The function first creates a new seed by combining the current UTC time in nanoseconds
-// with a random integer from the custom random generator `r`. This helps to ensure that
-// each call to `RandIntr` produces a different sequence of random numbers.
+// If the provided min is greater than or equal to max, the function returns min
+// as a default value.
 //
-// If the provided `min` is greater than or equal to `max`, the function returns `min`
-// as a default value. This behavior should be considered when using this function,
-// as it may not be intuitive to return `min` in cases where the range is invalid.
-//
-// The function uses the reseeded random generator to generate a random integer in the
-// inclusive range from `min` to `max`. The calculation ensures that both bounds are included
-// in the result by using the formula: r.Intn(max-min+1) + min.
+// The function uses the goroutine-safe global math/rand source (automatically seeded
+// in Go 1.20+) and is safe for concurrent use without external synchronization.
 //
 // Parameters:
 //   - `min`: The lower bound of the random number range (inclusive).
@@ -245,16 +200,12 @@ func RandInt() int {
 // Example:
 //
 //	randomNum := RandIntr(1, 10)
-//	fmt.Println("Random number between 1 and 10 after reseeding:", randomNum)
+//	fmt.Println("Random number between 1 and 10:", randomNum)
 func RandIntr(min, max int) int {
-	// Reseed the custom random generator with a new seed
-	x := time.Now().UTC().UnixNano() + int64(r.Int())
-	r.Seed(x)
-	// Ensure max is included in the range
 	if min >= max {
 		return min
 	}
-	return r.Intn(max-min+1) + min
+	return rand.Intn(max-min+1) + min
 }
 
 // RandUint32 returns the next random uint32 value.

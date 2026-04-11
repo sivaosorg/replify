@@ -1,10 +1,11 @@
 // Package randn provides functions for generating random values, unique
 // identifiers, and universally unique identifiers (UUIDs).
 //
-// The package is initialised with a package-level *rand.Rand seeded from the
-// current wall-clock time, giving good statistical randomness for
-// non-security-critical workloads. For cryptographically strong identifiers,
-// the CryptoID function reads from crypto/rand.
+// UUID and UUIDJoin use crypto/rand to produce RFC 4122 version-4 UUIDs and
+// are safe on all platforms (Linux, macOS, Windows, and others).
+// RandID and the numeric functions rely on the goroutine-safe global math/rand
+// source (automatically seeded in Go 1.20+) and are not cryptographically
+// secure; use CryptoID when security properties matter.
 //
 // # Identifiers
 //
@@ -19,17 +20,12 @@
 // # Numeric Values
 //
 //	randn.RandInt()            // random int
-//	randn.RandIntr(min, max)   // random int in [min, max] inclusive; reseeds on each call
+//	randn.RandIntr(min, max)   // random int in [min, max] inclusive
 //	randn.RandFt64()           // random float64 in [0.0, 1.0)
 //	randn.RandFt64r(lo, hi)    // random float64 in [lo, hi)
 //	randn.RandFt32()           // random float32 in [0.0, 1.0)
 //	randn.RandFt32r(lo, hi)    // random float32 in [lo, hi)
 //	randn.RandByte(n)          // slice of n random bytes
-//
-// UUID and UUIDJoin read from /dev/urandom and are therefore available only
-// on Unix-like systems. RandID and the numeric functions rely on math/rand
-// and are not cryptographically secure; use CryptoID when security properties
-// matter.
 //
 // All functions in this package are safe for concurrent use.
 package randn

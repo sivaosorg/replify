@@ -42,13 +42,13 @@ func readPlatformMachineID() (string, error) {
 
 	err = syscall.RegQueryValueEx(h, mGuidPtr, nil, &valType, (*byte)(unsafe.Pointer(&regBuf[0])), &bufLen)
 	if err != nil {
-		return "", fmt.Errorf("error parsing ")
+		return "", fmt.Errorf("error reading MachineGuid value: %w", err)
 	}
 
 	hostID := syscall.UTF16ToString(regBuf[:])
 	hostIDLen := len(hostID)
 	if hostIDLen != uuidLen {
-		return "", fmt.Errorf("HostID incorrect: %q\n", hostID)
+		return "", fmt.Errorf("randn: unexpected MachineGuid length %d: %q", hostIDLen, hostID)
 	}
 
 	return hostID, nil

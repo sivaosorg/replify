@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 	"sync"
 	"testing"
@@ -1352,7 +1353,8 @@ func TestSlogger_TrimFilePath_CrossPlatform(t *testing.T) {
 func TestSlogger_Itoa64_MinInt64(t *testing.T) {
 	t.Parallel()
 
-	const minInt64 int64 = -9223372036854775808
+	// Use math.MinInt64 constant for clarity
+	minInt64 := int64(math.MinInt64)
 
 	// Test by logging an Int64 with math.MinInt64
 	var buf bytes.Buffer

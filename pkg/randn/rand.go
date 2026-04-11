@@ -336,3 +336,24 @@ func RandByte(count int) []byte {
 	}
 	return a
 }
+
+// RandIDHex produces a cryptographically random identifier of the specified
+// byte length, returned as a hex-encoded string. The resulting string length
+// is 2x the requested byte count.
+//
+// This replaces the use of math/rand, providing collision-resistant
+// identifiers suitable for concurrent operations.
+//
+// Example:
+//
+//	id := RandIDHex(8)
+//	fmt.Println(len(id)) // 16
+func RandIDHex(byteLen int) string {
+	b := make([]byte, byteLen)
+	if _, err := cr.Read(b); err != nil {
+		// Fallback: this should never fail on modern systems, but if it does
+		// we still need a unique-ish string to avoid panics.
+		return fmt.Sprintf("fallback-%p", &b)
+	}
+	return hex.EncodeToString(b)
+}

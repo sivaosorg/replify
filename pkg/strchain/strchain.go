@@ -2,6 +2,7 @@ package strchain
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 )
 
@@ -40,9 +41,9 @@ func FromPtr(s *strings.Builder) *StringWeaver {
 	if s == nil {
 		return New()
 	}
-	return &StringWeaver{
-		builder: *s,
-	}
+	sw := New()
+	sw.builder.WriteString(s.String())
+	return sw
 }
 
 // New creates a new StringWeaver instance.
@@ -121,7 +122,7 @@ func (sw *StringWeaver) AppendBytes(b []byte) Weaver {
 //
 //	sw.AppendInt(123)
 func (sw *StringWeaver) AppendInt(i int) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.Itoa(i))
 	return sw
 }
 
@@ -131,7 +132,7 @@ func (sw *StringWeaver) AppendInt(i int) Weaver {
 //
 //	sw.AppendInt8(8)
 func (sw *StringWeaver) AppendInt8(i int8) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatInt(int64(i), 10))
 	return sw
 }
 
@@ -141,7 +142,7 @@ func (sw *StringWeaver) AppendInt8(i int8) Weaver {
 //
 //	sw.AppendInt16(16)
 func (sw *StringWeaver) AppendInt16(i int16) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatInt(int64(i), 10))
 	return sw
 }
 
@@ -151,7 +152,7 @@ func (sw *StringWeaver) AppendInt16(i int16) Weaver {
 //
 //	sw.AppendInt32(32)
 func (sw *StringWeaver) AppendInt32(i int32) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatInt(int64(i), 10))
 	return sw
 }
 
@@ -161,7 +162,7 @@ func (sw *StringWeaver) AppendInt32(i int32) Weaver {
 //
 //	sw.AppendInt64(64)
 func (sw *StringWeaver) AppendInt64(i int64) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatInt(i, 10))
 	return sw
 }
 
@@ -171,7 +172,7 @@ func (sw *StringWeaver) AppendInt64(i int64) Weaver {
 //
 //	sw.AppendUint(123)
 func (sw *StringWeaver) AppendUint(i uint) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(uint64(i), 10))
 	return sw
 }
 
@@ -181,7 +182,7 @@ func (sw *StringWeaver) AppendUint(i uint) Weaver {
 //
 //	sw.AppendUint8(8)
 func (sw *StringWeaver) AppendUint8(i uint8) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(uint64(i), 10))
 	return sw
 }
 
@@ -191,7 +192,7 @@ func (sw *StringWeaver) AppendUint8(i uint8) Weaver {
 //
 //	sw.AppendUint16(16)
 func (sw *StringWeaver) AppendUint16(i uint16) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(uint64(i), 10))
 	return sw
 }
 
@@ -201,7 +202,7 @@ func (sw *StringWeaver) AppendUint16(i uint16) Weaver {
 //
 //	sw.AppendUint32(32)
 func (sw *StringWeaver) AppendUint32(i uint32) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(uint64(i), 10))
 	return sw
 }
 
@@ -211,7 +212,7 @@ func (sw *StringWeaver) AppendUint32(i uint32) Weaver {
 //
 //	sw.AppendUint64(64)
 func (sw *StringWeaver) AppendUint64(i uint64) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(i, 10))
 	return sw
 }
 
@@ -221,7 +222,7 @@ func (sw *StringWeaver) AppendUint64(i uint64) Weaver {
 //
 //	sw.AppendUintptr(0xdeadbeef)
 func (sw *StringWeaver) AppendUintptr(i uintptr) Weaver {
-	fmt.Fprintf(&sw.builder, "%d", i)
+	sw.builder.WriteString(strconv.FormatUint(uint64(i), 10))
 	return sw
 }
 
@@ -231,7 +232,7 @@ func (sw *StringWeaver) AppendUintptr(i uintptr) Weaver {
 //
 //	sw.AppendFloat32(3.14)
 func (sw *StringWeaver) AppendFloat32(f float32) Weaver {
-	fmt.Fprintf(&sw.builder, "%f", f)
+	sw.builder.WriteString(strconv.FormatFloat(float64(f), 'f', -1, 32))
 	return sw
 }
 
@@ -241,7 +242,7 @@ func (sw *StringWeaver) AppendFloat32(f float32) Weaver {
 //
 //	sw.AppendFloat64(3.14159)
 func (sw *StringWeaver) AppendFloat64(f float64) Weaver {
-	fmt.Fprintf(&sw.builder, "%f", f)
+	sw.builder.WriteString(strconv.FormatFloat(f, 'f', -1, 64))
 	return sw
 }
 
@@ -251,7 +252,7 @@ func (sw *StringWeaver) AppendFloat64(f float64) Weaver {
 //
 //	sw.AppendBool(true)
 func (sw *StringWeaver) AppendBool(b bool) Weaver {
-	fmt.Fprintf(&sw.builder, "%t", b)
+	sw.builder.WriteString(strconv.FormatBool(b))
 	return sw
 }
 
@@ -271,8 +272,8 @@ func (sw *StringWeaver) Space() Weaver {
 //
 //	sw.Append("Key:").Spaces(4).Append("Value")
 func (sw *StringWeaver) Spaces(n int) Weaver {
-	for i := 0; i < n; i++ {
-		sw.builder.WriteByte(' ')
+	if n > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", n))
 	}
 	return sw
 }
@@ -293,8 +294,8 @@ func (sw *StringWeaver) Tab() Weaver {
 //
 //	sw.Tabs(2).Append("Indented text")
 func (sw *StringWeaver) Tabs(n int) Weaver {
-	for i := 0; i < n; i++ {
-		sw.builder.WriteByte('\t')
+	if n > 0 {
+		sw.builder.WriteString(strings.Repeat("\t", n))
 	}
 	return sw
 }
@@ -315,8 +316,8 @@ func (sw *StringWeaver) NewLine() Weaver {
 //
 //	sw.Append("Paragraph 1").NewLines(2).Append("Paragraph 2")
 func (sw *StringWeaver) NewLines(n int) Weaver {
-	for i := 0; i < n; i++ {
-		sw.builder.WriteByte('\n')
+	if n > 0 {
+		sw.builder.WriteString(strings.Repeat("\n", n))
 	}
 	return sw
 }
@@ -349,8 +350,8 @@ func (sw *StringWeaver) LineF(format string, args ...any) Weaver {
 //
 //	sw.Repeat("-", 10) // adds "----------"
 func (sw *StringWeaver) Repeat(s string, n int) Weaver {
-	for i := 0; i < n; i++ {
-		sw.builder.WriteString(s)
+	if n > 0 {
+		sw.builder.WriteString(strings.Repeat(s, n))
 	}
 	return sw
 }
@@ -442,8 +443,8 @@ func (sw *StringWeaver) Each(items []string, fn func(*StringWeaver, string)) *St
 //
 //	sw.Indent(2, "Sub-item")
 func (sw *StringWeaver) Indent(level int, s string) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteString(s)
 	return sw
@@ -455,8 +456,8 @@ func (sw *StringWeaver) Indent(level int, s string) Weaver {
 //
 //	sw.IndentLine(1, "Point 1")
 func (sw *StringWeaver) IndentLine(level int, s string) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteString(s)
 	sw.builder.WriteByte('\n')
@@ -699,8 +700,8 @@ func (sw *StringWeaver) Builder() *strings.Builder {
 //
 //	sw.IndentF(1, `"id": %q,`, "abc123")
 func (sw *StringWeaver) IndentF(level int, format string, args ...any) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	fmt.Fprintf(&sw.builder, format, args...)
 	return sw
@@ -712,8 +713,8 @@ func (sw *StringWeaver) IndentF(level int, format string, args ...any) Weaver {
 //
 //	sw.IndentLineF(1, `"id": %q,`, "abc123")
 func (sw *StringWeaver) IndentLineF(level int, format string, args ...any) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	fmt.Fprintf(&sw.builder, format, args...)
 	sw.builder.WriteByte('\n')
@@ -766,8 +767,7 @@ func (sw *StringWeaver) JSONArrayEnd() Weaver {
 //
 //	sw.JSONString("hello") // adds "hello"
 func (sw *StringWeaver) JSONString(s string) Weaver {
-	// Use %q for proper JSON string escaping
-	fmt.Fprintf(&sw.builder, "%q", s)
+	sw.builder.WriteString(strconv.Quote(s))
 	return sw
 }
 
@@ -796,7 +796,7 @@ func (sw *StringWeaver) JSONKeyString(key, value string) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%q", value)
+	sw.builder.WriteString(strconv.Quote(value))
 	return sw
 }
 
@@ -811,7 +811,7 @@ func (sw *StringWeaver) JSONKeyInt(key string, value int) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.Itoa(value))
 	return sw
 }
 
@@ -826,8 +826,7 @@ func (sw *StringWeaver) JSONKeyBool(key string, value bool) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	// Use %t for proper JSON boolean formatting (true/false)
-	fmt.Fprintf(&sw.builder, "%t", value)
+	sw.builder.WriteString(strconv.FormatBool(value))
 	return sw
 }
 
@@ -842,8 +841,7 @@ func (sw *StringWeaver) JSONKeyFloat(key string, value float64) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	// Use %g for proper JSON float formatting (e.g., 19.99, not 19.990000)
-	fmt.Fprintf(&sw.builder, "%g", value)
+	sw.builder.WriteString(strconv.FormatFloat(value, 'f', -1, 64))
 	return sw
 }
 
@@ -853,16 +851,15 @@ func (sw *StringWeaver) JSONKeyFloat(key string, value float64) Weaver {
 //
 //	sw.JSONFieldString(1, "name", `"John"`, true) // adds '  "name": "John",\n'
 func (sw *StringWeaver) JSONFieldString(level int, key, value string, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	// Use %q for proper JSON string formatting (adds quotes and escapes special characters)
-	fmt.Fprintf(&sw.builder, "%q", value)
+	sw.builder.WriteString(strconv.Quote(value))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -876,15 +873,15 @@ func (sw *StringWeaver) JSONFieldString(level int, key, value string, addComma b
 //
 //	sw.JSONFieldInt(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldInt(level int, key string, value int, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatInt(int64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -898,15 +895,15 @@ func (sw *StringWeaver) JSONFieldInt(level int, key string, value int, addComma 
 //
 //	sw.JSONFieldInt8(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldInt8(level int, key string, value int8, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatInt(int64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -920,15 +917,15 @@ func (sw *StringWeaver) JSONFieldInt8(level int, key string, value int8, addComm
 //
 //	sw.JSONFieldInt16(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldInt16(level int, key string, value int16, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatInt(int64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -942,15 +939,15 @@ func (sw *StringWeaver) JSONFieldInt16(level int, key string, value int16, addCo
 //
 //	sw.JSONFieldInt32(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldInt32(level int, key string, value int32, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatInt(int64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -964,15 +961,15 @@ func (sw *StringWeaver) JSONFieldInt32(level int, key string, value int32, addCo
 //
 //	sw.JSONFieldInt64(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldInt64(level int, key string, value int64, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatInt(value, 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -986,15 +983,15 @@ func (sw *StringWeaver) JSONFieldInt64(level int, key string, value int64, addCo
 //
 //	sw.JSONFieldUint(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldUint(level int, key string, value uint, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatUint(uint64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1008,15 +1005,15 @@ func (sw *StringWeaver) JSONFieldUint(level int, key string, value uint, addComm
 //
 //	sw.JSONFieldUint8(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldUint8(level int, key string, value uint8, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatUint(uint64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1030,15 +1027,15 @@ func (sw *StringWeaver) JSONFieldUint8(level int, key string, value uint8, addCo
 //
 //	sw.JSONFieldUint16(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldUint16(level int, key string, value uint16, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatUint(uint64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1052,15 +1049,15 @@ func (sw *StringWeaver) JSONFieldUint16(level int, key string, value uint16, add
 //
 //	sw.JSONFieldUint32(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldUint32(level int, key string, value uint32, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatUint(uint64(value), 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1074,15 +1071,15 @@ func (sw *StringWeaver) JSONFieldUint32(level int, key string, value uint32, add
 //
 //	sw.JSONFieldUint64(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldUint64(level int, key string, value uint64, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%d", value)
+	sw.builder.WriteString(strconv.FormatUint(value, 10))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1096,15 +1093,15 @@ func (sw *StringWeaver) JSONFieldUint64(level int, key string, value uint64, add
 //
 //	sw.JSONFieldFloat32(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldFloat32(level int, key string, value float32, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%f", value)
+	sw.builder.WriteString(strconv.FormatFloat(float64(value), 'f', -1, 32))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1118,15 +1115,15 @@ func (sw *StringWeaver) JSONFieldFloat32(level int, key string, value float32, a
 //
 //	sw.JSONFieldFloat64(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldFloat64(level int, key string, value float64, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%f", value)
+	sw.builder.WriteString(strconv.FormatFloat(value, 'f', -1, 64))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1140,15 +1137,15 @@ func (sw *StringWeaver) JSONFieldFloat64(level int, key string, value float64, a
 //
 //	sw.JSONFieldBool(1, "age", 30, true) // adds '  "age": 30,\n'
 func (sw *StringWeaver) JSONFieldBool(level int, key string, value bool, addComma bool) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	fmt.Fprintf(&sw.builder, "%t", value)
+	sw.builder.WriteString(strconv.FormatBool(value))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}
@@ -1216,8 +1213,8 @@ func (sw *StringWeaver) CommaIfNotLast(index, total int) Weaver {
 //
 //	sw.JSONFieldArrayStart(1, "items", true) // adds '  "items": ['
 func (sw *StringWeaver) JSONFieldArrayStart(level int, key string) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('"')
 	sw.builder.WriteString(key)
@@ -1234,8 +1231,8 @@ func (sw *StringWeaver) JSONFieldArrayStart(level int, key string) Weaver {
 //
 //	sw.JSONFieldArrayEnd(1) // adds '  ]'
 func (sw *StringWeaver) JSONFieldArrayEnd(level int) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte(']')
 	return sw
@@ -1307,8 +1304,8 @@ func (sw *StringWeaver) EndBrace() Weaver {
 //
 //	sw.IndentOnly(1) // adds '  '
 func (sw *StringWeaver) IndentOnly(level int) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	return sw
 }
@@ -1319,8 +1316,8 @@ func (sw *StringWeaver) IndentOnly(level int) Weaver {
 //
 //	sw.IndentOnlyLine(1) // adds '  \n'
 func (sw *StringWeaver) IndentOnlyLine(level int) Weaver {
-	for i := 0; i < level*2; i++ {
-		sw.builder.WriteByte(' ')
+	if level > 0 {
+		sw.builder.WriteString(strings.Repeat(" ", level*2))
 	}
 	sw.builder.WriteByte('\n')
 	return sw

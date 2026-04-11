@@ -26,10 +26,10 @@ import (
 //	}
 //	fmt.Println("Generated UUID:", uuid)
 func UUID() (string, error) {
-	return UUIDJoin("-")
+	return UUIDSep("-")
 }
 
-// UUIDJoin generates a new universally unique identifier (UUID) (RFC 4122 version 4)
+// UUIDSep generates a new universally unique identifier (UUID) (RFC 4122 version 4)
 // using crypto/rand, with a customizable delimiter between UUID sections.
 //
 // This function is cross-platform: it does not rely on /dev/urandom or any
@@ -45,12 +45,12 @@ func UUID() (string, error) {
 //
 // Example:
 //
-//	uuid, err := UUIDJoin("-")
+//	uuid, err := UUIDSep("-")
 //	if err != nil {
 //	    log.Fatalf("Failed to generate UUID: %v", err)
 //	}
 //	fmt.Println("Generated UUID:", uuid)
-func UUIDJoin(delimiter string) (string, error) {
+func UUIDSep(delimiter string) (string, error) {
 	b := make([]byte, 16)
 	if _, err := cr.Read(b); err != nil {
 		return "", fmt.Errorf("randn: failed to generate UUID random bytes: %w", err)

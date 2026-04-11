@@ -96,7 +96,7 @@ fmt.Println(uuid)
 // Output: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 
 // UUID without dashes
-uuidNoDash, err := randn.UUIDJoin("")
+uuidNoDash, err := randn.UUIDSep("")
 if err != nil {
     log.Fatal(err)
 }
@@ -104,7 +104,7 @@ fmt.Println(uuidNoDash)
 // Output: "a1b2c3d4e5f67890abcdef1234567890"
 
 // UUID with custom delimiter
-uuidCustom, err := randn.UUIDJoin(":")
+uuidCustom, err := randn.UUIDSep(":")
 fmt.Println(uuidCustom)
 // Output: "a1b2c3d4:e5f6:7890:abcd:ef1234567890"
 
@@ -357,7 +357,7 @@ func SimulateSensorReading() SensorReading {
 | Function | Description | Returns | Error Handling |
 |----------|-------------|---------|----------------|
 | `UUID() (string, error)` | Generate standard UUID with dashes | UUID string | Returns error if `/dev/urandom` unavailable |
-| `UUIDJoin(delimiter string) (string, error)` | Generate UUID with custom delimiter | UUID string | Returns error if `/dev/urandom` unavailable |
+| `UUIDSep(delimiter string) (string, error)` | Generate UUID with custom delimiter | UUID string | Returns error if `/dev/urandom` unavailable |
 | `RandUUID() string` | Generate UUID without error handling | UUID string or empty | Returns `""` on error |
 
 **UUID Format:** `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` (32 hex digits with dashes)
@@ -566,7 +566,7 @@ rand.Read(key)
 
 **Moderate operations:**
 - `UUID()`, `RandUUID()` - File I/O overhead
-- `UUIDJoin()` - File I/O overhead
+- `UUIDSep()` - File I/O overhead
 - `TimeID()` - System call overhead
 
 **Slower operations (crypto/rand):**

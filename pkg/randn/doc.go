@@ -1,7 +1,7 @@
 // Package randn provides functions for generating random values, unique
 // identifiers, and universally unique identifiers (UUIDs).
 //
-// UUID and UUIDJoin use crypto/rand to produce RFC 4122 version-4 UUIDs and
+// UUID and UUIDSep use crypto/rand to produce RFC 4122 version-4 UUIDs and
 // are safe on all platforms (Linux, macOS, Windows, and others).
 // RandID and the numeric functions rely on the goroutine-safe global math/rand
 // source (automatically seeded in Go 1.20+) and are not cryptographically
@@ -10,7 +10,7 @@
 // # Identifiers
 //
 //	randn.UUID()         // standard UUID, e.g. "550e8400-e29b-41d4-a716-446655440000"
-//	randn.UUIDJoin("/")  // UUID with a custom delimiter
+//	randn.UUIDSep("/")  // UUID with a custom delimiter
 //	randn.RandUUID()     // UUID, empty string on error
 //	randn.RandID(16)     // 16-character alphanumeric string (math/rand)
 //	randn.CryptoID()     // 32-character hex string (crypto/rand)

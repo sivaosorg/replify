@@ -74,7 +74,7 @@ func TestUUID_Uniqueness(t *testing.T) {
 	}
 }
 
-func TestUUIDJoin(t *testing.T) {
+func TestUUIDSep(t *testing.T) {
 	tests := []struct {
 		delimiter string
 		wantParts int
@@ -86,9 +86,9 @@ func TestUUIDJoin(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("delim=%q", tc.delimiter), func(t *testing.T) {
-			uuid, err := UUIDJoin(tc.delimiter)
+			uuid, err := UUIDSep(tc.delimiter)
 			if err != nil {
-				t.Fatalf("UUIDJoin(%q) returned error: %v", tc.delimiter, err)
+				t.Fatalf("UUIDSep(%q) returned error: %v", tc.delimiter, err)
 			}
 			if tc.delimiter != "" {
 				parts := strings.Split(uuid, tc.delimiter)
@@ -103,8 +103,8 @@ func TestUUIDJoin(t *testing.T) {
 	}
 }
 
-// TestUUIDJoin_RFC4122Bits verifies that version and variant bits are set correctly.
-func TestUUIDJoin_RFC4122Bits(t *testing.T) {
+// TestUUIDSep_RFC4122Bits verifies that version and variant bits are set correctly.
+func TestUUIDSep_RFC4122Bits(t *testing.T) {
 	for range 20 {
 		uuid, err := UUID()
 		if err != nil {
@@ -222,8 +222,8 @@ func TestRandIntr(t *testing.T) {
 	tests := []struct {
 		min, max int
 	}{
-		{0, 0},   // degenerate: min == max → return min
-		{5, 5},   // degenerate
+		{0, 0}, // degenerate: min == max → return min
+		{5, 5}, // degenerate
 		{1, 10},
 		{-10, 10},
 		{-5, -1},
@@ -381,4 +381,3 @@ func TestUUID_Concurrent(t *testing.T) {
 	}
 	wg.Wait()
 }
-

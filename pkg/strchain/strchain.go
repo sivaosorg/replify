@@ -12,9 +12,10 @@ var _ Weaver = (*StringWeaver)(nil)
 
 // jsonEncodeString returns the RFC 8259-compliant JSON encoding of s,
 // including the surrounding double-quote characters.
-// In practice json.Marshal never errors for a plain string value, but if it
-// unexpectedly does the function falls back to strconv.Quote so the builder
-// always receives a syntactically-quoted result.
+// In practice json.Marshal never errors for a plain string value in any known
+// Go version; the strconv.Quote fallback is an unreachable defensive measure.
+// Note: the fallback produces Go-style escaping (e.g., \x00 for null) which is
+// NOT valid JSON — if reached it should be treated as a bug.
 func jsonEncodeString(s string) string {
 	if b, err := json.Marshal(s); err == nil {
 		return string(b)

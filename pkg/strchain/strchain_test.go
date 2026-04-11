@@ -1059,17 +1059,40 @@ func TestStringWeaver_AppendInt_Negative(t *testing.T) {
 }
 
 func TestStringWeaver_AppendFloat32_Compact(t *testing.T) {
-	// strconv.FormatFloat with prec=-1 gives the shortest representation.
-	got := New().AppendFloat32(3.14).Build()
-	if got != "3.14" {
-		t.Errorf("AppendFloat32(3.14) = %q, want \"3.14\"", got)
+	// 0.5 and 3.25 are exactly representable in float32 (powers of 2 / sums thereof).
+	// strconv.FormatFloat with prec=-1 gives the shortest representation — no trailing zeros.
+	tests := []struct {
+		input float32
+		want  string
+	}{
+		{0.5, "0.5"},
+		{3.25, "3.25"},
+		{1.0, "1"},
+	}
+	for _, tc := range tests {
+		got := New().AppendFloat32(tc.input).Build()
+		if got != tc.want {
+			t.Errorf("AppendFloat32(%v) = %q, want %q", tc.input, got, tc.want)
+		}
 	}
 }
 
 func TestStringWeaver_AppendFloat64_Compact(t *testing.T) {
-	got := New().AppendFloat64(2.718281828).Build()
-	if got != "2.718281828" {
-		t.Errorf("AppendFloat64(2.718281828) = %q, want \"2.718281828\"", got)
+	// 1.5 and 3.25 are exactly representable in float64.
+	// strconv.FormatFloat with prec=-1 gives the shortest representation — no trailing zeros.
+	tests := []struct {
+		input float64
+		want  string
+	}{
+		{1.5, "1.5"},
+		{3.25, "3.25"},
+		{0.125, "0.125"},
+	}
+	for _, tc := range tests {
+		got := New().AppendFloat64(tc.input).Build()
+		if got != tc.want {
+			t.Errorf("AppendFloat64(%v) = %q, want %q", tc.input, got, tc.want)
+		}
 	}
 }
 

@@ -29,12 +29,16 @@ const floatsUseNullForNonFinite = true
 //   - ErrNonFiniteFloat is returned when a non-finite float (NaN/Inf) is passed to a JSON function.
 //   - ErrUnsupportedValue is returned when an unsupported value (e.g., non-nil func, chan, etc.) is passed to a JSON function.
 //   - ErrMarshalPanicRecovered is returned when a panic occurs during JSON marshalling.
+//   - ErrEmptyInput is returned when an empty or whitespace-only string is passed to a JSON function.
+//   - ErrInvalidJSON is returned when a byte slice or string that does not constitute valid JSON is passed to a JSON function.
 var (
 	ErrNilInterface          = errors.New("nil interface input")
 	ErrInvalidRawMessage     = errors.New("invalid json.RawMessage")
 	ErrNonFiniteFloat        = errors.New("non-finite float (NaN/Inf)")
 	ErrUnsupportedValue      = errors.New("unsupported value (e.g., non-nil func, chan, etc.)")
 	ErrMarshalPanicRecovered = errors.New("json marshal panic recovered")
+	ErrEmptyInput            = errors.New("empty input")
+	ErrInvalidJSON           = errors.New("invalid JSON")
 )
 
 // MarshalJSONb converts a Go value into its JSON byte representation.
@@ -141,11 +145,11 @@ func UnmarshalBytes(data []byte, v any) error {
 //	err := SafeUnmarshalBytes(jsonData, &myStruct)
 func SafeUnmarshalBytes(data []byte, v any) error {
 	if len(data) == 0 {
-		return errors.New("empty JSON data")
+		return fmt.Errorf("%w: JSON data must not be empty", ErrEmptyInput)
 	}
 
 	if !IsValidJSONBytes(data) {
-		return errors.New("invalid JSON")
+		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
 	}
 
 	return UnmarshalBytes(data, v)
@@ -189,11 +193,11 @@ func UnmarshalJSON(jsonStr string, v any) error {
 //	err := SafeUnmarshalJSON(jsonString, &myStruct)
 func SafeUnmarshalJSON(jsonStr string, v any) error {
 	if strutil.IsEmpty(jsonStr) {
-		return errors.New("empty JSON data")
+		return fmt.Errorf("%w: JSON string must not be empty", ErrEmptyInput)
 	}
 
 	if !IsValidJSON(jsonStr) {
-		return errors.New("invalid JSON")
+		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
 	}
 
 	return UnmarshalJSON(jsonStr, v)
@@ -259,7 +263,7 @@ func IsValidJSONBytes(data []byte) bool {
 //	normalized, err := NormalizeJSON(`{\"key\": "value"}`)
 func NormalizeJSON(s string) (string, error) {
 	if strutil.IsEmpty(s) {
-		return "", errors.New("empty input")
+		return "", fmt.Errorf("%w: JSON string must not be empty", ErrEmptyInput)
 	}
 
 	// Fast path: already valid JSON — return as-is with no allocation.
@@ -301,7 +305,7 @@ func NormalizeJSON(s string) (string, error) {
 		}
 	}
 
-	return "", errors.New("cannot normalize to valid JSON")
+	return "", fmt.Errorf("%w: input could not be repaired to valid JSON", ErrInvalidJSON)
 }
 
 // JSON converts a Go value to its JSON string representation or returns an error if the marshalling fails.
@@ -554,19 +558,10 @@ func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
 func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, error) {
 	r := formatFloatJSON(realPart, is32)
 	i := formatFloatJSON(imagPart, is32)
-	// If non-finite handling is set to error, formatFloatJSON returns "" and we should error.
+	// formatFloatJSON returns "" only when floatsUseNullForNonFinite is false and the
+	// component is non-finite (NaN/Inf). In that case the token policy is to error.
 	if r == "" || i == "" {
-		// Consistent with float policy: if not using "null", report ErrNonFiniteFloat.
-		if !floatsUseNullForNonFinite {
-			return "", ErrNonFiniteFloat
-		}
-		// If using "null", r or i would be "null", so we can still construct the object.
-		if r == "" {
-			r = "null"
-		}
-		if i == "" {
-			i = "null"
-		}
+		return "", ErrNonFiniteFloat
 	}
 	return `{"real":` + r + `,"imag":` + i + `}`, nil
 }

@@ -2,6 +2,7 @@ package encoding_test
 
 import (
 	"encoding/json"
+	"errors"
 	"math"
 	"strings"
 	"testing"
@@ -1005,5 +1006,346 @@ func TestWithNormalizedBody_Map(t *testing.T) {
 	}
 	if !w.IsJSONBody() {
 		t.Error("WithNormalizedBody(map): IsJSONBody() = false; want true")
+	}
+}
+
+// ///////////////////////////
+// Section: Sentinel error identity (errors.Is)
+// ///////////////////////////
+
+// TestSafeUnmarshalBytes_EmptyInput verifies that SafeUnmarshalBytes returns an
+// error wrapping ErrEmptyInput when given a nil/empty byte slice.
+func TestSafeUnmarshalBytes_EmptyInput(t *testing.T) {
+	var dst map[string]any
+	err := encoding.SafeUnmarshalBytes(nil, &dst)
+	if err == nil {
+		t.Fatal("SafeUnmarshalBytes(nil) expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrEmptyInput) {
+		t.Errorf("SafeUnmarshalBytes(nil) error = %v; want errors.Is(err, ErrEmptyInput) = true", err)
+	}
+
+	err = encoding.SafeUnmarshalBytes([]byte{}, &dst)
+	if err == nil {
+		t.Fatal("SafeUnmarshalBytes(empty) expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrEmptyInput) {
+		t.Errorf("SafeUnmarshalBytes(empty) error = %v; want errors.Is(err, ErrEmptyInput) = true", err)
+	}
+}
+
+// TestSafeUnmarshalBytes_InvalidJSON verifies that SafeUnmarshalBytes returns an
+// error wrapping ErrInvalidJSON when given a non-JSON byte slice.
+func TestSafeUnmarshalBytes_InvalidJSON(t *testing.T) {
+	var dst map[string]any
+	err := encoding.SafeUnmarshalBytes([]byte("not json"), &dst)
+	if err == nil {
+		t.Fatal("SafeUnmarshalBytes(invalid) expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrInvalidJSON) {
+		t.Errorf("SafeUnmarshalBytes(invalid) error = %v; want errors.Is(err, ErrInvalidJSON) = true", err)
+	}
+}
+
+// TestSafeUnmarshalJSON_EmptyInput verifies that SafeUnmarshalJSON returns an
+// error wrapping ErrEmptyInput when given an empty string.
+func TestSafeUnmarshalJSON_EmptyInput(t *testing.T) {
+	var dst map[string]any
+	err := encoding.SafeUnmarshalJSON("", &dst)
+	if err == nil {
+		t.Fatal("SafeUnmarshalJSON(\"\") expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrEmptyInput) {
+		t.Errorf("SafeUnmarshalJSON(\"\") error = %v; want errors.Is(err, ErrEmptyInput) = true", err)
+	}
+}
+
+// TestSafeUnmarshalJSON_InvalidJSON verifies that SafeUnmarshalJSON returns an
+// error wrapping ErrInvalidJSON when given a non-JSON string.
+func TestSafeUnmarshalJSON_InvalidJSON(t *testing.T) {
+	var dst map[string]any
+	err := encoding.SafeUnmarshalJSON("{bad json}", &dst)
+	if err == nil {
+		t.Fatal("SafeUnmarshalJSON(invalid) expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrInvalidJSON) {
+		t.Errorf("SafeUnmarshalJSON(invalid) error = %v; want errors.Is(err, ErrInvalidJSON) = true", err)
+	}
+}
+
+// TestNormalizeJSON_EmptyInput verifies that NormalizeJSON returns an error
+// wrapping ErrEmptyInput when given an empty or whitespace-only string.
+func TestNormalizeJSON_EmptyInput(t *testing.T) {
+	cases := []string{"", "   ", "\t\n"}
+	for _, s := range cases {
+		_, err := encoding.NormalizeJSON(s)
+		if err == nil {
+			t.Errorf("NormalizeJSON(%q) expected error; got nil", s)
+			continue
+		}
+		if !errors.Is(err, encoding.ErrEmptyInput) {
+			t.Errorf("NormalizeJSON(%q) error = %v; want errors.Is(err, ErrEmptyInput) = true", s, err)
+		}
+	}
+}
+
+// TestNormalizeJSON_UnfixableInputWrapsErrInvalidJSON verifies that NormalizeJSON
+// returns an error wrapping ErrInvalidJSON for inputs that cannot be repaired.
+func TestNormalizeJSON_UnfixableInputWrapsErrInvalidJSON(t *testing.T) {
+	_, err := encoding.NormalizeJSON("totally not json !@#$")
+	if err == nil {
+		t.Fatal("NormalizeJSON(unfixable) expected error; got nil")
+	}
+	if !errors.Is(err, encoding.ErrInvalidJSON) {
+		t.Errorf("NormalizeJSON(unfixable) error = %v; want errors.Is(err, ErrInvalidJSON) = true", err)
+	}
+}
+
+// ///////////////////////////
+// Section: Pretty / Ugly — edge cases
+// ///////////////////////////
+
+// TestUgly_EmptyInput verifies that Ugly does not panic on empty input.
+func TestUgly_EmptyInput(t *testing.T) {
+	got := encoding.Ugly([]byte{})
+	if len(got) != 0 {
+		t.Errorf("Ugly(empty) = %q; want empty slice", got)
+	}
+}
+
+// TestUglyInPlace_EmptyInput verifies that UglyInPlace does not panic on empty input.
+func TestUglyInPlace_EmptyInput(t *testing.T) {
+	input := []byte{}
+	got := encoding.UglyInPlace(input)
+	if len(got) != 0 {
+		t.Errorf("UglyInPlace(empty) = %q; want empty slice", got)
+	}
+}
+
+// TestSpec_EmptyInput verifies that Spec does not panic on empty input.
+func TestSpec_EmptyInput(t *testing.T) {
+	got := encoding.Spec([]byte{})
+	if len(got) != 0 {
+		t.Errorf("Spec(empty) = %q; want empty slice", got)
+	}
+}
+
+// TestColor_EmptyInput verifies that Color does not panic on empty input.
+func TestColor_EmptyInput(t *testing.T) {
+	got := encoding.Color([]byte{}, nil)
+	if len(got) != 0 {
+		t.Errorf("Color(empty) = %q; want empty slice", got)
+	}
+}
+
+// TestPretty_EmptyInput verifies that Pretty does not panic on empty input.
+func TestPretty_EmptyInput(t *testing.T) {
+	got := encoding.Pretty([]byte{})
+	if len(got) != 0 {
+		t.Errorf("Pretty(empty) = %q; want empty slice", got)
+	}
+}
+
+// TestSafeUnmarshalBytes_Valid verifies that SafeUnmarshalBytes successfully
+// unmarshals a valid JSON byte slice.
+func TestSafeUnmarshalBytes_Valid(t *testing.T) {
+	input := []byte(`{"name":"Alice","age":30}`)
+	var dst sampleStruct
+	if err := encoding.SafeUnmarshalBytes(input, &dst); err != nil {
+		t.Fatalf("SafeUnmarshalBytes(valid) unexpected error: %v", err)
+	}
+	if dst.Name != "Alice" || dst.Age != 30 {
+		t.Errorf("SafeUnmarshalBytes(valid) = %+v; want {Name:Alice Age:30}", dst)
+	}
+}
+
+// TestSafeUnmarshalJSON_Valid verifies that SafeUnmarshalJSON successfully
+// unmarshals a valid JSON string.
+func TestSafeUnmarshalJSON_Valid(t *testing.T) {
+	input := `{"name":"Bob","age":25}`
+	var dst sampleStruct
+	if err := encoding.SafeUnmarshalJSON(input, &dst); err != nil {
+		t.Fatalf("SafeUnmarshalJSON(valid) unexpected error: %v", err)
+	}
+	if dst.Name != "Bob" || dst.Age != 25 {
+		t.Errorf("SafeUnmarshalJSON(valid) = %+v; want {Name:Bob Age:25}", dst)
+	}
+}
+
+// TestIsValidJSON_SentinelErrors verifies that IsValidJSON handles edge inputs
+// correctly without panicking.
+func TestIsValidJSON_EdgeCases(t *testing.T) {
+	cases := []struct {
+		input string
+		want  bool
+	}{
+		{"", false},
+		{"null", true},
+		{"true", true},
+		{"false", true},
+		{"123", true},
+		{`"string"`, true},
+		{`{}`, true},
+		{`[]`, true},
+		{`{bad}`, false},
+	}
+	for _, tc := range cases {
+		got := encoding.IsValidJSON(tc.input)
+		if got != tc.want {
+			t.Errorf("IsValidJSON(%q) = %v; want %v", tc.input, got, tc.want)
+		}
+	}
+}
+
+// TestColor_NilStyle falls back to TerminalStyle without panicking.
+func TestColor_NilStyle(t *testing.T) {
+	src := []byte(`{"key":"value","n":42}`)
+	got := encoding.Color(src, nil)
+	if len(got) == 0 {
+		t.Error("Color(src, nil) returned empty; expected styled output")
+	}
+	// Resulting output should still contain the literal content
+	if !strings.Contains(string(got), "key") || !strings.Contains(string(got), "value") {
+		t.Errorf("Color(src, nil) = %q; expected key and value to be present", got)
+	}
+}
+
+// TestPrettyOptions_SortKeys verifies that PrettyOptions with SortKeys=true
+// produces alphabetically-ordered keys.
+func TestPrettyOptions_SortKeys(t *testing.T) {
+	src := []byte(`{"z":1,"a":2,"m":3}`)
+	opts := &encoding.OptionsConfig{Width: 80, Indent: "  ", SortKeys: true}
+	got := string(encoding.PrettyOptions(src, opts))
+	aIdx := strings.Index(got, `"a"`)
+	mIdx := strings.Index(got, `"m"`)
+	zIdx := strings.Index(got, `"z"`)
+	if aIdx < 0 || mIdx < 0 || zIdx < 0 {
+		t.Fatalf("PrettyOptions(SortKeys) missing keys; got: %s", got)
+	}
+	if !(aIdx < mIdx && mIdx < zIdx) {
+		t.Errorf("PrettyOptions(SortKeys) key order: a=%d m=%d z=%d; want a < m < z\n%s", aIdx, mIdx, zIdx, got)
+	}
+}
+
+// TestMarshalJSONb_Roundtrip verifies basic marshal / unmarshal roundtrip.
+func TestMarshalJSONb_Roundtrip(t *testing.T) {
+	original := sampleStruct{Name: "roundtrip", Age: 99}
+	b, err := encoding.MarshalJSONb(original)
+	if err != nil {
+		t.Fatalf("MarshalJSONb unexpected error: %v", err)
+	}
+	var recovered sampleStruct
+	if err := encoding.UnmarshalBytes(b, &recovered); err != nil {
+		t.Fatalf("UnmarshalBytes unexpected error: %v", err)
+	}
+	if recovered != original {
+		t.Errorf("roundtrip got %+v; want %+v", recovered, original)
+	}
+}
+
+// TestMarshalJSONs_Roundtrip verifies basic string marshal / unmarshal roundtrip.
+func TestMarshalJSONs_Roundtrip(t *testing.T) {
+	original := sampleStruct{Name: "strtest", Age: 7}
+	s, err := encoding.MarshalJSONs(original)
+	if err != nil {
+		t.Fatalf("MarshalJSONs unexpected error: %v", err)
+	}
+	var recovered sampleStruct
+	if err := encoding.UnmarshalJSON(s, &recovered); err != nil {
+		t.Fatalf("UnmarshalJSON unexpected error: %v", err)
+	}
+	if recovered != original {
+		t.Errorf("roundtrip got %+v; want %+v", recovered, original)
+	}
+}
+
+// TestMarshalJSONIndent verifies that MarshalJSONIndent produces indented output.
+func TestMarshalJSONIndent(t *testing.T) {
+	s := sampleStruct{Name: "indent", Age: 5}
+	b, err := encoding.MarshalJSONIndent(s, "", "  ")
+	if err != nil {
+		t.Fatalf("MarshalJSONIndent unexpected error: %v", err)
+	}
+	if !strings.Contains(string(b), "\n") {
+		t.Errorf("MarshalJSONIndent output not indented: %s", b)
+	}
+}
+
+// TestJSON_Uintptr verifies the special-case hex-address quoting for uintptr.
+func TestJSON_Uintptr(t *testing.T) {
+	var p uintptr = 0xdeadbeef
+	got := encoding.JSON(p)
+	// Result must be a quoted string starting with "0x".
+	if len(got) < 2 || got[0] != '"' || got[len(got)-1] != '"' {
+		t.Errorf("JSON(uintptr) = %q; expected a quoted hex string", got)
+	}
+	if !strings.HasPrefix(got, `"0x`) {
+		t.Errorf("JSON(uintptr) = %q; expected prefix \"0x", got)
+	}
+}
+
+// TestJSONToken_Uintptr verifies the Token variant also produces a quoted hex address.
+func TestJSONToken_Uintptr(t *testing.T) {
+	var p uintptr = 0xc0ffee
+	got, err := encoding.JSONToken(p)
+	if err != nil {
+		t.Fatalf("JSONToken(uintptr) unexpected error: %v", err)
+	}
+	if len(got) < 2 || got[0] != '"' || got[len(got)-1] != '"' {
+		t.Errorf("JSONToken(uintptr) = %q; expected a quoted hex string", got)
+	}
+}
+
+// TestIsValidJSONBytes_EdgeCases verifies IsValidJSONBytes handles empty and
+// invalid inputs without panicking.
+func TestIsValidJSONBytes_EdgeCases(t *testing.T) {
+	if encoding.IsValidJSONBytes(nil) {
+		t.Error("IsValidJSONBytes(nil) = true; want false")
+	}
+	if encoding.IsValidJSONBytes([]byte{}) {
+		t.Error("IsValidJSONBytes(empty) = true; want false")
+	}
+	if !encoding.IsValidJSONBytes([]byte(`null`)) {
+		t.Error("IsValidJSONBytes(null) = false; want true")
+	}
+}
+
+// TestSpecInPlace verifies SpecInPlace removes single-line comments in-place.
+func TestSpecInPlace(t *testing.T) {
+	input := []byte(`{"key": "value" // comment
+}`)
+	got := encoding.SpecInPlace(input)
+	if strings.Contains(string(got), "//") {
+		t.Errorf("SpecInPlace did not remove single-line comment; got: %s", got)
+	}
+}
+
+// TestJSONToken_NilRawMessage verifies that a nil json.RawMessage returns "null".
+func TestJSONToken_NilRawMessage(t *testing.T) {
+	var rm json.RawMessage // nil by default
+	got, err := encoding.JSONToken(rm)
+	if err != nil {
+		t.Fatalf("JSONToken(nil RawMessage) unexpected error: %v", err)
+	}
+	if got != "null" {
+		t.Errorf("JSONToken(nil RawMessage) = %q; want %q", got, "null")
+	}
+}
+
+// TestJSON_NilFunc verifies that JSON(func) returns "null" for a nil function value.
+func TestJSON_NilFunc(t *testing.T) {
+	var f func()
+	got := encoding.JSON(f)
+	if got != "null" {
+		t.Errorf("JSON(nil func) = %q; want %q", got, "null")
+	}
+}
+
+// TestJSON_NilChan verifies that JSON(chan) returns "null" for a nil channel.
+func TestJSON_NilChan(t *testing.T) {
+	var ch chan int
+	got := encoding.JSON(ch)
+	if got != "null" {
+		t.Errorf("JSON(nil chan) = %q; want %q", got, "null")
 	}
 }

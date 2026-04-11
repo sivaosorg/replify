@@ -670,6 +670,9 @@ func ugly(dst, src []byte) []byte {
 //   - The function only inspects the first character (or first two characters for lowercase `nan`) to make a quick determination.
 //   - It supports the variations `Inf`, `+Inf`, `inf`, `NaN`, and `nan` as valid representations.
 func isNaNOrInf(src []byte) bool {
+	if len(src) == 0 {
+		return false
+	}
 	return src[0] == 'i' || //Inf
 		src[0] == 'I' || // inf
 		src[0] == '+' || // +Inf
@@ -754,7 +757,9 @@ func unescapeJSONString(s []byte) []byte {
 	for i := 1; i < len(s); i++ {
 		if s[i] == '\\' {
 			var str string
-			json.Unmarshal(s, &str)
+			if err := json.Unmarshal(s, &str); err != nil {
+				return nil
+			}
 			return []byte(str)
 		}
 		if s[i] == '"' {

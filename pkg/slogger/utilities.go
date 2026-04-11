@@ -3,6 +3,7 @@ package slogger
 import (
 	"archive/zip"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -48,12 +49,15 @@ func releaseEntry(e *Entry) {
 
 // trimFilepath shortens an absolute file path to just the last two path segments.
 // For example "/home/user/project/pkg/foo/bar.go" becomes "pkg/foo/bar.go".
+// This function handles both Unix (/) and Windows (\) path separators.
 func trimFilepath(path string) string {
-	const sep = '/'
+	// Use os.PathSeparator for the primary platform separator
+	sep := byte(os.PathSeparator)
 	slash := -1
 	count := 0
 	for i := len(path) - 1; i >= 0; i-- {
-		if path[i] == sep {
+		// Handle both forward and back slashes for cross-platform compatibility
+		if path[i] == sep || path[i] == '/' || path[i] == '\\' {
 			count++
 			if count == 2 {
 				slash = i
@@ -105,26 +109,43 @@ func levelFileName(level Level) string {
 func compressToZip(srcPath, zipPath string) error {
 	src, err := os.Open(srcPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("slogger: cannot open source file %q: %w", srcPath, err)
 	}
 	defer src.Close()
 
 	zf, err := os.Create(zipPath)
 	if err != nil {
-		return err
+		return fmt.Errorf("slogger: cannot create zip file %q: %w", zipPath, err)
 	}
-	defer zf.Close()
 
 	zw := zip.NewWriter(zf)
-	defer zw.Close()
 
 	w, err := zw.Create(filepath.Base(srcPath))
 	if err != nil {
-		return err
+		// Close both writers on error
+		zw.Close()
+		zf.Close()
+		return fmt.Errorf("slogger: cannot create zip entry: %w", err)
 	}
 
-	_, err = io.Copy(w, src)
-	return err
+	if _, err = io.Copy(w, src); err != nil {
+		zw.Close()
+		zf.Close()
+		return fmt.Errorf("slogger: cannot copy data to zip: %w", err)
+	}
+
+	// Close zip writer first - this finalizes the archive
+	if err := zw.Close(); err != nil {
+		zf.Close()
+		return fmt.Errorf("slogger: cannot finalize zip archive: %w", err)
+	}
+
+	// Then close the underlying file
+	if err := zf.Close(); err != nil {
+		return fmt.Errorf("slogger: cannot close zip file: %w", err)
+	}
+
+	return nil
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -352,6 +373,7 @@ func utoa64(n uint64) string {
 }
 
 // itoa64 converts an int64 to its decimal string representation.
+// Handles math.MinInt64 correctly by using unsigned arithmetic.
 //
 // Parameters:
 //   - `n`: the int64 to convert
@@ -367,17 +389,22 @@ func itoa64(n int64) string {
 	if n == 0 {
 		return "0"
 	}
-	neg := false
-	if n < 0 {
-		neg = true
-		n = -n
+	neg := n < 0
+	// Use unsigned to handle math.MinInt64 correctly
+	// since -math.MinInt64 overflows int64
+	var u uint64
+	if neg {
+		// For math.MinInt64, this correctly becomes 2^63
+		u = uint64(-n)
+	} else {
+		u = uint64(n)
 	}
 	var buf [20]byte
 	pos := len(buf)
-	for n > 0 {
+	for u > 0 {
 		pos--
-		buf[pos] = byte('0' + n%10)
-		n /= 10
+		buf[pos] = byte('0' + u%10)
+		u /= 10
 	}
 	if neg {
 		pos--

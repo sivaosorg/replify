@@ -23,6 +23,7 @@ import (
 func (l *Logger) With(fields ...Field) *Logger {
 	l.mu.RLock()
 	child := &Logger{
+		writeMu:    l.writeMu, // share write mutex for thread-safe output
 		formatter:  l.formatter,
 		output:     l.output,
 		hooks:      l.hooks,
@@ -31,10 +32,12 @@ func (l *Logger) With(fields ...Field) *Logger {
 		callerSkip: l.callerSkip,
 		sampling:   l.sampling,
 	}
+	// Copy l.fields while still holding the lock to prevent data races
+	parentFields := l.fields
 	l.mu.RUnlock()
 	child.level.Store(l.level.Load())
-	merged := make([]Field, 0, len(l.fields)+len(fields))
-	merged = append(merged, l.fields...)
+	merged := make([]Field, 0, len(parentFields)+len(fields))
+	merged = append(merged, parentFields...)
 	merged = append(merged, fields...)
 	child.fields = merged
 	return child
@@ -64,6 +67,7 @@ func (l *Logger) WithContext(ctx context.Context) *Entry {
 func (l *Logger) Named(name string) *Logger {
 	l.mu.RLock()
 	child := &Logger{
+		writeMu:    l.writeMu, // share write mutex for thread-safe output
 		formatter:  l.formatter,
 		output:     l.output,
 		hooks:      l.hooks,
@@ -416,9 +420,10 @@ func (l *Logger) dispatchContext(ctx context.Context, level Level, msg string, f
 	// Serialize entry.
 	data, err := formatter.Format(e)
 	if err == nil {
-		l.mu.Lock()
+		// Use shared writeMu to synchronize writes across child loggers
+		l.writeMu.Lock()
 		_, _ = output.Write(data)
-		l.mu.Unlock()
+		l.writeMu.Unlock()
 	}
 
 	// Fire hooks.

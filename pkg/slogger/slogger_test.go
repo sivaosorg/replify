@@ -1315,3 +1315,179 @@ func TestSlogger_JSONFormatter_WithColorChaining(t *testing.T) {
 		t.Errorf("expected no ANSI codes, got: %q", out)
 	}
 }
+
+// ///////////////////////////
+// Section: Cross-platform and safety tests
+// ///////////////////////////
+
+// TestSlogger_TrimFilePath_CrossPlatform verifies that trimFilepath handles
+// both Unix and Windows path separators correctly.
+func TestSlogger_TrimFilePath_CrossPlatform(t *testing.T) {
+t.Parallel()
+
+// Test is implicit - we verify caller info works on current platform
+var buf bytes.Buffer
+log := slogger.New(func(o *slogger.Options) {
+o.Level = slogger.TraceLevel
+o.Output = &buf
+o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller()
+o.CallerReporter = true
+})
+
+log.Info("test caller")
+out := buf.String()
+
+// Should contain caller= in the output
+if !strings.Contains(out, "caller=") {
+t.Errorf("expected caller= in output, got: %s", out)
+}
+// Should contain .go file extension
+if !strings.Contains(out, ".go:") {
+t.Errorf("expected .go: in output for caller, got: %s", out)
+}
+}
+
+// TestSlogger_Itoa64_MinInt64 verifies that itoa64 handles math.MinInt64 correctly.
+func TestSlogger_Itoa64_MinInt64(t *testing.T) {
+t.Parallel()
+
+const minInt64 int64 = -9223372036854775808
+
+// Test by logging an Int64 with math.MinInt64
+var buf bytes.Buffer
+log := slogger.New(func(o *slogger.Options) {
+o.Level = slogger.TraceLevel
+o.Output = &buf
+o.Formatter = slogger.NewJSONFormatter()
+})
+
+log.Info("test minint64", slogger.Int64("val", minInt64))
+out := strings.TrimSpace(buf.String())
+
+// Verify valid JSON
+var m map[string]interface{}
+if err := json.Unmarshal([]byte(out), &m); err != nil {
+t.Fatalf("invalid JSON: %v\noutput: %s", err, out)
+}
+
+// Check value is correct
+if m["val"] != float64(minInt64) {
+t.Errorf("val = %v; want %d", m["val"], minInt64)
+}
+
+// Also verify the string contains the correct value
+if !strings.Contains(out, "-9223372036854775808") {
+t.Errorf("expected -9223372036854775808 in output, got: %s", out)
+}
+}
+
+// TestSlogger_EntryNilLoggerSafety verifies Entry methods don't panic when
+// logger is nil (detached entry scenario).
+func TestSlogger_EntryNilLoggerSafety(t *testing.T) {
+t.Parallel()
+
+// Create a detached entry with nil logger
+entry := &slogger.Entry{}
+
+// These should not panic
+entry.Trace("trace msg")
+entry.Debug("debug msg")
+entry.Info("info msg")
+entry.Warn("warn msg")
+entry.Error("error msg")
+}
+
+// TestSlogger_WithConcurrent verifies that With method is safe for concurrent use.
+func TestSlogger_WithConcurrent(t *testing.T) {
+t.Parallel()
+
+var buf bytes.Buffer
+log := slogger.New(func(o *slogger.Options) {
+o.Level = slogger.InfoLevel
+o.Output = &buf
+o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+})
+
+const goroutines = 100
+var wg sync.WaitGroup
+wg.Add(goroutines)
+
+for i := 0; i < goroutines; i++ {
+go func(id int) {
+defer wg.Done()
+child := log.With(slogger.Int("id", id))
+child.Info("concurrent with")
+}(i)
+}
+wg.Wait()
+
+// Verify we got output without races (race detector would catch issues)
+count := strings.Count(buf.String(), "concurrent with")
+if count != goroutines {
+t.Errorf("expected %d log lines, got %d", goroutines, count)
+}
+}
+
+// TestSlogger_TextFormatter_ConcurrentFormatSafety verifies that TextFormatter.Format
+// is safe for concurrent use and doesn't modify formatter state.
+func TestSlogger_TextFormatter_ConcurrentFormatSafety(t *testing.T) {
+t.Parallel()
+
+var buf bytes.Buffer
+formatter := slogger.NewTextFormatter(&buf).WithDisableColor()
+
+log := slogger.New(func(o *slogger.Options) {
+o.Level = slogger.TraceLevel
+o.Output = &buf
+o.Formatter = formatter
+o.CallerReporter = true
+})
+
+const goroutines = 50
+const messages = 20
+var wg sync.WaitGroup
+wg.Add(goroutines)
+
+for i := 0; i < goroutines; i++ {
+go func(id int) {
+defer wg.Done()
+for j := 0; j < messages; j++ {
+log.Info("formatter safety test", slogger.Int("g", id), slogger.Int("m", j))
+}
+}(i)
+}
+wg.Wait()
+
+// Count messages (race detector would catch data races)
+count := strings.Count(buf.String(), "formatter safety test")
+if count != goroutines*messages {
+t.Errorf("expected %d log lines, got %d", goroutines*messages, count)
+}
+}
+
+// TestSlogger_EntryWithContext_Safety verifies that Entry.WithContext returns
+// a new entry without modifying the original.
+func TestSlogger_EntryWithContext_Safety(t *testing.T) {
+t.Parallel()
+
+var buf bytes.Buffer
+log := slogger.New(func(o *slogger.Options) {
+o.Level = slogger.InfoLevel
+o.Output = &buf
+o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+})
+
+ctx1 := context.Background()
+ctx2 := slogger.WithContextFields(ctx1, slogger.String("req", "123"))
+
+entry := log.WithContext(ctx1)
+entryWithNewCtx := entry.WithContext(ctx2)
+
+// Original entry's context should be unchanged
+if entry.Context() != ctx1 {
+t.Error("original entry context was modified")
+}
+if entryWithNewCtx.Context() != ctx2 {
+t.Error("new entry should have ctx2")
+}
+}

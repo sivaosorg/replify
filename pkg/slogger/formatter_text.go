@@ -84,10 +84,9 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 
 	useColor := !f.disableColors && istty(f.output)
 
-	// Add caller information if enabled.
-	if e.caller != nil {
-		f.WithEnableCaller()
-	}
+	// Determine whether to include caller info based on entry's caller or formatter setting
+	// Note: We use a local variable instead of modifying f.enableCaller to maintain thread-safety
+	includeCaller := f.enableCaller || e.caller != nil
 
 	if !f.disableTimestamp {
 		b.WriteString(e.Time().Format(f.timeFormat))
@@ -129,7 +128,7 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 		}
 	}
 
-	if f.enableCaller {
+	if includeCaller {
 		if c := e.Caller(); c != nil {
 			b.WriteString(" caller=")
 			b.WriteString(c.File())

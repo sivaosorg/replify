@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 	"github.com/sivaosorg/replify/pkg/sysx"
@@ -31,6 +32,7 @@ func New(opts ...func(*Options)) *Logger {
 		fn(o)
 	}
 	l := &Logger{
+		writeMu:    &sync.Mutex{}, // shared mutex for write synchronization
 		formatter:  o.Formatter,
 		output:     o.Output,
 		hooks:      NewHooks(),

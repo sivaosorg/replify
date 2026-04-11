@@ -23,7 +23,7 @@ import (
 func (l *Logger) With(fields ...Field) *Logger {
 	l.mu.RLock()
 	child := &Logger{
-		writeMu:    l.writeMu, // share write mutex for thread-safe output
+		wmu:        l.wmu, // share write mutex for thread-safe output
 		formatter:  l.formatter,
 		output:     l.output,
 		hooks:      l.hooks,
@@ -70,7 +70,7 @@ func (l *Logger) WithContext(ctx context.Context) *Entry {
 func (l *Logger) Named(name string) *Logger {
 	l.mu.RLock()
 	child := &Logger{
-		writeMu:    l.writeMu, // share write mutex for thread-safe output
+		wmu:        l.wmu, // share write mutex for thread-safe output
 		formatter:  l.formatter,
 		output:     l.output,
 		hooks:      l.hooks,
@@ -424,9 +424,9 @@ func (l *Logger) dispatchContext(ctx context.Context, level Level, msg string, f
 	data, err := formatter.Format(e)
 	if err == nil {
 		// Use shared writeMu to synchronize writes across child loggers
-		l.writeMu.Lock()
+		l.wmu.Lock()
 		_, _ = output.Write(data)
-		l.writeMu.Unlock()
+		l.wmu.Unlock()
 	}
 
 	// Fire hooks.

@@ -36,8 +36,8 @@ type FieldType int
 // Child loggers that inherit configuration can be derived with With and Named.
 // The zero value is not usable; always create a Logger through New.
 type Logger struct {
-	mu         sync.RWMutex  // local mutex for formatter/output changes
-	writeMu    *sync.Mutex   // shared mutex for write synchronization across child loggers
+	mu         sync.RWMutex // local mutex for formatter/output changes
+	wmu        *sync.Mutex  // shared mutex for write synchronization across child loggers
 	level      atomic.Int32
 	formatter  Formatter
 	output     io.Writer

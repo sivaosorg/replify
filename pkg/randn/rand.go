@@ -257,6 +257,25 @@ func RandIntr(min, max int) int {
 	return r.Intn(max-min+1) + min
 }
 
+// RandUint32 returns the next random uint32 value.
+//
+// This function uses the crypto/rand package to generate a random uint32 value.
+//
+// Returns:
+//   - A random uint32 value.
+//
+// Example:
+//
+//	randomNum := RandUint32()
+//	fmt.Println("Random number between 1 and 10 after reseeding:", randomNum)
+func RandUint32() uint32 {
+	b := make([]byte, 3)
+	if _, err := cr.Reader.Read(b); err != nil {
+		panic(fmt.Errorf("randn: cannot generate random number: %v;", err))
+	}
+	return uint32(b[0])<<16 | uint32(b[1])<<8 | uint32(b[2])
+}
+
 // RandFt64 returns the next random float64 value in the range [0.0, 1.0).
 //
 // This function uses the rand package to generate a random float64 value.

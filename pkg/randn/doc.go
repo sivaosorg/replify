@@ -14,6 +14,7 @@
 //	randn.RandID(16)     // 16-character alphanumeric string (math/rand)
 //	randn.CryptoID()     // 32-character hex string (crypto/rand)
 //	randn.TimeID()       // nanosecond timestamp + random int, as a string
+//	randn.NewXID()       // unique 20-character identifier (rs/xid port)
 //
 // # Numeric Values
 //

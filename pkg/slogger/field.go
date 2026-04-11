@@ -20,13 +20,95 @@ import (
 // the string key that identifies this field in a log entry.
 func (f Field) Key() string { return f.key }
 
-// FieldType returns the concrete value type stored in this field.
+// Type returns the concrete value type stored in this field.
 // Callers rarely need this; it is primarily used by Formatter implementations.
 //
 // Returns:
 //
 // the FieldType constant that describes the stored value variant.
-func (f Field) FieldType() FieldType { return f.typ }
+func (f Field) Type() FieldType { return f.typ }
+
+// FieldType returns the concrete value type stored in this field.
+// Callers rarely need this; it is primarily used by Formatter implementations.
+//
+// Deprecated: Use Type() instead. This method will be removed in a future version.
+//
+// Returns:
+//
+// the FieldType constant that describes the stored value variant.
+func (f Field) FieldType() FieldType { return f.Type() }
+
+// StringVal returns the raw string value stored in this field.
+// This is only meaningful when Type() returns StringType, JSONType, or TimefType.
+//
+// Returns:
+//
+// the string value stored in this field.
+func (f Field) StringVal() string { return f.strVal }
+
+// IntVal returns the raw int64 value stored in this field.
+// This is only meaningful when Type() returns Int64Type, Int8Type, Int16Type, or Int32Type.
+//
+// Returns:
+//
+// the int64 value stored in this field.
+func (f Field) IntVal() int64 { return f.intVal }
+
+// Uint64Val returns the raw uint64 value stored in this field.
+// This is only meaningful when Type() returns UintType, Uint8Type, Uint16Type, Uint32Type, or Uint64Type.
+//
+// Returns:
+//
+// the uint64 value stored in this field.
+func (f Field) Uint64Val() uint64 { return f.uint64Val }
+
+// FloatVal returns the raw float64 value stored in this field.
+// This is only meaningful when Type() returns Float64Type or Float32Type.
+//
+// Returns:
+//
+// the float64 value stored in this field.
+func (f Field) FloatVal() float64 { return f.floatVal }
+
+// BoolVal returns the raw bool value stored in this field.
+// This is only meaningful when Type() returns BoolType.
+//
+// Returns:
+//
+// the bool value stored in this field.
+func (f Field) BoolVal() bool { return f.boolVal }
+
+// ErrVal returns the raw error value stored in this field.
+// This is only meaningful when Type() returns ErrorType.
+//
+// Returns:
+//
+// the error value stored in this field.
+func (f Field) ErrVal() error { return f.errVal }
+
+// TimeVal returns the raw time.Time value stored in this field.
+// This is only meaningful when Type() returns TimeType or TimefType.
+//
+// Returns:
+//
+// the time.Time value stored in this field.
+func (f Field) TimeVal() time.Time { return f.timeVal }
+
+// DurVal returns the raw time.Duration value stored in this field.
+// This is only meaningful when Type() returns DurationType.
+//
+// Returns:
+//
+// the time.Duration value stored in this field.
+func (f Field) DurVal() time.Duration { return f.durVal }
+
+// AnyVal returns the raw interface{} value stored in this field.
+// This is only meaningful when Type() returns AnyType.
+//
+// Returns:
+//
+// the interface{} value stored in this field.
+func (f Field) AnyVal() any { return f.anyVal }
 
 // ///////////////////////////////////////////////////////////////////////////
 // Field constructors — primitive types

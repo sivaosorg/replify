@@ -40,28 +40,57 @@ func (e *Entry) WithContext(ctx context.Context) *Entry {
 // Returns:
 //
 // the *Logger that created this entry, or nil for a detached entry.
-func (e *Entry) Logger() *Logger { return e.logger }
+func (e *Entry) Logger() *Logger {
+	if e == nil {
+		return nil
+	}
+	return e.logger
+}
 
 // Time returns the entry's timestamp, set to the moment the log call was made.
 //
 // Returns:
 //
 // the time.Time at which this log entry was created.
-func (e *Entry) Time() time.Time { return e.time }
+func (e *Entry) Time() time.Time {
+	if e == nil {
+		return time.Time{}
+	}
+	return e.time
+}
 
-// GetLevel returns the severity level of this log entry.
+// Level returns the severity level of this log entry.
 //
 // Returns:
 //
 // the Level at which this entry was logged.
-func (e *Entry) GetLevel() Level { return e.level }
+func (e *Entry) Level() Level {
+	if e == nil {
+		return TraceLevel
+	}
+	return e.level
+}
+
+// GetLevel returns the severity level of this log entry.
+//
+// Deprecated: Use Level() instead. This method will be removed in a future version.
+//
+// Returns:
+//
+// the Level at which this entry was logged.
+func (e *Entry) GetLevel() Level { return e.Level() }
 
 // Message returns the primary log message string.
 //
 // Returns:
 //
 // the message string passed to the logging method.
-func (e *Entry) Message() string { return e.message }
+func (e *Entry) Message() string {
+	if e == nil {
+		return ""
+	}
+	return e.message
+}
 
 // Fields returns the structured key-value fields attached to this entry.
 // The slice includes logger-bound fields, context fields, and call-site fields,
@@ -69,8 +98,15 @@ func (e *Entry) Message() string { return e.message }
 //
 // Returns:
 //
-// a slice of Field values; may be empty but never nil.
-func (e *Entry) Fields() []Field { return e.fields }
+// a copy of the Field slice; may be empty but never nil.
+func (e *Entry) Fields() []Field {
+	if e == nil || e.fields == nil {
+		return nil
+	}
+	result := make([]Field, len(e.fields))
+	copy(result, e.fields)
+	return result
+}
 
 // Caller returns the source-location information captured when caller reporting
 // is enabled on the parent Logger. Returns nil when caller reporting is disabled.
@@ -78,7 +114,12 @@ func (e *Entry) Fields() []Field { return e.fields }
 // Returns:
 //
 // the *CallerInfo describing the log call site, or nil.
-func (e *Entry) Caller() *CallerInfo { return e.caller }
+func (e *Entry) Caller() *CallerInfo {
+	if e == nil {
+		return nil
+	}
+	return e.caller
+}
 
 // Context returns the context associated with this entry, if any.
 // The context is set via Logger.WithContext or Entry.WithContext.
@@ -86,29 +127,49 @@ func (e *Entry) Caller() *CallerInfo { return e.caller }
 // Returns:
 //
 // the context.Context attached to this entry, or nil.
-func (e *Entry) Context() context.Context { return e.ctx }
+func (e *Entry) Context() context.Context {
+	if e == nil {
+		return nil
+	}
+	return e.ctx
+}
 
 // File returns the source file path of the log call site.
 // The path is trimmed to the last two path segments for brevity.
 //
 // Returns:
 //
-// a short file path string such as "pkg/foo/bar.go".
-func (c *CallerInfo) File() string { return c.file }
+// a short file path string such as "pkg/foo/bar.go", or empty string if receiver is nil.
+func (c *CallerInfo) File() string {
+	if c == nil {
+		return ""
+	}
+	return c.file
+}
 
 // Line returns the source line number of the log call site.
 //
 // Returns:
 //
-// the 1-based line number within the source file.
-func (c *CallerInfo) Line() int { return c.line }
+// the 1-based line number within the source file, or 0 if receiver is nil.
+func (c *CallerInfo) Line() int {
+	if c == nil {
+		return 0
+	}
+	return c.line
+}
 
 // Function returns the fully-qualified function name of the log call site.
 //
 // Returns:
 //
-// a string in the form "package.Function" or "package.Type.Method".
-func (c *CallerInfo) Function() string { return c.function }
+// a string in the form "package.Function" or "package.Type.Method", or empty string if receiver is nil.
+func (c *CallerInfo) Function() string {
+	if c == nil {
+		return ""
+	}
+	return c.function
+}
 
 // Trace logs a TRACE-level message using the entry's logger and context.
 //

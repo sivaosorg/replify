@@ -1,6 +1,7 @@
 package slogger
 
 import (
+	"io"
 	"strconv"
 	"strings"
 
@@ -71,6 +72,66 @@ func (f *TextFormatter) WithEnableCaller() *TextFormatter {
 	return f
 }
 
+// TimeFormat returns the time layout string used when formatting timestamps.
+//
+// Returns:
+//
+// the Go time layout string.
+func (f *TextFormatter) TimeFormat() string {
+	if f == nil {
+		return ""
+	}
+	return f.timeFormat
+}
+
+// IsDisableColors returns whether ANSI colour codes are disabled.
+//
+// Returns:
+//
+// true if colour output is disabled.
+func (f *TextFormatter) IsDisableColors() bool {
+	if f == nil {
+		return false
+	}
+	return f.disableColors
+}
+
+// IsDisableTimestamp returns whether timestamps are omitted from output.
+//
+// Returns:
+//
+// true if timestamps are disabled.
+func (f *TextFormatter) IsDisableTimestamp() bool {
+	if f == nil {
+		return false
+	}
+	return f.disableTimestamp
+}
+
+// IsEnableCaller returns whether caller information is appended to output.
+//
+// Returns:
+//
+// true if caller reporting is enabled.
+func (f *TextFormatter) IsEnableCaller() bool {
+	if f == nil {
+		return false
+	}
+	return f.enableCaller
+}
+
+// Output returns the output writer used for TTY detection.
+//
+// Returns:
+//
+// the io.Writer used for colour detection.
+func (f *TextFormatter) Output() io.Writer {
+	if f == nil {
+		return nil
+	}
+	return f.output
+}
+
 // Format serialises e to a human-readable key=value byte slice.
 //
 // Parameters:
@@ -93,9 +154,9 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 		b.WriteByte(' ')
 	}
 
-	levelStr := levelPad(e.GetLevel())
+	levelStr := levelPad(e.Level())
 	if useColor {
-		b.WriteString(levelColor(e.GetLevel()))
+		b.WriteString(levelColor(e.Level()))
 		b.WriteString(colorBold)
 		b.WriteString(levelStr)
 		b.WriteString(colorReset)

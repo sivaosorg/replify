@@ -31,7 +31,7 @@ func (h *LevelWriterHook) Fire(e *Entry) error {
 	if err != nil {
 		return err
 	}
-	lvl := e.GetLevel()
+	lvl := e.Level()
 	if _, err = h.writer.WriteLevel(lvl, data); err != nil {
 		return fmt.Errorf("slogger: LevelWriterHook write failed for level %s: %w", lvl, err)
 	}

@@ -94,16 +94,33 @@ func (l *Logger) Named(name string) *Logger {
 // Parameters:
 //   - `level`: the new minimum level
 func (l *Logger) SetLevel(level Level) {
+	if l == nil {
+		return
+	}
 	l.level.Store(int32(level))
 }
 
+// Level returns the current minimum log level.
+//
+// Returns:
+//
+// the active Level.
+func (l *Logger) Level() Level {
+	if l == nil {
+		return InfoLevel
+	}
+	return Level(l.level.Load())
+}
+
 // GetLevel returns the current minimum log level.
+//
+// Deprecated: Use Level() instead. This method will be removed in a future version.
 //
 // Returns:
 //
 // the active Level.
 func (l *Logger) GetLevel() Level {
-	return Level(l.level.Load())
+	return l.Level()
 }
 
 // SetOutput replaces the output writer.
@@ -111,9 +128,26 @@ func (l *Logger) GetLevel() Level {
 // Parameters:
 //   - `w`: the new destination writer
 func (l *Logger) SetOutput(w io.Writer) {
+	if l == nil {
+		return
+	}
 	l.mu.Lock()
 	l.output = w
 	l.mu.Unlock()
+}
+
+// Output returns the current output writer.
+//
+// Returns:
+//
+// the io.Writer where log entries are written.
+func (l *Logger) Output() io.Writer {
+	if l == nil {
+		return nil
+	}
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.output
 }
 
 // SetFormatter replaces the entry formatter.
@@ -121,9 +155,97 @@ func (l *Logger) SetOutput(w io.Writer) {
 // Parameters:
 //   - `f`: the new Formatter
 func (l *Logger) SetFormatter(f Formatter) {
+	if l == nil {
+		return
+	}
 	l.mu.Lock()
 	l.formatter = f
 	l.mu.Unlock()
+}
+
+// Formatter returns the current entry formatter.
+//
+// Returns:
+//
+// the Formatter used to serialise log entries.
+func (l *Logger) Formatter() Formatter {
+	if l == nil {
+		return nil
+	}
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.formatter
+}
+
+// Name returns the logger's name.
+//
+// Returns:
+//
+// the dot-separated logger name, or empty string if not set.
+func (l *Logger) Name() string {
+	if l == nil {
+		return ""
+	}
+	return l.name
+}
+
+// IsCaller returns whether caller reporting is enabled.
+//
+// Returns:
+//
+// true if source-location capture is enabled.
+func (l *Logger) IsCaller() bool {
+	if l == nil {
+		return false
+	}
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.caller
+}
+
+// CallerSkip returns the number of extra stack frames to skip.
+//
+// Returns:
+//
+// the caller skip count.
+func (l *Logger) CallerSkip() int {
+	if l == nil {
+		return 0
+	}
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	return l.callerSkip
+}
+
+// Fields returns a copy of the logger-bound fields.
+//
+// Returns:
+//
+// a copy of the []Field slice attached to this logger.
+func (l *Logger) Fields() []Field {
+	if l == nil {
+		return nil
+	}
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	if l.fields == nil {
+		return nil
+	}
+	result := make([]Field, len(l.fields))
+	copy(result, l.fields)
+	return result
+}
+
+// Hooks returns the logger's hook registry.
+//
+// Returns:
+//
+// the *Hooks registry attached to this logger.
+func (l *Logger) Hooks() *Hooks {
+	if l == nil {
+		return nil
+	}
+	return l.hooks
 }
 
 // AddHook registers a Hook on this logger.

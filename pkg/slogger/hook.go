@@ -5,6 +5,9 @@ package slogger
 // Parameters:
 //   - `hook`: the Hook to register
 func (h *Hooks) Add(hook Hook) {
+	if h == nil {
+		return
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	for _, lvl := range hook.Levels() {
@@ -24,6 +27,9 @@ func (h *Hooks) Add(hook Hook) {
 //
 // a combined error from all hooks, or nil if all succeeded.
 func (h *Hooks) Fire(level Level, entry *Entry) error {
+	if h == nil {
+		return nil
+	}
 	h.mu.RLock()
 	hooks := h.hooks[level]
 	h.mu.RUnlock()
@@ -46,7 +52,32 @@ func (h *Hooks) Fire(level Level, entry *Entry) error {
 //
 // the count of hooks registered for that level.
 func (h *Hooks) Len(level Level) int {
+	if h == nil {
+		return 0
+	}
 	h.mu.RLock()
 	defer h.mu.RUnlock()
 	return len(h.hooks[level])
+}
+
+// HooksFor returns a copy of the hooks registered for a specific level.
+//
+// Parameters:
+//   - `level`: the level whose hooks should be returned
+//
+// Returns:
+//
+// a copy of the []Hook slice for that level.
+func (h *Hooks) HooksFor(level Level) []Hook {
+	if h == nil {
+		return nil
+	}
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	if h.hooks[level] == nil {
+		return nil
+	}
+	result := make([]Hook, len(h.hooks[level]))
+	copy(result, h.hooks[level])
+	return result
 }

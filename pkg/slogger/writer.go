@@ -15,6 +15,9 @@ import (
 //
 // the byte count returned by the first writer and the first error encountered.
 func (mw *MultiWriter) Write(p []byte) (n int, err error) {
+	if mw == nil {
+		return 0, nil
+	}
 	var firstN int
 	var firstErr error
 	for i, w := range mw.writers {
@@ -25,6 +28,31 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 		}
 	}
 	return firstN, firstErr
+}
+
+// Writers returns a copy of the writer list.
+//
+// Returns:
+//
+// a copy of the []io.Writer slice registered with this MultiWriter.
+func (mw *MultiWriter) Writers() []io.Writer {
+	if mw == nil || mw.writers == nil {
+		return nil
+	}
+	result := make([]io.Writer, len(mw.writers))
+	copy(result, mw.writers)
+	return result
+}
+
+// AddWriter appends a writer to the list.
+//
+// Parameters:
+//   - `w`: the writer to add
+func (mw *MultiWriter) AddWriter(w io.Writer) {
+	if mw == nil {
+		return
+	}
+	mw.writers = append(mw.writers, w)
 }
 
 // Stdout returns os.Stdout as an io.Writer.

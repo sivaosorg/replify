@@ -135,6 +135,114 @@ func (f *JSONFormatter) WithNameKey(key string) *JSONFormatter {
 	return f
 }
 
+// TimeFormat returns the time layout string used when formatting timestamps.
+//
+// Returns:
+//
+// the Go time layout string.
+func (f *JSONFormatter) TimeFormat() string {
+	if f == nil {
+		return ""
+	}
+	return f.timeFormat
+}
+
+// IsEnableCaller returns whether caller information is included in the JSON output.
+//
+// Returns:
+//
+// true if caller reporting is enabled.
+func (f *JSONFormatter) IsEnableCaller() bool {
+	if f == nil {
+		return false
+	}
+	return f.enableCaller
+}
+
+// IsEnableColor returns whether ANSI colour codes are enabled.
+//
+// Returns:
+//
+// true if colour output is enabled.
+func (f *JSONFormatter) IsEnableColor() bool {
+	if f == nil {
+		return false
+	}
+	return f.enableColor
+}
+
+// TimeKey returns the JSON key for the timestamp field.
+//
+// Returns:
+//
+// the JSON key name for timestamps.
+func (f *JSONFormatter) TimeKey() string {
+	if f == nil {
+		return ""
+	}
+	return f.timeKey
+}
+
+// LevelKey returns the JSON key for the level field.
+//
+// Returns:
+//
+// the JSON key name for log levels.
+func (f *JSONFormatter) LevelKey() string {
+	if f == nil {
+		return ""
+	}
+	return f.levelKey
+}
+
+// MessageKey returns the JSON key for the message field.
+//
+// Returns:
+//
+// the JSON key name for messages.
+func (f *JSONFormatter) MessageKey() string {
+	if f == nil {
+		return ""
+	}
+	return f.messageKey
+}
+
+// CallerKey returns the JSON key for the caller field.
+//
+// Returns:
+//
+// the JSON key name for caller information.
+func (f *JSONFormatter) CallerKey() string {
+	if f == nil {
+		return ""
+	}
+	return f.callerKey
+}
+
+// NameKey returns the JSON key for the logger name field.
+//
+// Returns:
+//
+// the JSON key name for logger names.
+func (f *JSONFormatter) NameKey() string {
+	if f == nil {
+		return ""
+	}
+	return f.nameKey
+}
+
+// Color returns the color style used for JSON formatting.
+//
+// Returns:
+//
+// the *encoding.Style used for colour output.
+func (f *JSONFormatter) Color() *encoding.Style {
+	if f == nil {
+		return nil
+	}
+	return f.color
+}
+
 // Format serialises e to a single-line JSON byte slice.
 // When colour is enabled and the logger's output writer is a TTY terminal,
 // ANSI colour escape sequences are applied to keys, values, and level fields
@@ -158,7 +266,7 @@ func (f *JSONFormatter) Format(e *Entry) ([]byte, error) {
 	b.WriteByte(',')
 	writeJSONKey(&b, f.levelKey)
 	b.WriteByte(':')
-	writeJSONString(&b, e.GetLevel().String())
+	writeJSONString(&b, e.Level().String())
 
 	if l := e.Logger(); l != nil && strutil.IsNotEmpty(l.name) {
 		b.WriteByte(',')

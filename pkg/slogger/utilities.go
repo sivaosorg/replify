@@ -134,7 +134,7 @@ func compressToZip(srcPath, zipPath string) error {
 
 	// Close zip writer first - this finalizes the archive
 	if err := zw.Close(); err != nil {
-		_ = zf.Close() // explicitly discard cleanup error
+		_ = zf.Close() // explicitly ignore cleanup error
 		return fmt.Errorf("slogger: cannot finalize zip archive: %w", err)
 	}
 

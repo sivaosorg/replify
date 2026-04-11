@@ -32,8 +32,9 @@ func (l *Logger) With(fields ...Field) *Logger {
 		callerSkip: l.callerSkip,
 		sampling:   l.sampling,
 	}
-	// Create a copy of the parent's fields slice while holding the lock.
-	// Note: Field is a value type, so copying the slice copies all field values.
+	// Deep copy the parent's fields slice while holding the lock to prevent
+	// race conditions when the parent's fields are modified concurrently.
+	// Field is a value type, so copying the slice copies all field values.
 	parentFields := make([]Field, len(l.fields))
 	copy(parentFields, l.fields)
 	l.mu.RUnlock()

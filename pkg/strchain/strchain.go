@@ -10,6 +10,18 @@ import (
 // Compile-time interface satisfaction check.
 var _ Weaver = (*StringWeaver)(nil)
 
+// jsonEncodeString returns the RFC 8259-compliant JSON encoding of s,
+// including the surrounding double-quote characters.
+// In practice json.Marshal never errors for a plain string value, but if it
+// unexpectedly does the function falls back to strconv.Quote so the builder
+// always receives a syntactically-quoted result.
+func jsonEncodeString(s string) string {
+	if b, err := json.Marshal(s); err == nil {
+		return string(b)
+	}
+	return strconv.Quote(s)
+}
+
 // StringWeaver wraps strings.Builder with a fluent API for chainable operations.
 // This implementation is NOT thread-safe and should only be used from a single goroutine.
 // For concurrent access, use SafeStringWeaver instead.
@@ -770,8 +782,7 @@ func (sw *StringWeaver) JSONArrayEnd() Weaver {
 //
 //	sw.JSONString("hello") // adds "hello"
 func (sw *StringWeaver) JSONString(s string) Weaver {
-	encoded, _ := json.Marshal(s)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(s))
 	return sw
 }
 
@@ -801,8 +812,7 @@ func (sw *StringWeaver) JSONKeyString(key, value string) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	encoded, _ := json.Marshal(value)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(value))
 	return sw
 }
 
@@ -866,8 +876,7 @@ func (sw *StringWeaver) JSONFieldString(level int, key, value string, addComma b
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	encoded, _ := json.Marshal(value)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(value))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}

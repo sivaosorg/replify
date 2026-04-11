@@ -1,7 +1,6 @@
 package strchain
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -909,8 +908,7 @@ func (sw *SafeStringWeaver) JSONArrayEnd() Weaver {
 func (sw *SafeStringWeaver) JSONString(s string) Weaver {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
-	encoded, _ := json.Marshal(s)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(s))
 	return sw
 }
 
@@ -944,8 +942,7 @@ func (sw *SafeStringWeaver) JSONKeyString(key, value string) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	encoded, _ := json.Marshal(value)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(value))
 	return sw
 }
 
@@ -1017,8 +1014,7 @@ func (sw *SafeStringWeaver) JSONFieldString(level int, key, value string, addCom
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	encoded, _ := json.Marshal(value)
-	sw.builder.Write(encoded)
+	sw.builder.WriteString(jsonEncodeString(value))
 	if addComma {
 		sw.builder.WriteByte(',')
 	}

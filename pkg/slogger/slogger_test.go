@@ -1323,28 +1323,29 @@ func TestSlogger_JSONFormatter_WithColorChaining(t *testing.T) {
 // TestSlogger_TrimFilePath_CrossPlatform verifies that trimFilepath handles
 // both Unix and Windows path separators correctly.
 func TestSlogger_TrimFilePath_CrossPlatform(t *testing.T) {
-t.Parallel()
+	t.Parallel()
 
-// Test is implicit - we verify caller info works on current platform
-var buf bytes.Buffer
-log := slogger.New(func(o *slogger.Options) {
-o.Level = slogger.TraceLevel
-o.Output = &buf
-o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller()
-o.CallerReporter = true
-})
+	// This test verifies caller information is properly formatted on the current platform.
+	// The trimFilepath function should produce valid file:line output regardless of OS.
+	var buf bytes.Buffer
+	log := slogger.New(func(o *slogger.Options) {
+		o.Level = slogger.TraceLevel
+		o.Output = &buf
+		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller()
+		o.CallerReporter = true
+	})
 
-log.Info("test caller")
-out := buf.String()
+	log.Info("test caller")
+	out := buf.String()
 
-// Should contain caller= in the output
-if !strings.Contains(out, "caller=") {
-t.Errorf("expected caller= in output, got: %s", out)
-}
-// Should contain .go file extension
-if !strings.Contains(out, ".go:") {
-t.Errorf("expected .go: in output for caller, got: %s", out)
-}
+	// Should contain caller= in the output
+	if !strings.Contains(out, "caller=") {
+		t.Errorf("expected caller= in output, got: %s", out)
+	}
+	// Should contain .go file extension
+	if !strings.Contains(out, ".go:") {
+		t.Errorf("expected .go: in output for caller, got: %s", out)
+	}
 }
 
 // TestSlogger_Itoa64_MinInt64 verifies that itoa64 handles math.MinInt64 correctly.

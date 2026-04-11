@@ -51,13 +51,11 @@ func releaseEntry(e *Entry) {
 // For example "/home/user/project/pkg/foo/bar.go" becomes "pkg/foo/bar.go".
 // This function handles both Unix (/) and Windows (\) path separators.
 func trimFilepath(path string) string {
-	// Use os.PathSeparator for the primary platform separator
-	sep := byte(os.PathSeparator)
 	slash := -1
 	count := 0
 	for i := len(path) - 1; i >= 0; i-- {
 		// Handle both forward and back slashes for cross-platform compatibility
-		if path[i] == sep || path[i] == '/' || path[i] == '\\' {
+		if path[i] == '/' || path[i] == '\\' {
 			count++
 			if count == 2 {
 				slash = i
@@ -122,15 +120,15 @@ func compressToZip(srcPath, zipPath string) error {
 
 	w, err := zw.Create(filepath.Base(srcPath))
 	if err != nil {
-		// Close both writers on error
-		zw.Close()
-		zf.Close()
+		// Close both writers on error, explicitly ignoring cleanup errors
+		_ = zw.Close()
+		_ = zf.Close()
 		return fmt.Errorf("slogger: cannot create zip entry: %w", err)
 	}
 
 	if _, err = io.Copy(w, src); err != nil {
-		zw.Close()
-		zf.Close()
+		_ = zw.Close()
+		_ = zf.Close()
 		return fmt.Errorf("slogger: cannot copy data to zip: %w", err)
 	}
 

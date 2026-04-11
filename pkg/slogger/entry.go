@@ -98,7 +98,7 @@ func (e *Entry) Message() string {
 //
 // Returns:
 //
-// a copy of the Field slice; may be empty but never nil.
+// a copy of the Field slice; may be empty or nil when the receiver or fields are nil.
 func (e *Entry) Fields() []Field {
 	if e == nil || e.fields == nil {
 		return nil

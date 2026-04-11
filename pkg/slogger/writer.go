@@ -8,6 +8,10 @@ import (
 // Write writes p to every registered writer.
 // All writers are attempted even when an earlier write fails.
 //
+// The lock is released after creating a defensive copy of the writer list,
+// allowing concurrent AddWriter calls during writes. This design prioritizes
+// write throughput over strict ordering of writer additions.
+//
 // Parameters:
 //   - `p`: the bytes to write
 //

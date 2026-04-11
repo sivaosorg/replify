@@ -919,6 +919,152 @@ func TestStringWeaver_FluentChain_Conditional(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// FromPtr / SafeFromPtr tests (Fix: avoid strings.Builder copy-after-use)
+// ---------------------------------------------------------------------------
+
+func TestFromPtr_NilReturnsEmpty(t *testing.T) {
+	sw := FromPtr(nil)
+	if sw == nil {
+		t.Fatal("FromPtr(nil) returned nil")
+	}
+	if sw.Len() != 0 {
+		t.Errorf("FromPtr(nil) should produce empty builder, got len=%d", sw.Len())
+	}
+}
+
+func TestFromPtr_CopiesContentFromUsedBuilder(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("hello")
+
+	sw := FromPtr(&b)
+	if got := sw.String(); got != "hello" {
+		t.Errorf("FromPtr(&usedBuilder) = %q, want %q", got, "hello")
+	}
+	// Mutating the original builder must not affect the copy.
+	b.WriteString(" world")
+	if got := sw.String(); got != "hello" {
+		t.Errorf("original mutation leaked into FromPtr copy: got %q", got)
+	}
+}
+
+func TestSafeFromPtr_NilReturnsEmpty(t *testing.T) {
+	sw := SafeFromPtr(nil)
+	if sw == nil {
+		t.Fatal("SafeFromPtr(nil) returned nil")
+	}
+	if sw.Len() != 0 {
+		t.Errorf("SafeFromPtr(nil) should produce empty builder, got len=%d", sw.Len())
+	}
+}
+
+func TestSafeFromPtr_CopiesContentFromUsedBuilder(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("safe")
+
+	sw := SafeFromPtr(&b)
+	if got := sw.String(); got != "safe" {
+		t.Errorf("SafeFromPtr(&usedBuilder) = %q, want %q", got, "safe")
+	}
+	// Mutating the original builder must not affect the copy.
+	b.WriteString("-modified")
+	if got := sw.String(); got != "safe" {
+		t.Errorf("original mutation leaked into SafeFromPtr copy: got %q", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// SafeStringWeaver.AppendIf / AppendIfF consistent locking (Fix)
+// ---------------------------------------------------------------------------
+
+func TestSafeStringWeaver_AppendIf_Concurrent(t *testing.T) {
+	sw := NewSafe()
+	var wg sync.WaitGroup
+	n := 200
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			sw.AppendIf(idx%2 == 0, "x")
+		}(i)
+	}
+	wg.Wait()
+	// Half of n goroutines (those with even idx) append "x".
+	if sw.Len() != n/2 {
+		t.Errorf("expected %d chars after concurrent AppendIf, got %d", n/2, sw.Len())
+	}
+}
+
+func TestSafeStringWeaver_AppendIfF_Concurrent(t *testing.T) {
+	sw := NewSafe()
+	var wg sync.WaitGroup
+	n := 100
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			sw.AppendIfF(idx%2 == 0, "y")
+		}(i)
+	}
+	wg.Wait()
+	if sw.Len() != n/2 {
+		t.Errorf("expected %d chars after concurrent AppendIfF, got %d", n/2, sw.Len())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// strconv-based append correctness (Fix: allocation-free numeric conversion)
+// ---------------------------------------------------------------------------
+
+func TestStringWeaver_AppendInt_Negative(t *testing.T) {
+	if got := New().AppendInt(-42).Build(); got != "-42" {
+		t.Errorf("AppendInt(-42) = %q, want \"-42\"", got)
+	}
+}
+
+func TestStringWeaver_AppendFloat32_Compact(t *testing.T) {
+	// strconv.FormatFloat with prec=-1 gives the shortest representation.
+	got := New().AppendFloat32(3.14).Build()
+	if got != "3.14" {
+		t.Errorf("AppendFloat32(3.14) = %q, want \"3.14\"", got)
+	}
+}
+
+func TestStringWeaver_AppendFloat64_Compact(t *testing.T) {
+	got := New().AppendFloat64(2.718281828).Build()
+	if got != "2.718281828" {
+		t.Errorf("AppendFloat64(2.718281828) = %q, want \"2.718281828\"", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// strings.Repeat-based methods correctness (Fix)
+// ---------------------------------------------------------------------------
+
+func TestStringWeaver_Repeat_ZeroNoop(t *testing.T) {
+	if got := New().Repeat("-", 0).Build(); got != "" {
+		t.Errorf("Repeat(\"-\", 0) should produce empty string, got %q", got)
+	}
+}
+
+func TestStringWeaver_Spaces_ZeroNoop(t *testing.T) {
+	if got := New().Spaces(0).Build(); got != "" {
+		t.Errorf("Spaces(0) should produce empty string, got %q", got)
+	}
+}
+
+func TestStringWeaver_Indent_ZeroLevelNoop(t *testing.T) {
+	if got := New().Indent(0, "text").Build(); got != "text" {
+		t.Errorf("Indent(0, \"text\") should produce \"text\", got %q", got)
+	}
+}
+
+func TestStringWeaver_Indent_NegativeLevelNoop(t *testing.T) {
+	if got := New().Indent(-1, "text").Build(); got != "text" {
+		t.Errorf("Indent(-1, \"text\") should produce \"text\", got %q", got)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // Benchmarks
 // ---------------------------------------------------------------------------
 

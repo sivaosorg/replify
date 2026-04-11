@@ -1172,7 +1172,7 @@ func TestSafeUnmarshalJSON_Valid(t *testing.T) {
 	}
 }
 
-// TestIsValidJSON_SentinelErrors verifies that IsValidJSON handles edge inputs
+// TestIsValidJSON_EdgeCases verifies that IsValidJSON handles edge inputs
 // correctly without panicking.
 func TestIsValidJSON_EdgeCases(t *testing.T) {
 	cases := []struct {

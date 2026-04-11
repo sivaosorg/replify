@@ -18,9 +18,14 @@ func (mw *MultiWriter) Write(p []byte) (n int, err error) {
 	if mw == nil {
 		return 0, nil
 	}
+	mw.mu.Lock()
+	writers := make([]io.Writer, len(mw.writers))
+	copy(writers, mw.writers)
+	mw.mu.Unlock()
+
 	var firstN int
 	var firstErr error
-	for i, w := range mw.writers {
+	for i, w := range writers {
 		nn, werr := w.Write(p)
 		if i == 0 {
 			firstN = nn
@@ -39,12 +44,15 @@ func (mw *MultiWriter) Writers() []io.Writer {
 	if mw == nil || mw.writers == nil {
 		return nil
 	}
+	mw.mu.Lock()
+	defer mw.mu.Unlock()
 	result := make([]io.Writer, len(mw.writers))
 	copy(result, mw.writers)
 	return result
 }
 
 // AddWriter appends a writer to the list.
+// This method is safe for concurrent use.
 //
 // Parameters:
 //   - `w`: the writer to add
@@ -52,7 +60,9 @@ func (mw *MultiWriter) AddWriter(w io.Writer) {
 	if mw == nil {
 		return
 	}
+	mw.mu.Lock()
 	mw.writers = append(mw.writers, w)
+	mw.mu.Unlock()
 }
 
 // Stdout returns os.Stdout as an io.Writer.

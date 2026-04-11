@@ -240,7 +240,9 @@ type JSONFormatter struct {
 
 // MultiWriter fans log output to multiple io.Writer targets simultaneously.
 // All Write calls are delivered to every registered writer in registration order.
+// All methods are safe for concurrent use.
 type MultiWriter struct {
+	mu      sync.Mutex
 	writers []io.Writer
 }
 

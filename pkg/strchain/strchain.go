@@ -1,6 +1,7 @@
 package strchain
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -762,12 +763,15 @@ func (sw *StringWeaver) JSONArrayEnd() Weaver {
 }
 
 // JSONString adds a quoted and escaped string value.
+// The output is proper JSON (RFC 8259) — control characters are encoded as
+// \uXXXX sequences, not Go-specific escape sequences.
 //
 // Example:
 //
 //	sw.JSONString("hello") // adds "hello"
 func (sw *StringWeaver) JSONString(s string) Weaver {
-	sw.builder.WriteString(strconv.Quote(s))
+	encoded, _ := json.Marshal(s)
+	sw.builder.Write(encoded)
 	return sw
 }
 
@@ -786,6 +790,7 @@ func (sw *StringWeaver) JSONKey(key string) Weaver {
 }
 
 // JSONKeyString adds a key-value pair where the value is a string.
+// The value is properly JSON-encoded (RFC 8259).
 //
 // Example:
 //
@@ -796,7 +801,8 @@ func (sw *StringWeaver) JSONKeyString(key, value string) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	sw.builder.WriteString(strconv.Quote(value))
+	encoded, _ := json.Marshal(value)
+	sw.builder.Write(encoded)
 	return sw
 }
 
@@ -846,6 +852,7 @@ func (sw *StringWeaver) JSONKeyFloat(key string, value float64) Weaver {
 }
 
 // JSONFieldString adds an indented JSON field (key: value) with optional comma and newline.
+// The value is properly JSON-encoded (RFC 8259).
 //
 // Example:
 //
@@ -859,7 +866,8 @@ func (sw *StringWeaver) JSONFieldString(level int, key, value string, addComma b
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	sw.builder.WriteString(strconv.Quote(value))
+	encoded, _ := json.Marshal(value)
+	sw.builder.Write(encoded)
 	if addComma {
 		sw.builder.WriteByte(',')
 	}

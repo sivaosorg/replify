@@ -1,6 +1,7 @@
 package strchain
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -803,8 +804,14 @@ func (sw *SafeStringWeaver) Inspect(fn func(current string)) Weaver {
 }
 
 // Builder returns the underlying strings.Builder for advanced operations.
-// WARNING: Using the returned pointer directly bypasses all thread-safety
-// guarantees. Prefer the fluent methods for concurrent access.
+//
+// WARNING: This method bypasses ALL thread-safety guarantees of SafeStringWeaver.
+// The mutex is NOT held while the caller uses the returned pointer. Any concurrent
+// read or write through this pointer — including calling other SafeStringWeaver
+// methods simultaneously — will cause a data race. Use this method only when the
+// SafeStringWeaver is exclusively owned by a single goroutine at that point in time,
+// or when you have external synchronization. For normal concurrent use, prefer the
+// fluent methods which each acquire and release the lock atomically.
 //
 // Example:
 //
@@ -893,6 +900,8 @@ func (sw *SafeStringWeaver) JSONArrayEnd() Weaver {
 }
 
 // JSONString adds a quoted and escaped string value.
+// The output is proper JSON (RFC 8259) — control characters are encoded as
+// \uXXXX sequences, not Go-specific escape sequences.
 //
 // Example:
 //
@@ -900,7 +909,8 @@ func (sw *SafeStringWeaver) JSONArrayEnd() Weaver {
 func (sw *SafeStringWeaver) JSONString(s string) Weaver {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
-	sw.builder.WriteString(strconv.Quote(s))
+	encoded, _ := json.Marshal(s)
+	sw.builder.Write(encoded)
 	return sw
 }
 
@@ -921,6 +931,7 @@ func (sw *SafeStringWeaver) JSONKey(key string) Weaver {
 }
 
 // JSONKeyString adds a key-value pair where the value is a string.
+// The value is properly JSON-encoded (RFC 8259).
 //
 // Example:
 //
@@ -933,7 +944,8 @@ func (sw *SafeStringWeaver) JSONKeyString(key, value string) Weaver {
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	sw.builder.WriteString(strconv.Quote(value))
+	encoded, _ := json.Marshal(value)
+	sw.builder.Write(encoded)
 	return sw
 }
 
@@ -989,6 +1001,7 @@ func (sw *SafeStringWeaver) JSONKeyFloat(key string, value float64) Weaver {
 }
 
 // JSONFieldString adds an indented JSON field (key: value) with optional comma and newline.
+// The value is properly JSON-encoded (RFC 8259).
 //
 // Example:
 //
@@ -1004,7 +1017,8 @@ func (sw *SafeStringWeaver) JSONFieldString(level int, key, value string, addCom
 	sw.builder.WriteByte('"')
 	sw.builder.WriteByte(':')
 	sw.builder.WriteByte(' ')
-	sw.builder.WriteString(strconv.Quote(value))
+	encoded, _ := json.Marshal(value)
+	sw.builder.Write(encoded)
 	if addComma {
 		sw.builder.WriteByte(',')
 	}

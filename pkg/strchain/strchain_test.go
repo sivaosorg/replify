@@ -919,6 +919,43 @@ func TestStringWeaver_FluentChain_Conditional(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// JSON string encoding compliance (Fix: json.Marshal instead of strconv.Quote)
+// ---------------------------------------------------------------------------
+
+func TestStringWeaver_JSONString_RFC8259(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"simple string", "hello", `"hello"`},
+		{"embedded double quote", `he"llo`, `"he\"llo"`},
+		{"backslash", `back\slash`, `"back\\slash"`},
+		// Control char \x00: json.Marshal produces \u0000 (valid JSON);
+		// strconv.Quote would produce \x00 which is NOT valid JSON.
+		{"null byte", "a\x00b", `"a\u0000b"`},
+		{"newline", "line\nbreak", `"line\nbreak"`},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := New().JSONString(tc.input).Build()
+			if got != tc.want {
+				t.Errorf("JSONString(%q) = %q, want %q", tc.input, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestSafeStringWeaver_JSONString_RFC8259(t *testing.T) {
+	// null byte should be encoded as \u0000 (RFC 8259), not \x00 (Go-style)
+	got := NewSafe().JSONString("a\x00b").Build()
+	want := `"a\u0000b"`
+	if got != want {
+		t.Errorf("SafeStringWeaver.JSONString(\"a\\x00b\") = %q, want %q", got, want)
+	}
+}
+
+// ---------------------------------------------------------------------------
 // FromPtr / SafeFromPtr tests (Fix: avoid strings.Builder copy-after-use)
 // ---------------------------------------------------------------------------
 

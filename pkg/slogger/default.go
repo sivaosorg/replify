@@ -33,26 +33,26 @@ func New(opts ...func(*Options)) *Logger {
 	}
 	l := &Logger{
 		wmu:        &sync.Mutex{}, // shared mutex for write synchronization
-		formatter:  o.GetFormatter(),
-		output:     o.GetOutput(),
+		formatter:  o.formatter,
+		output:     o.output,
 		hooks:      NewHooks(),
-		fields:     append([]Field(nil), o.GetFields()...),
-		name:       o.GetName(),
-		caller:     o.IsCallerReporter(),
-		callerSkip: o.GetCallerSkip(),
+		fields:     append([]Field(nil), o.fields...),
+		name:       o.name,
+		caller:     o.callerReporter,
+		callerSkip: o.callerSkip,
 	}
-	l.level.Store(int32(o.GetLevel()))
-	if o.GetSamplingOpts() != nil {
-		l.sampling = newSampler(*o.GetSamplingOpts())
+	l.level.Store(int32(o.level))
+	if o.samplingOpts != nil {
+		l.sampling = newSampler(*o.samplingOpts)
 	}
-	if o.GetRotationOpts() != nil {
-		lfw, err := newLevelFileWriter(*o.GetRotationOpts())
+	if o.rotationOpts != nil {
+		lfw, err := newLevelFileWriter(*o.rotationOpts)
 		if err != nil {
 			// Rotation setup failed; write diagnostic to stderr and continue
 			// without rotation so the logger remains usable.
 			_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
 		} else {
-			l.hooks.Add(NewLevelWriterHook(lfw, o.GetFormatter()))
+			l.hooks.Add(NewLevelWriterHook(lfw, o.formatter))
 		}
 	}
 	return l

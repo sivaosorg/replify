@@ -442,8 +442,8 @@ func (l *Logger) WithSampling(opts *SamplingOptions) *Logger {
 // Returns:
 //
 // the receiver *Logger, enabling method chaining.
-func (l *Logger) WithRotation(opts RotationOptions) *Logger {
-	lfw, err := newLevelFileWriter(opts)
+func (l *Logger) WithRotation(opts *RotationOptions) *Logger {
+	lfw, err := newLevelFileWriter(*opts)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
 		return l

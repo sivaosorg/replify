@@ -810,12 +810,24 @@ Names are rendered in square brackets in `TextFormatter` output and as the
 Rate-limit identical log messages to prevent log storms during error spikes:
 
 ```go
-log := slogger.NewLogger().
-    WithLevel(slogger.InfoLevel).
-    WithSampling(slogger.NewSamplingOptions().
-        WithFirst(10). // log the first 10 identical messages per second
-        WithPeriod(time.Second). // sliding window duration
-        WithThereafter(100)) // then log every 100th message
+package main
+
+import (
+	"time"
+
+	"github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+	log := slogger.NewLogger().
+		WithLevel(slogger.InfoLevel).
+		WithSampling(slogger.NewSamplingOptions().
+			WithFirst(10). // log the first 10 identical messages per second
+			WithPeriod(time.Second). // sliding window duration
+			WithThereafter(100)) // then log every 100th message
+
+	log.Info("this message will appear 10 times in the first second, then once every 100 messages")
+}
 ```
 
 Sampling is keyed on the exact message string. Each unique message maintains an

@@ -199,7 +199,7 @@ func ApplyGlobalConfig(cfg SloggerConfig) error {
 			maxAge:   time.Duration(cfg.Rotation.MaxAgeDays) * 24 * time.Hour,
 			compress: cfg.Rotation.IsCompress,
 		}
-		log = log.WithRotation(rotOpts)
+		log = log.WithRotation(&rotOpts)
 	}
 
 	// 6. Set the global logger.

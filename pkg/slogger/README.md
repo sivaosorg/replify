@@ -184,10 +184,10 @@ func main() {
 		WithFormatter(slogger.NewTextFormatter(os.Stdout)).
 		WithOutput(os.Stdout).
 		WithRotation(slogger.NewRotationOptions().
-			WithDirectory("logs").
-			WithMaxBytes(50 * 1024 * 1024).
-			WithMaxAge(24 * time.Hour).
-			WithCompress(true))
+			WithDirectory("logs"). // base directory; created if absent
+			WithMaxBytes(50 * 1024 * 1024). // rotate at 50 MiB
+			WithMaxAge(24 * time.Hour). // or after 24 hours, whichever comes first
+			WithCompress(true)) // zip rotated files
 
 	log.Info("application started with rotation enabled")
 	log.Warn("disk space low", slogger.Int("percent_used", 85))

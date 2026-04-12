@@ -1,71 +1,398 @@
 # slogger
 
-A **zero-dependency, production-grade structured logging library** for Go — built entirely on the Go standard library.
+Zero-dependency, production-grade structured logging library for Go applications.
 
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [Installation](#installation)
-4. [Quick Start](#quick-start)
-5. [Logging Modes](#logging-modes)
-6. [Configuration](#configuration)
-   - [Log Levels](#log-levels)
-   - [Logger Construction](#logger-construction)
-   - [Formatters](#formatters)
-   - [Output Writers](#output-writers)
-   - [Hooks](#hooks)
-   - [Log Rotation](#log-rotation)
-   - [Color Support](#color-support)
-7. [Structured Fields](#structured-fields)
-8. [Child Loggers](#child-loggers)
-9. [Context-Aware Logging](#context-aware-logging)
-10. [Sampling](#sampling)
-11. [Global Logger](#global-logger)
-12. [Best Practices](#best-practices)
-13. [Performance Considerations](#performance-considerations)
-14. [Real-World Examples](#real-world-examples)
-15. [Options Reference](#options-reference)
+[![Go Version](https://img.shields.io/badge/go-%3E%3D1.21-blue)](https://go.dev/)
+[![Go Reference](https://pkg.go.dev/badge/github.com/sivaosorg/replify/pkg/slogger.svg)](https://pkg.go.dev/github.com/sivaosorg/replify/pkg/slogger)
+[![License](https://img.shields.io/badge/license-GPL--3.0-green)](../../LICENSE)
 
 ---
 
 ## Overview
 
-`slogger` provides structured, levelled logging for Go services and tools. It
-was designed from first principles to satisfy three non-negotiable requirements
-common in production Go deployments:
+Modern Go applications require structured, levelled logging that integrates seamlessly with log aggregators, distributed tracing systems, and observability platforms. Traditional logging approaches using `fmt.Printf` or the standard `log` package lack structure, making it difficult to filter, query, and alert on specific fields at scale.
 
-1. **Zero allocations on the hot path** — log entries are recycled through a
-   `sync.Pool`, and field values are stored inline in the `Field` struct to
-   avoid escaping to the heap.
-2. **Composable, context-aware loggers** — child loggers created with `With`
-   and `Named` inherit parent configuration while adding their own fields,
-   enabling per-service and per-request scoping without global state.
-3. **No external dependencies** — every capability (structured fields, JSON
-   output, ANSI colours, file rotation, rate limiting, hooks) is implemented
-   against the Go standard library alone.
+**slogger** solves this by providing a lightweight, allocation-efficient structured logger built entirely on the Go standard library. It enables developers to attach typed key-value pairs to every log entry, supporting both human-readable text output for development and machine-parseable JSON for production environments.
 
-### Design philosophy
+### Key features
 
-`slogger` was written for the **replify ecosystem** but is fully usable as a
-standalone package. Its API surface is deliberately narrow: one `Logger` type,
-one `Entry` type, and a small set of typed field constructors. This keeps the
-learning curve minimal and makes tooling (linters, static analysis, IDE
-completion) maximally effective.
+- **Zero allocations on hot paths** — entry pooling and inline field storage eliminate heap pressure
+- **Structured fields** — typed constructors for strings, integers, floats, errors, durations, and more
+- **Dual formatters** — human-readable `TextFormatter` and JSON `JSONFormatter` for any environment
+- **Context propagation** — fields stored in `context.Context` are merged automatically at log time
+- **File rotation** — size-based and age-based rotation with optional ZIP compression
+- **Rate limiting** — per-message sampling prevents log storms during error spikes
+- **Side-effect hooks** — level-indexed callbacks for alerting, metrics, and remote shipping
 
-### Why slogger?
+---
 
-| Goal | slogger approach |
-|---|---|
-| Structured fields | Typed inline Field values, no interface{} boxing on common types |
-| JSON output | Single-pass builder, no reflection |
-| Coloured terminals | IsTTY detection, ANSI escape codes |
-| File rotation | Size- and age-based, ZIP compression, date-bucketed archives |
-| Rate limiting | Per-message sliding-window sampler |
-| Side-effect hooks | Level-indexed registry called after every write |
-| Context propagation | Fields stored in context.Context, merged at log time |
+## Installation
+
+```bash
+go get github.com/sivaosorg/replify/pkg/slogger@latest
+```
+
+### Requirements
+
+- Go 1.21 or higher
+- No external dependencies (standard library only)
+
+---
+
+## Quick start
+
+```go
+package main
+
+import (
+    "errors"
+    "os"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+    // Create a JSON logger writing to stdout at DEBUG level.
+    log := slogger.NewLogger().
+        WithLevel(slogger.DebugLevel).
+        WithFormatter(slogger.NewJSONFormatter()).
+        WithOutput(os.Stdout)
+
+    // Log structured fields with typed constructors.
+    log.Info("server started",
+        slogger.String("addr", ":8080"),
+        slogger.String("env", "production"),
+    )
+
+    // Handle errors with structured context.
+    if err := processRequest(); err != nil {
+        log.Error("request failed",
+            slogger.Err(err),
+            slogger.String("endpoint", "/api/users"),
+        )
+    }
+}
+
+func processRequest() error {
+    return errors.New("connection timeout")
+}
+// Output: {"ts":"2026-01-15 10:00:00.000000","level":"INFO","msg":"server started","addr":":8080","env":"production"}
+// Output: {"ts":"2026-01-15 10:00:00.000001","level":"ERROR","msg":"request failed","error":"connection timeout","endpoint":"/api/users"}
+```
+
+---
+
+## Usage examples
+
+### Child loggers with bound fields
+
+Use `With` to create child loggers that prepend fields to every entry, ideal for request-scoped logging.
+
+```go
+package main
+
+import (
+    "os"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+    log := slogger.NewLogger().
+        WithLevel(slogger.DebugLevel).
+        WithFormatter(slogger.NewTextFormatter(os.Stdout)).
+        WithOutput(os.Stdout)
+
+    // Create a child logger with request-scoped fields.
+    requestID := "req-abc-123"
+    userID := "user-42"
+
+    reqLog := log.With(
+        slogger.String("request_id", requestID),
+        slogger.String("user_id", userID),
+    )
+
+    reqLog.Info("processing request")
+    reqLog.Debug("validating input")
+    reqLog.Info("request completed")
+    // Output: 2026-01-15 10:00:00.000000 INFO processing request request_id=req-abc-123 user_id=user-42
+}
+```
+
+### Context-aware logging
+
+Store fields in `context.Context` for automatic propagation through call stacks without threading loggers.
+
+```go
+package main
+
+import (
+    "context"
+    "os"
+    "time"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+    log := slogger.NewLogger().
+        WithLevel(slogger.DebugLevel).
+        WithFormatter(slogger.NewJSONFormatter()).
+        WithOutput(os.Stdout)
+
+    // Inject trace context at the entry point.
+    ctx := context.Background()
+    ctx = slogger.WithContextFields(ctx,
+        slogger.String("trace_id", "trace-xyz-789"),
+        slogger.String("span_id", "span-001"),
+    )
+
+    // Deep in the call stack, log with context fields automatically merged.
+    processOrder(ctx, log, "order-123")
+}
+
+func processOrder(ctx context.Context, log *slogger.Logger, orderID string) {
+    start := time.Now()
+    // Context fields (trace_id, span_id) are merged automatically.
+    log.WithContext(ctx).Info("processing order",
+        slogger.String("order_id", orderID),
+        slogger.Duration("latency", time.Since(start)),
+    )
+    // Output: {"ts":"...","level":"INFO","msg":"processing order","trace_id":"trace-xyz-789","span_id":"span-001","order_id":"order-123","latency":"42µs"}
+}
+```
+
+### File rotation with compression
+
+Enable automatic per-level log file rotation with size limits and optional ZIP compression.
+
+```go
+package main
+
+import (
+    "os"
+    "time"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+    // Create a logger with file rotation enabled.
+    log := slogger.NewLogger().
+        WithLevel(slogger.InfoLevel).
+        WithFormatter(slogger.NewJSONFormatter()).
+        WithOutput(os.Stdout).
+        WithRotation(slogger.RotationOptions{
+            Dir:      "logs",                  // Base directory for log files
+            MaxBytes: 50 * 1024 * 1024,        // Rotate at 50 MiB
+            MaxAge:   24 * time.Hour,          // Or after 24 hours
+            Compress: true,                    // ZIP compress rotated files
+        })
+
+    log.Info("application started with rotation enabled")
+    log.Warn("disk space low", slogger.Int("percent_used", 85))
+    // Creates: logs/info.log, logs/warn.log, logs/error.log, logs/debug.log
+    // Rotated files: logs/archived/2026-01-15/20260115100000_info.zip
+}
+```
+
+### Custom hooks for alerting
+
+Implement the `Hook` interface to trigger side-effects like alerting or metrics on specific log levels.
+
+```go
+package main
+
+import (
+    "fmt"
+    "os"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+// AlertHook sends alerts for ERROR and FATAL level logs.
+type AlertHook struct{}
+
+func (h *AlertHook) Levels() []slogger.Level {
+    return []slogger.Level{slogger.ErrorLevel, slogger.FatalLevel}
+}
+
+func (h *AlertHook) Fire(e *slogger.Entry) error {
+    // Send to alerting system (Slack, PagerDuty, etc.).
+    fmt.Printf("[ALERT] %s: %s\n", e.Level(), e.Message())
+    return nil
+}
+
+func main() {
+    log := slogger.NewLogger().
+        WithLevel(slogger.InfoLevel).
+        WithFormatter(slogger.NewTextFormatter(os.Stderr)).
+        WithOutput(os.Stderr)
+
+    // Register the alert hook.
+    log.AddHook(&AlertHook{})
+
+    log.Info("normal operation")                       // No alert
+    log.Error("database connection failed")            // Triggers alert
+    // Output: [ALERT] ERROR: database connection failed
+}
+```
+
+### Global logger configuration
+
+Use the package-level global logger for simple applications or replace it during bootstrap.
+
+```go
+package main
+
+import (
+    "os"
+
+    "github.com/sivaosorg/replify/pkg/slogger"
+)
+
+func main() {
+    // Configure and install a custom global logger.
+    log := slogger.NewLogger().
+        WithLevel(slogger.DebugLevel).
+        WithFormatter(slogger.NewJSONFormatter()).
+        WithOutput(os.Stdout)
+
+    slogger.SetGlobalLogger(log)
+
+    // Use package-level functions anywhere in the application.
+    slogger.Info("application ready",
+        slogger.String("version", "1.0.0"),
+    )
+    slogger.Debugf("loaded %d plugins", 5)
+    // Output: {"ts":"...","level":"INFO","msg":"application ready","version":"1.0.0"}
+    // Output: {"ts":"...","level":"DEBUG","msg":"loaded 5 plugins"}
+}
+```
+
+---
+
+## API overview
+
+| Type/Function | Description |
+|---------------|-------------|
+| `Logger` | Core logging type; all methods are goroutine-safe |
+| `Entry` | In-flight log event; do not retain after log call returns |
+| `Field` | Typed key-value pair for structured logging |
+| `Formatter` | Interface for serialising entries (`TextFormatter`, `JSONFormatter`) |
+| `Hook` | Interface for side-effect callbacks on log events |
+| `New(opts...)` | Creates a logger with functional options |
+| `NewLogger()` | Creates a logger with defaults for fluent configuration |
+| `With(fields...)` | Returns a child logger with bound fields |
+| `Named(name)` | Returns a child logger with a hierarchical name |
+| `WithContext(ctx)` | Returns an entry bound to the given context |
+| `ParseLevel(s)` | Parses a level string (e.g., "info", "DEBUG") |
+| `String`, `Int`, `Bool`, `Err`, `Duration`, `Time`, `Any` | Typed field constructors |
+
+For complete API documentation, see [pkg.go.dev](https://pkg.go.dev/github.com/sivaosorg/replify/pkg/slogger).
+
+---
+
+## Configuration
+
+### Log levels
+
+Seven severity levels are defined, in increasing order:
+
+| Constant | Numeric | Meaning |
+|----------|---------|---------|
+| `TraceLevel` | 0 | Fine-grained diagnostic output; very verbose |
+| `DebugLevel` | 1 | Developer debugging; enabled in test/staging |
+| `InfoLevel`  | 2 | General operational messages; default minimum |
+| `WarnLevel`  | 3 | Potentially harmful situations |
+| `ErrorLevel` | 4 | Errors that do not stop the application |
+| `FatalLevel` | 5 | Logs the message then calls `os.Exit(1)` |
+| `PanicLevel` | 6 | Logs the message then panics |
+
+### Environment-based configuration
+
+```go
+lvl, err := slogger.ParseLevel(os.Getenv("LOG_LEVEL"))
+if err != nil {
+    lvl = slogger.InfoLevel
+}
+log.SetLevel(lvl)
+```
+
+### Logger options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| Level | `Level` | `InfoLevel` | Minimum log level |
+| Formatter | `Formatter` | `TextFormatter` | Entry serialiser |
+| Output | `io.Writer` | `os.Stderr` | Primary write destination |
+| Caller | `bool` | `false` | Capture source file and line |
+| CallerSkip | `int` | `0` | Additional stack frames to skip |
+
+### Rotation options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| Dir | `string` | `"logs"` | Base log directory |
+| MaxBytes | `int64` | `10 MiB` | File size threshold for rotation |
+| MaxAge | `time.Duration` | `0` (disabled) | Age threshold for rotation |
+| Compress | `bool` | `false` | ZIP-compress rotated files |
+
+### Sampling options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| First | `int` | Number of identical messages always logged per Period |
+| Period | `time.Duration` | Sliding window for the counter |
+| Thereafter | `int` | Log every Nth message after First; 0 = drop all |
+
+---
+
+## Platform support
+
+slogger is built entirely on the Go standard library and supports all platforms where Go runs.
+
+| OS | Architecture | Status |
+|----|--------------|--------|
+| Linux | amd64, arm64, arm | ✅ Fully supported |
+| macOS | amd64, arm64 | ✅ Fully supported |
+| Windows | amd64, arm64 | ✅ Fully supported |
+| FreeBSD | amd64 | ✅ Fully supported |
+
+### Platform-specific notes
+
+- **TTY detection**: Color output is automatically disabled when stdout/stderr is not a terminal (e.g., in CI pipelines or when piped to files)
+- **File rotation**: Archive directories use forward slashes internally; path handling is OS-aware via `filepath`
+- **Atomic operations**: Logger level changes use `sync/atomic` for lock-free reads on all platforms
+
+---
+
+## Contributing
+
+Contributions are welcome! Please see the [contributing guidelines](../../CONTRIBUTING.md) for details.
+
+### Local development
+
+```bash
+# Clone the repository
+git clone https://github.com/sivaosorg/replify.git
+cd replify
+
+# Run tests for the slogger package
+go test -v ./pkg/slogger/...
+
+# Run tests with race detection
+go test -race ./pkg/slogger/...
+
+# Run benchmarks
+go test -bench=. ./pkg/slogger/...
+```
+
+---
+
+## License
+
+This project is licensed under the GNU General Public License v3.0 — see the [LICENSE](../../LICENSE) file for details.
 
 ---
 
@@ -120,6 +447,10 @@ pkg/slogger/
                          NewLevelWriterHook, Levels, Fire
 ```
 
+---
+
+## Additional documentation
+
 ### Component deep-dive
 
 #### Logger
@@ -173,7 +504,7 @@ type Formatter interface {
 Two built-in implementations are provided:
 
 | Formatter | Output style | Best for |
-|---|---|---|
+|-----------|--------------|----------|
 | `TextFormatter` | `timestamp LEVEL [name] message key=value` | Development, CLI tools |
 | `JSONFormatter` | `{"ts":"…","level":"…","msg":"…","key":value}` | Production, log aggregators |
 
@@ -207,59 +538,7 @@ rotation integrates seamlessly with the hook system.
 
 ---
 
-## Installation
-
-```bash
-go get github.com/sivaosorg/replify
-```
-
-Import:
-
-```go
-import "github.com/sivaosorg/replify/pkg/slogger"
-```
-
-No additional dependencies are required.
-
----
-
-## Quick Start
-
-```go
-package main
-
-import (
-    "os"
-
-    "github.com/sivaosorg/replify/pkg/slogger"
-)
-
-func main() {
-    // Create a logger with JSON output to stdout at DEBUG level.
-    log := slogger.New(func(o *slogger.Options) {
-        o.Level     = slogger.DebugLevel
-        o.Formatter = slogger.NewJSONFormatter()
-        o.Output    = os.Stdout
-    })
-
-    log.Info("server started",
-        slogger.String("addr", ":8080"),
-        slogger.String("env", "production"),
-    )
-
-    // Structured error logging.
-    if err := doSomething(); err != nil {
-        log.Error("operation failed",
-            slogger.Err(err),
-            slogger.String("op", "doSomething"),
-        )
-    }
-}
-```
-
----
-
-## Logging Modes
+## Logging modes
 
 ### Structured logging
 
@@ -310,46 +589,6 @@ log.Infof("user %q logged in from %s after %v", uid, ip, latency)
 or alert on. Reserve formatted messages for truly free-form diagnostic output
 (e.g., startup banners, developer debugging).
 
----
-
-## Configuration
-
-### Log levels
-
-Seven severity levels are defined, in increasing order:
-
-| Constant | Numeric | Meaning |
-|---|---|---|
-| `TraceLevel` | 0 | Fine-grained diagnostic output; very verbose |
-| `DebugLevel` | 1 | Developer debugging; enabled in test/staging |
-| `InfoLevel`  | 2 | General operational messages; default minimum |
-| `WarnLevel`  | 3 | Potentially harmful situations |
-| `ErrorLevel` | 4 | Errors that do not stop the application |
-| `FatalLevel` | 5 | Logs the message then calls `os.Exit(1)` |
-| `PanicLevel` | 6 | Logs the message then panics |
-
-Change the minimum level at any time:
-
-```go
-// Atomically — safe to call from any goroutine while the logger is in use.
-log.SetLevel(slogger.WarnLevel)
-
-// Check at runtime:
-if log.IsLevelEnabled(slogger.DebugLevel) {
-    log.Debug("expensive debug info", buildExpensiveField())
-}
-```
-
-Parse a level from a string (e.g., an environment variable):
-
-```go
-lvl, err := slogger.ParseLevel(os.Getenv("LOG_LEVEL"))
-if err != nil {
-    lvl = slogger.InfoLevel
-}
-log.SetLevel(lvl)
-```
-
 ### Logger construction
 
 `New` accepts zero or more functional options:
@@ -357,13 +596,13 @@ log.SetLevel(lvl)
 ```go
 log := slogger.New(
     func(o *slogger.Options) {
-        o.Level          = slogger.DebugLevel
-        o.Formatter      = slogger.NewJSONFormatter()
-        o.Output         = os.Stdout
-        o.CallerReporter = true
-        o.CallerSkip     = 0
-        o.Name           = "my-service"
-        o.Fields         = []slogger.Field{
+        o.Level     = slogger.DebugLevel
+        o.Formatter = slogger.NewJSONFormatter()
+        o.Output    = os.Stdout
+        o.Caller    = true
+        o.CallerSkip = 0
+        o.Name      = "my-service"
+        o.Fields    = []slogger.Field{
             slogger.String("version", "1.2.3"),
         }
     },
@@ -390,7 +629,7 @@ Human-readable output, ideal for development and CLI tools:
 f := slogger.NewTextFormatter(os.Stderr).
     WithTimeFormat(time.RFC3339Nano).  // custom timestamp layout
     WithEnableCaller().                // append caller=pkg/foo/bar.go:42
-    WithDisableColor().               // disable ANSI codes (e.g. for files)
+    WithDisableColor().                // disable ANSI codes (e.g. for files)
     WithDisableTimestamp()             // omit timestamp (when infra adds its own)
 ```
 
@@ -471,32 +710,22 @@ dispatching to a background goroutine inside the hook's `Fire` implementation.
 Enable automatic per-level log file rotation:
 
 ```go
-log := slogger.New(
-    slogger.WithRotation(slogger.RotationOptions{
+log := slogger.NewLogger().
+    WithLevel(slogger.InfoLevel).
+    WithFormatter(slogger.NewJSONFormatter()).
+    WithOutput(os.Stdout).
+    WithRotation(slogger.RotationOptions{
         Dir:      "logs",           // base directory; created if absent
         MaxBytes: 50 * 1024 * 1024, // rotate at 50 MiB
         MaxAge:   24 * time.Hour,   // or after 24 hours, whichever comes first
         Compress: true,             // zip rotated files
-    }),
-)
+    })
 ```
 
 This creates four files: `logs/debug.log`, `logs/info.log`, `logs/warn.log`,
 `logs/error.log`. When a file exceeds the size or age threshold, it is moved to
 `logs/archived/2006-01-02/20060102150405_<level>.zip` (or `.log` without
 compression).
-
-Trigger rotation manually (e.g. on `SIGHUP`):
-
-```go
-// Obtain the writer from the hook registry if needed, or keep a reference:
-lfw, _ := slogger.NewLevelFileWriter(opts)
-hook := slogger.NewLevelWriterHook(lfw, slogger.NewJSONFormatter())
-log.AddHook(hook)
-
-// On SIGHUP:
-_ = lfw.Rotate()
-```
 
 ### Color support
 
@@ -512,7 +741,7 @@ f := slogger.NewTextFormatter(os.Stderr).WithDisableColor()
 Color mapping:
 
 | Level | Color |
-|---|---|
+|-------|-------|
 | TRACE | Cyan |
 | DEBUG | Blue |
 | INFO  | Green |
@@ -521,7 +750,7 @@ Color mapping:
 
 ---
 
-## Structured Fields
+## Structured fields
 
 All field constructors return a zero-allocation `Field` value:
 
@@ -544,7 +773,7 @@ Fields are merged in this order when an entry is dispatched:
 
 ---
 
-## Child Loggers
+## Child loggers
 
 ### With — add persistent fields
 
@@ -578,48 +807,18 @@ Names are rendered in square brackets in `TextFormatter` output and as the
 
 ---
 
-## Context-Aware Logging
-
-Store fields in a `context.Context` and retrieve them automatically at log time:
-
-```go
-// At request entry point (e.g. HTTP middleware):
-ctx = slogger.WithContextFields(ctx,
-    slogger.String("trace_id",   tid),
-    slogger.String("request_id", rid),
-    slogger.String("user_id",    uid),
-)
-
-// Deep in a service function — no need to thread a logger through call stacks:
-log.WithContext(ctx).Info("database query",
-    slogger.Duration("latency", elapsed),
-)
-// → fields include trace_id, request_id, user_id, and latency
-```
-
-Fields are appended, not replaced — successive calls to `WithContextFields`
-accumulate fields in the context.
-
-Retrieve fields from a context directly:
-
-```go
-fields := slogger.FieldsFromContext(ctx)
-```
-
----
-
 ## Sampling
 
 Rate-limit identical log messages to prevent log storms during error spikes:
 
 ```go
-log := slogger.New(func(o *slogger.Options) {
-    o.SamplingOpts = &slogger.SamplingOptions{
+log := slogger.NewLogger().
+    WithLevel(slogger.InfoLevel).
+    WithSampling(slogger.SamplingOptions{
         First:      10,              // log the first 10 identical messages per second
         Period:     time.Second,     // sliding window duration
         Thereafter: 100,             // then log every 100th message
-    }
-})
+    })
 ```
 
 Sampling is keyed on the exact message string. Each unique message maintains an
@@ -630,35 +829,7 @@ the window — useful for suppressing completely repetitive events.
 
 ---
 
-## Global Logger
-
-A package-level logger is initialised at program start with production-safe
-defaults (`InfoLevel`, `TextFormatter`, `os.Stderr`). All package-level
-functions delegate to it:
-
-```go
-// Replace the global logger (e.g. during application bootstrap).
-slogger.SetGlobalLogger(log)
-
-// Use the global logger.
-slogger.Info("application ready")
-slogger.Warn("deprecation notice", slogger.String("api", "/v1/users"))
-slogger.Errorf("unexpected status: %d", code)
-
-// Store fields in context for the global logger.
-ctx = slogger.GlobalWithContextFields(ctx, slogger.String("trace_id", tid))
-
-// Retrieve the global logger when a reference is needed.
-gl := slogger.GlobalLogger()
-gl.AddHook(myHook)
-```
-
-**Recommendation:** replace the global logger once during bootstrap, then use
-named or child loggers for all component-level logging.
-
----
-
-## Best Practices
+## Best practices
 
 ### Microservices
 
@@ -666,51 +837,15 @@ Always include a `service` or `app` field so entries can be distinguished in
 a shared aggregator:
 
 ```go
-log := slogger.New(func(o *slogger.Options) {
-    o.Level     = slogger.InfoLevel
-    o.Formatter = slogger.NewJSONFormatter()
-    o.Output    = os.Stdout
-    o.Fields    = []slogger.Field{
+log := slogger.NewLogger().
+    WithLevel(slogger.InfoLevel).
+    WithFormatter(slogger.NewJSONFormatter()).
+    WithOutput(os.Stdout).
+    With(
         slogger.String("service", "order-service"),
         slogger.String("version", version),
         slogger.String("env",     os.Getenv("ENV")),
-    }
-})
-```
-
-### Observability and distributed tracing
-
-Use context-based field propagation to carry trace and span IDs without
-threading the logger through every function signature:
-
-```go
-func handleRequest(ctx context.Context, r *http.Request) {
-    ctx = slogger.WithContextFields(ctx,
-        slogger.String("trace_id", extractTraceID(r)),
-        slogger.String("span_id",  generateSpanID()),
     )
-
-    // Pass ctx, not log, through the call stack.
-    processOrder(ctx, order)
-}
-
-func processOrder(ctx context.Context, o Order) {
-    log.WithContext(ctx).Info("processing order",
-        slogger.String("order_id", o.ID),
-    )
-}
-```
-
-### CLI tools
-
-Use `TextFormatter` with colors for interactive output. Disable timestamps when
-the terminal already provides context:
-
-```go
-log := slogger.New(func(o *slogger.Options) {
-    o.Level     = slogger.DebugLevel
-    o.Formatter = slogger.NewTextFormatter(os.Stderr).WithDisableTimestamp()
-})
 ```
 
 ### Background workers
@@ -735,16 +870,9 @@ For services that log tens of thousands of entries per second:
 4. Use `With` to bind high-cardinality fields at the service level so they are
    not reallocated per entry.
 
-```go
-buf := bufio.NewWriterSize(logFile, 64*1024) // 64 KiB buffer
-log.SetOutput(buf)
-// Flush periodically or on shutdown:
-defer buf.Flush()
-```
-
 ---
 
-## Performance Considerations
+## Performance considerations
 
 ### Memory allocations
 
@@ -769,179 +897,3 @@ defer buf.Flush()
 - `LevelFileWriter` uses a per-instance `sync.Mutex` — file writes are
   serialised per writer, but multiple loggers writing to different files are
   fully concurrent.
-
-### Logger reuse strategies
-
-- **Prefer child loggers over repeated field passing.** Instead of passing
-  `slogger.String("request_id", rid)` to every log call, use
-  `log.With(slogger.String("request_id", rid))` once at request entry.
-- **Avoid `Any` for hot-path fields.** `AnyType` fields use `json.Marshal` or
-  `fmt.Sprintf("%v")` which may allocate. Use typed constructors where possible.
-- **Reuse `With` loggers across request lifetime.** Assign a request-scoped
-  logger to the context or pass it as a function argument rather than
-  constructing it repeatedly.
-
----
-
-## Real-World Examples
-
-### HTTP middleware logging
-
-```go
-func LoggingMiddleware(log *slogger.Logger) func(http.Handler) http.Handler {
-    return func(next http.Handler) http.Handler {
-        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-            start := time.Now()
-            rid   := r.Header.Get("X-Request-ID")
-            if rid == "" {
-                rid = generateID()
-            }
-
-            // Bind request fields to a child logger and inject into context.
-            reqLog := log.With(
-                slogger.String("request_id", rid),
-                slogger.String("method",     r.Method),
-                slogger.String("path",       r.URL.Path),
-                slogger.String("remote_ip",  r.RemoteAddr),
-            )
-            ctx := slogger.WithContextFields(r.Context(),
-                slogger.String("request_id", rid),
-            )
-
-            reqLog.Info("request received")
-            rw := newResponseWriter(w)
-            next.ServeHTTP(rw, r.WithContext(ctx))
-
-            reqLog.Info("request completed",
-                slogger.Int("status",   rw.status),
-                slogger.Duration("latency", time.Since(start)),
-            )
-        })
-    }
-}
-```
-
-### Database query logging
-
-```go
-func (r *UserRepository) FindByID(ctx context.Context, id string) (*User, error) {
-    start := time.Now()
-    user, err := r.db.QueryRowContext(ctx, queryFindByID, id).Scan(...)
-    elapsed := time.Since(start)
-
-    if elapsed > 100*time.Millisecond {
-        log.WithContext(ctx).Warn("slow query",
-            slogger.String("query",   "FindByID"),
-            slogger.String("user_id", id),
-            slogger.Duration("latency", elapsed),
-        )
-    }
-
-    if err != nil {
-        log.WithContext(ctx).Error("query failed",
-            slogger.String("query", "FindByID"),
-            slogger.Err(err),
-        )
-        return nil, err
-    }
-
-    log.WithContext(ctx).Debug("query ok",
-        slogger.String("query", "FindByID"),
-        slogger.Duration("latency", elapsed),
-    )
-    return user, nil
-}
-```
-
-### Rotation with compression
-
-```go
-log := slogger.New(
-    slogger.WithRotation(slogger.RotationOptions{
-        Dir:      "/var/log/myapp",
-        MaxBytes: 100 * 1024 * 1024, // 100 MiB per level file
-        MaxAge:   6 * time.Hour,
-        Compress: true,
-    }),
-    func(o *slogger.Options) {
-        o.Level     = slogger.InfoLevel
-        o.Formatter = slogger.NewJSONFormatter()
-        o.Output    = os.Stdout // also write to stdout
-    },
-)
-```
-
-### Multi-destination output
-
-```go
-logFile, _ := os.OpenFile("app.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-
-log := slogger.New(func(o *slogger.Options) {
-    o.Formatter = slogger.NewJSONFormatter()
-    o.Output    = slogger.NewMultiWriter(
-        os.Stdout,  // JSON to stdout for container log driver
-        logFile,    // JSON to file for local inspection
-    )
-})
-```
-
-### Testing with hooks
-
-Capture log entries in tests without mocking the entire logger:
-
-```go
-type captureHook struct {
-    mu      sync.Mutex
-    entries []*slogger.Entry
-}
-
-func (h *captureHook) Levels() []slogger.Level {
-    return []slogger.Level{
-        slogger.TraceLevel, slogger.DebugLevel, slogger.InfoLevel,
-        slogger.WarnLevel, slogger.ErrorLevel,
-    }
-}
-
-func (h *captureHook) Fire(e *slogger.Entry) error {
-    // Copy the fields to avoid use-after-return of the pooled entry.
-    h.mu.Lock()
-    h.entries = append(h.entries, &slogger.Entry{})
-    // Copy relevant data from e into the stored entry.
-    _ = e
-    h.mu.Unlock()
-    return nil
-}
-```
-
----
-
-## Options Reference
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `Level` | `Level` | `InfoLevel` | Minimum log level |
-| `Formatter` | `Formatter` | `TextFormatter(stderr)` | Entry serialiser |
-| `Output` | `io.Writer` | `os.Stderr` | Primary write destination |
-| `CallerReporter` | `bool` | `false` | Capture source location |
-| `CallerSkip` | `int` | `0` | Additional stack frames to skip |
-| `Fields` | `[]Field` | nil | Logger-bound structured fields |
-| `Name` | `string` | `""` | Logger name shown in output |
-| `SamplingOpts` | `*SamplingOptions` | nil | Rate-limiting configuration |
-| `RotationOpts` | `*RotationOptions` | nil | File rotation configuration |
-
-### SamplingOptions
-
-| Field | Type | Description |
-|---|---|---|
-| `First` | `int` | Number of identical messages always logged per Period |
-| `Period` | `time.Duration` | Sliding window for the counter |
-| `Thereafter` | `int` | Log every Nth message after First are exhausted; 0 = drop |
-
-### RotationOptions
-
-| Field | Type | Default | Description |
-|---|---|---|---|
-| `Dir` | `string` | `"logs"` | Base log directory |
-| `MaxBytes` | `int64` | `10 MiB` | File size threshold for rotation |
-| `MaxAge` | `time.Duration` | `0` (disabled) | Age threshold for rotation |
-| `Compress` | `bool` | `false` | ZIP-compress rotated files |

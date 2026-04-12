@@ -323,14 +323,14 @@ type SloggerConfig struct {
 
 // OutputConfig configures where log entries are delivered.
 type OutputConfig struct {
-	// Console writes every log entry to the standard output stream (os.Stdout).
+	// IsConsole writes every log entry to the standard output stream (os.Stdout).
 	// Recommended for containerised workloads where the runtime collects stdout.
-	Console bool `yaml:"console" json:"console"`
+	IsConsole bool `yaml:"console" json:"console"`
 
-	// File writes every log entry to level-specific files in addition to any
-	// console output. Requires File.Directory to be set.
+	// IsFile writes every log entry to level-specific files in addition to any
+	// console output. Requires IsFile.Directory to be set.
 	// Set to false when running in Kubernetes or other stdout-first environments.
-	File bool `yaml:"file" json:"file"`
+	IsFile bool `yaml:"file" json:"file"`
 }
 
 // FileConfig configures the base directory and per-level file names for
@@ -376,10 +376,10 @@ type RotationConfig struct {
 	// Set to 0 to disable age-based rotation.
 	MaxAgeDays int `yaml:"max_age_days" json:"max_age_days"`
 
-	// Compress zips rotated files to reduce disk usage.
+	// IsCompress zips rotated files to reduce disk usage.
 	// Compression ratios for plain-text logs are typically 80–95 %.
 	// Recommended for long-retention or low-disk environments.
-	Compress bool `yaml:"compress" json:"compress"`
+	IsCompress bool `yaml:"compress" json:"compress"`
 }
 
 // ArchiveConfig configures how rotated log files are archived.
@@ -474,7 +474,9 @@ type contextKey struct{}
 
 // entryPool is the package-level sync.Pool for recycling Entry objects.
 // Capacity is pre-allocated to defaultEntryFieldCap to avoid early reallocations.
-var entryPool = sync.Pool{New: func() any { return &Entry{fields: make([]Field, 0, defaultEntryFieldCap)} }}
+var entryPool = sync.Pool{New: func() any {
+	return &Entry{fields: make([]Field, 0, defaultEntryFieldCap)}
+}}
 
 // global holds the package-level logger pointer.
 // Access is guarded by atomic operations so callers need no external lock.

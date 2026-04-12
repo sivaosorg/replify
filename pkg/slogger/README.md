@@ -183,7 +183,7 @@ func main() {
 		WithLevel(slogger.InfoLevel).
 		WithFormatter(slogger.NewTextFormatter(os.Stdout)).
 		WithOutput(os.Stdout).
-		WithRotation(*slogger.NewRotationOptions().
+		WithRotation(slogger.NewRotationOptions().
 			WithDirectory("logs").
 			WithMaxBytes(50 * 1024 * 1024).
 			WithMaxAge(24 * time.Hour).

@@ -574,6 +574,176 @@ func TestStripANSI(t *testing.T) {
 		expected := "2026-04-12 10:30:00 INFO  application started"
 		assertEqual(t, expected, StripANSI(input))
 	})
+
+	// =========================================================================
+	// Advanced edge cases
+	// =========================================================================
+
+	t.Run("standalone ESC at end of string", func(t *testing.T) {
+		t.Parallel()
+		// ESC alone without CSI sequence should be preserved (not a valid ANSI sequence)
+		input := "text\033"
+		expected := "text\033"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("ESC followed by non-bracket character", func(t *testing.T) {
+		t.Parallel()
+		// Non-CSI escape sequence (e.g., \033) followed by something other than [
+		input := "text\033)text2"
+		expected := "text\033)text2"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("incomplete CSI sequence at end", func(t *testing.T) {
+		t.Parallel()
+		// CSI sequence that starts but has no terminator
+		input := "text\033["
+		expected := "text"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("incomplete CSI with parameters at end", func(t *testing.T) {
+		t.Parallel()
+		// CSI sequence with parameters but no terminator
+		input := "text\033[38;5;196"
+		expected := "text"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("256-color SGR sequence", func(t *testing.T) {
+		t.Parallel()
+		// 256-color foreground: ESC[38;5;<n>m
+		input := "\033[38;5;196mRED\033[0m"
+		expected := "RED"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("24-bit true color SGR sequence", func(t *testing.T) {
+		t.Parallel()
+		// 24-bit RGB foreground: ESC[38;2;<r>;<g>;<b>m
+		input := "\033[38;2;255;0;0mTRUECOLOR\033[0m"
+		expected := "TRUECOLOR"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("cursor movement sequences", func(t *testing.T) {
+		t.Parallel()
+		// Cursor up (A), down (B), forward (C), back (D)
+		input := "\033[2Aup\033[3Bdown\033[4Cforward\033[5Dback"
+		expected := "updownforwardback"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("cursor position sequence", func(t *testing.T) {
+		t.Parallel()
+		// Cursor position: ESC[<row>;<col>H
+		input := "start\033[10;20Hmiddle\033[1;1Hend"
+		expected := "startmiddleend"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("erase sequences", func(t *testing.T) {
+		t.Parallel()
+		// Erase in Display (J) and Erase in Line (K)
+		input := "text\033[2Jcleared\033[Kline"
+		expected := "textclearedline"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("scroll sequences", func(t *testing.T) {
+		t.Parallel()
+		// Scroll up (S) and scroll down (T)
+		input := "text\033[2Sscrolled\033[3T"
+		expected := "textscrolled"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("multiple ESC in a row", func(t *testing.T) {
+		t.Parallel()
+		// Multiple ESC characters where only the second forms a valid CSI
+		input := "\033\033[31mred\033[0m"
+		expected := "\033red"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("string with only ANSI codes", func(t *testing.T) {
+		t.Parallel()
+		// String containing only escape sequences, no visible content
+		input := "\033[31m\033[1m\033[0m"
+		expected := ""
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("private mode sequences", func(t *testing.T) {
+		t.Parallel()
+		// Private mode sequences use ? after CSI (e.g., show/hide cursor)
+		input := "\033[?25lhidden\033[?25h"
+		expected := "hidden"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("SGR with semicolons and multiple attributes", func(t *testing.T) {
+		t.Parallel()
+		// Multiple SGR attributes: bold;red;underline
+		input := "\033[1;31;4mstyledtext\033[0m"
+		expected := "styledtext"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("CSI with @ terminator", func(t *testing.T) {
+		t.Parallel()
+		// Insert character: ESC[@
+		input := "ab\033[2@cd"
+		expected := "abcd"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("CSI with tilde terminator", func(t *testing.T) {
+		t.Parallel()
+		// Function key sequences often end with ~
+		input := "text\033[15~more"
+		expected := "textmore"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("mixed content with newlines and ANSI", func(t *testing.T) {
+		t.Parallel()
+		input := "\033[32mline1\033[0m\nline2\n\033[31mline3\033[0m"
+		expected := "line1\nline2\nline3"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("tab characters preserved with ANSI", func(t *testing.T) {
+		t.Parallel()
+		input := "\033[32mcol1\033[0m\tcol2"
+		expected := "col1\tcol2"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("very long ANSI sequence", func(t *testing.T) {
+		t.Parallel()
+		// Long parameter list
+		input := "\033[0;1;2;3;4;5;6;7;8;9;10;11;12;13;14;15mtext\033[0m"
+		expected := "text"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("ESC at various positions", func(t *testing.T) {
+		t.Parallel()
+		// ESC at start, middle, end positions without forming valid CSI
+		input := "\033 text \033"
+		expected := "\033 text \033"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("binary-like content with ESC", func(t *testing.T) {
+		t.Parallel()
+		// Ensure non-printable characters are preserved
+		input := "text\x00\x01\033[31mred\033[0m\x02\x03"
+		expected := "text\x00\x01red\x02\x03"
+		assertEqual(t, expected, StripANSI(input))
+	})
 }
 
 // =============================================================================
@@ -693,5 +863,32 @@ func BenchmarkTextFormatter_FormatWithCaller(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = f.Format(entry)
+	}
+}
+
+func BenchmarkStripANSI_NoEscape(b *testing.B) {
+	// Common case: no escape sequences
+	input := "2026-04-12 10:30:00 INFO  application started with key=value count=42"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = StripANSI(input)
+	}
+}
+
+func BenchmarkStripANSI_WithColors(b *testing.B) {
+	// Typical colored log line
+	input := "2026-04-12 10:30:00 \033[32m\033[1mINFO \033[0m application started key=value"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = StripANSI(input)
+	}
+}
+
+func BenchmarkStripANSI_Heavy(b *testing.B) {
+	// Many ANSI sequences
+	input := "\033[38;2;255;0;0m\033[1mERROR\033[0m \033[38;5;196mfailed\033[0m \033[33mwarning\033[0m \033[34mdebug\033[0m"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = StripANSI(input)
 	}
 }

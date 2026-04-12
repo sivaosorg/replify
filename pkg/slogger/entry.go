@@ -78,7 +78,9 @@ func (e *Entry) Level() Level {
 // Returns:
 //
 // the Level at which this entry was logged.
-func (e *Entry) GetLevel() Level { return e.Level() }
+func (e *Entry) GetLevel() Level {
+	return e.Level()
+}
 
 // Message returns the primary log message string.
 //

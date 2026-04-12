@@ -1020,7 +1020,7 @@ func TestSlogger_WithRotation_Option(t *testing.T) {
 			o.SetOutput(&buf)
 			o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 		},
-		slogger.WithRotation(*slogger.NewRotationOptions().
+		slogger.WithRotation(slogger.NewRotationOptions().
 			WithDir(dir).
 			WithMaxBytes(1024*1024).
 			WithCompress(false)),

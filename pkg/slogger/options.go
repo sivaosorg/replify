@@ -124,8 +124,8 @@ func WithSamplingOpts(opts *SamplingOptions) func(*Options) {
 // Returns:
 //
 // a functional option that sets RotationOpts on the logger's Options.
-func WithRotation(opts RotationOptions) func(*Options) {
+func WithRotation(opts *RotationOptions) func(*Options) {
 	return func(o *Options) {
-		o.rotationOpts = &opts
+		o.rotationOpts = opts
 	}
 }

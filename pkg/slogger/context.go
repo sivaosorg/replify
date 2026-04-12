@@ -2,6 +2,22 @@ package slogger
 
 import "context"
 
+// FieldsFromContext extracts the log fields stored in ctx.
+//
+// Parameters:
+//   - `ctx`: a context that may carry log fields
+//
+// Returns:
+//
+// the []Field stored in ctx, or nil when no fields are present.
+func FieldsFromContext(ctx context.Context) []Field {
+	if ctx == nil {
+		return nil
+	}
+	v, _ := ctx.Value(contextKey{}).([]Field)
+	return v
+}
+
 // WithContextFields returns a new context that carries the provided fields.
 // Any fields already stored in ctx are preserved; the new fields are appended
 // after the existing ones.
@@ -22,20 +38,4 @@ func WithContextFields(ctx context.Context, fields ...Field) context.Context {
 	merged = append(merged, existing...)
 	merged = append(merged, fields...)
 	return context.WithValue(ctx, contextKey{}, merged)
-}
-
-// FieldsFromContext extracts the log fields stored in ctx.
-//
-// Parameters:
-//   - `ctx`: a context that may carry log fields
-//
-// Returns:
-//
-// the []Field stored in ctx, or nil when no fields are present.
-func FieldsFromContext(ctx context.Context) []Field {
-	if ctx == nil {
-		return nil
-	}
-	v, _ := ctx.Value(contextKey{}).([]Field)
-	return v
 }

@@ -710,15 +710,14 @@ Enable automatic per-level log file rotation:
 
 ```go
 log := slogger.NewLogger().
-    WithLevel(slogger.InfoLevel).
-    WithFormatter(slogger.NewJSONFormatter()).
-    WithOutput(os.Stdout).
-    WithRotation(slogger.RotationOptions{
-        Dir:      "logs",           // base directory; created if absent
-        MaxBytes: 50 * 1024 * 1024, // rotate at 50 MiB
-        MaxAge:   24 * time.Hour,   // or after 24 hours, whichever comes first
-        Compress: true,             // zip rotated files
-    })
+		WithLevel(slogger.InfoLevel).
+		WithFormatter(slogger.NewJSONFormatter()).
+		WithOutput(os.Stdout).
+		WithRotation(*slogger.NewRotationOptions().
+			WithDirectory("logs"). // base directory; created if absent
+			WithMaxBytes(50 * 1024 * 1024). // rotate at 50 MiB
+			WithMaxAge(24 * time.Hour). // or after 24 hours, whichever comes first
+			WithCompress(true)) // zip rotated files
 ```
 
 This creates four files: `logs/debug.log`, `logs/info.log`, `logs/warn.log`,

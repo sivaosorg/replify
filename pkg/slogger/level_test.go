@@ -140,9 +140,9 @@ func TestLevel_String(t *testing.T) {
 		{ErrorLevel, "ERROR"},
 		{FatalLevel, "FATAL"},
 		{PanicLevel, "PANIC"},
-		{Level(100), "UNKNOWN"},  // Unknown level
-		{Level(-1), "UNKNOWN"},   // Negative level
-		{Level(999), "UNKNOWN"},  // Very high level
+		{Level(100), "UNKNOWN"}, // Unknown level
+		{Level(-1), "UNKNOWN"},  // Negative level
+		{Level(999), "UNKNOWN"}, // Very high level
 	}
 
 	for _, tt := range tests {

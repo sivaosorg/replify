@@ -912,7 +912,7 @@ func TestSlogger_CallerInfoAccessors(t *testing.T) {
 		o.SetLevel(slogger.TraceLevel)
 		o.SetOutput(&buf)
 		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
-		o.SetCallerReporter(true)
+		o.SetCaller(true)
 	})
 
 	hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
@@ -1327,7 +1327,7 @@ func TestSlogger_TrimFilePath_CrossPlatform(t *testing.T) {
 		o.SetLevel(slogger.TraceLevel)
 		o.SetOutput(&buf)
 		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller())
-		o.SetCallerReporter(true)
+		o.SetCaller(true)
 	})
 
 	log.Info("test caller")
@@ -1437,7 +1437,7 @@ func TestSlogger_TextFormatter_ConcurrentFormatSafety(t *testing.T) {
 		o.SetLevel(slogger.TraceLevel)
 		o.SetOutput(&buf)
 		o.SetFormatter(formatter)
-		o.SetCallerReporter(true)
+		o.SetCaller(true)
 	})
 
 	const goroutines = 50

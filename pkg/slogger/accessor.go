@@ -2,19 +2,18 @@ package slogger
 
 import (
 	"io"
-	"time"
 )
 
 // ///////////////////////////////////////////////////////////////////////////
 // Options accessors
 // ///////////////////////////////////////////////////////////////////////////
 
-// GetLevel returns the minimum log level.
+// Level returns the minimum log level.
 //
 // Returns:
 //
 // the Level configured in Options.
-func (o *Options) GetLevel() Level {
+func (o *Options) Level() Level {
 	if o == nil {
 		return InfoLevel
 	}
@@ -32,12 +31,12 @@ func (o *Options) SetLevel(level Level) {
 	o.level = level
 }
 
-// GetFormatter returns the formatter.
+// Formatter returns the formatter.
 //
 // Returns:
 //
 // the Formatter configured in Options.
-func (o *Options) GetFormatter() Formatter {
+func (o *Options) Formatter() Formatter {
 	if o == nil {
 		return nil
 	}
@@ -55,12 +54,12 @@ func (o *Options) SetFormatter(formatter Formatter) {
 	o.formatter = formatter
 }
 
-// GetOutput returns the output writer.
+// Output returns the output writer.
 //
 // Returns:
 //
 // the io.Writer configured in Options.
-func (o *Options) GetOutput() io.Writer {
+func (o *Options) Output() io.Writer {
 	if o == nil {
 		return nil
 	}
@@ -78,35 +77,35 @@ func (o *Options) SetOutput(output io.Writer) {
 	o.output = output
 }
 
-// IsCallerReporter returns whether caller reporting is enabled.
+// IsCaller returns whether caller reporting is enabled.
 //
 // Returns:
 //
 // true if caller reporting is enabled.
-func (o *Options) IsCallerReporter() bool {
+func (o *Options) IsCaller() bool {
 	if o == nil {
 		return false
 	}
 	return o.caller
 }
 
-// SetCallerReporter enables or disables caller reporting.
+// SetCaller enables or disables caller reporting.
 //
 // Parameters:
 //   - `enable`: whether to enable caller reporting
-func (o *Options) SetCallerReporter(enable bool) {
+func (o *Options) SetCaller(enable bool) {
 	if o == nil {
 		return
 	}
 	o.caller = enable
 }
 
-// GetCallerSkip returns the caller skip count.
+// CallerSkip returns the caller skip count.
 //
 // Returns:
 //
 // the number of stack frames to skip.
-func (o *Options) GetCallerSkip() int {
+func (o *Options) CallerSkip() int {
 	if o == nil {
 		return 0
 	}
@@ -124,12 +123,12 @@ func (o *Options) SetCallerSkip(skip int) {
 	o.callerSkip = skip
 }
 
-// GetFields returns a copy of the fields.
+// Fields returns a copy of the fields.
 //
 // Returns:
 //
 // a copy of the []Field slice configured in Options.
-func (o *Options) GetFields() []Field {
+func (o *Options) Fields() []Field {
 	if o == nil || o.fields == nil {
 		return nil
 	}
@@ -165,12 +164,12 @@ func (o *Options) AddFields(fields ...Field) {
 	o.fields = append(o.fields, fields...)
 }
 
-// GetName returns the logger name.
+// Name returns the logger name.
 //
 // Returns:
 //
 // the name configured in Options.
-func (o *Options) GetName() string {
+func (o *Options) Name() string {
 	if o == nil {
 		return ""
 	}
@@ -188,12 +187,12 @@ func (o *Options) SetName(name string) {
 	o.name = name
 }
 
-// GetSamplingOpts returns the sampling options.
+// SamplingOpts returns the sampling options.
 //
 // Returns:
 //
 // the *SamplingOptions configured in Options.
-func (o *Options) GetSamplingOpts() *SamplingOptions {
+func (o *Options) SamplingOpts() *SamplingOptions {
 	if o == nil {
 		return nil
 	}
@@ -211,12 +210,12 @@ func (o *Options) SetSamplingOpts(opts *SamplingOptions) {
 	o.samplingOpts = opts
 }
 
-// GetRotationOpts returns the rotation options.
+// RotationOpts returns the rotation options.
 //
 // Returns:
 //
 // the *RotationOptions configured in Options.
-func (o *Options) GetRotationOpts() *RotationOptions {
+func (o *Options) RotationOpts() *RotationOptions {
 	if o == nil {
 		return nil
 	}
@@ -232,118 +231,6 @@ func (o *Options) SetRotationOpts(opts *RotationOptions) {
 		return
 	}
 	o.rotationOpts = opts
-}
-
-// ///////////////////////////////////////////////////////////////////////////
-// SamplingOptions accessors
-// ///////////////////////////////////////////////////////////////////////////
-
-// GetFirst returns the number of messages always logged within the period.
-//
-// Returns:
-//
-// the first value.
-func (s *SamplingOptions) GetFirst() int {
-	if s == nil {
-		return 0
-	}
-	return s.first
-}
-
-// SetFirst sets the number of messages always logged within the period.
-//
-// Parameters:
-//   - `first`: the number of messages
-func (s *SamplingOptions) SetFirst(first int) {
-	if s == nil {
-		return
-	}
-	s.first = first
-}
-
-// GetPeriod returns the sampling window duration.
-//
-// Returns:
-//
-// the period value.
-func (s *SamplingOptions) GetPeriod() time.Duration {
-	if s == nil {
-		return 0
-	}
-	return s.period
-}
-
-// SetPeriod sets the sampling window duration.
-//
-// Parameters:
-//   - `period`: the sampling window
-func (s *SamplingOptions) SetPeriod(period time.Duration) {
-	if s == nil {
-		return
-	}
-	s.period = period
-}
-
-// GetThereafter returns the interval for logging after First is exhausted.
-//
-// Returns:
-//
-// the thereafter value.
-func (s *SamplingOptions) GetThereafter() int {
-	if s == nil {
-		return 0
-	}
-	return s.thereafter
-}
-
-// SetThereafter sets the interval for logging after First is exhausted.
-//
-// Parameters:
-//   - `thereafter`: every Nth message after First
-func (s *SamplingOptions) SetThereafter(thereafter int) {
-	if s == nil {
-		return
-	}
-	s.thereafter = thereafter
-}
-
-// WithFirst sets the first count and returns the receiver for chaining.
-//
-// Parameters:
-//   - `first`: the number of messages
-//
-// Returns:
-//
-// the receiver, for method chaining.
-func (s *SamplingOptions) WithFirst(first int) *SamplingOptions {
-	s.SetFirst(first)
-	return s
-}
-
-// WithPeriod sets the sampling window duration and returns the receiver for chaining.
-//
-// Parameters:
-//   - `period`: the sampling window
-//
-// Returns:
-//
-// the receiver, for method chaining.
-func (s *SamplingOptions) WithPeriod(period time.Duration) *SamplingOptions {
-	s.SetPeriod(period)
-	return s
-}
-
-// WithThereafter sets the interval for logging after First is exhausted and returns the receiver for chaining.
-//
-// Parameters:
-//   - `thereafter`: every Nth message after First
-//
-// Returns:
-//
-// the receiver, for method chaining.
-func (s *SamplingOptions) WithThereafter(thereafter int) *SamplingOptions {
-	s.SetThereafter(thereafter)
-	return s
 }
 
 // ///////////////////////////////////////////////////////////////////////////

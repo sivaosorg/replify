@@ -251,16 +251,15 @@ func newSampler(opts SamplingOptions) *sampler {
 //
 // a ready-to-use *LevelFileWriter and any initialisation error.
 func newLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
-	if strutil.IsEmpty(opts.GetDir()) {
-		opts.SetDir(defaultLogDir)
+	if strutil.IsEmpty(opts.dir) {
+		opts.dir = defaultLogDir
 	}
-	if opts.GetMaxBytes() <= 0 {
-		opts.SetMaxBytes(defaultMaxBytes)
+	if opts.maxBytes <= 0 {
+		opts.maxBytes = defaultMaxBytes
 	}
-
-	if !sysx.DirExists(opts.GetDir()) {
-		if err := os.MkdirAll(opts.GetDir(), 0755); err != nil {
-			return nil, fmt.Errorf("slogger: cannot create log directory %q: %w", opts.GetDir(), err)
+	if !sysx.DirExists(opts.dir) {
+		if err := os.MkdirAll(opts.dir, 0755); err != nil {
+			return nil, fmt.Errorf("slogger: cannot create log directory %q: %w", opts.dir, err)
 		}
 	}
 

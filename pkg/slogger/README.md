@@ -170,29 +170,29 @@ Enable automatic per-level log file rotation with size limits and optional ZIP c
 package main
 
 import (
-    "os"
-    "time"
+	"os"
+	"time"
 
-    "github.com/sivaosorg/replify/pkg/slogger"
+	"github.com/sivaosorg/replify/pkg/slogger"
 )
 
 func main() {
-    // Create a logger with file rotation enabled.
-    log := slogger.NewLogger().
-        WithLevel(slogger.InfoLevel).
-        WithFormatter(slogger.NewJSONFormatter()).
-        WithOutput(os.Stdout).
-        WithRotation(slogger.RotationOptions{
-            Dir:      "logs",                  // Base directory for log files
-            MaxBytes: 50 * 1024 * 1024,        // Rotate at 50 MiB
-            MaxAge:   24 * time.Hour,          // Or after 24 hours
-            Compress: true,                    // ZIP compress rotated files
-        })
+	// Create a logger with file rotation enabled.
 
-    log.Info("application started with rotation enabled")
-    log.Warn("disk space low", slogger.Int("percent_used", 85))
-    // Creates: logs/info.log, logs/warn.log, logs/error.log, logs/debug.log
-    // Rotated files: logs/archived/2026-01-15/20260115100000_info.zip
+	log := slogger.NewLogger().
+		WithLevel(slogger.InfoLevel).
+		WithFormatter(slogger.NewTextFormatter(os.Stdout)).
+		WithOutput(os.Stdout).
+		WithRotation(*slogger.NewRotationOptions().
+			WithDirectory("logs").
+			WithMaxBytes(50 * 1024 * 1024).
+			WithMaxAge(24 * time.Hour).
+			WithCompress(true))
+
+	log.Info("application started with rotation enabled")
+	log.Warn("disk space low", slogger.Int("percent_used", 85))
+	// Creates: logs/info.log, logs/warn.log, logs/error.log, logs/debug.log
+	// Rotated files: logs/archived/2026-01-15/20260115100000_info.zip
 }
 ```
 

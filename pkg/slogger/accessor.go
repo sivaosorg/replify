@@ -87,7 +87,7 @@ func (o *Options) IsCallerReporter() bool {
 	if o == nil {
 		return false
 	}
-	return o.callerReporter
+	return o.caller
 }
 
 // SetCallerReporter enables or disables caller reporting.
@@ -98,7 +98,7 @@ func (o *Options) SetCallerReporter(enable bool) {
 	if o == nil {
 		return
 	}
-	o.callerReporter = enable
+	o.caller = enable
 }
 
 // GetCallerSkip returns the caller skip count.

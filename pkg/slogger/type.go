@@ -166,8 +166,8 @@ type Options struct {
 	// output is the destination writer; defaults to os.Stderr.
 	output io.Writer
 
-	// callerReporter enables automatic source-location capture.
-	callerReporter bool
+	// caller enables automatic source-location capture.
+	caller bool
 
 	// callerSkip adds extra skip frames for library wrappers.
 	callerSkip int

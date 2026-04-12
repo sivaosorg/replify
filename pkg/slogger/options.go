@@ -54,7 +54,7 @@ func WithOutput(output io.Writer) func(*Options) {
 // a functional option that sets CallerReporter on the logger's Options.
 func WithCaller(enable bool) func(*Options) {
 	return func(o *Options) {
-		o.callerReporter = enable
+		o.caller = enable
 	}
 }
 

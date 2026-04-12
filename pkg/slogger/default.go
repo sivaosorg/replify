@@ -38,7 +38,7 @@ func New(opts ...func(*Options)) *Logger {
 		hooks:      NewHooks(),
 		fields:     append([]Field(nil), o.fields...),
 		name:       o.name,
-		caller:     o.callerReporter,
+		caller:     o.caller,
 		callerSkip: o.callerSkip,
 	}
 	l.level.Store(int32(o.level))

@@ -643,12 +643,13 @@ Machine-parseable single-line JSON, ideal for production and log aggregators:
 ```
 
 ```go
-f := slogger.NewJSONFormatter().
-    WithTimeFormat(time.RFC3339Nano).
-    WithTimeKey("timestamp").    // override default "ts"
-    WithLevelKey("severity").    // override default "level"
-    WithMessageKey("message").   // override default "msg"
-    WithEnableCaller()           // add "caller":"pkg/foo/bar.go:42"
+f := slogger.NewLogger().
+		WithFormatter(slogger.NewJSONFormatter().
+			WithTimeFormat(time.RFC3339Nano).
+			WithTimeKey("timestamp").  // override default "ts"
+			WithLevelKey("severity").  // override default "level"
+			WithMessageKey("message"). // override default "msg"
+			WithEnableCaller())        // add "caller":"pkg/foo/bar.go:42"
 ```
 
 ### Output writers

@@ -44,93 +44,93 @@ func (f Field) FieldType() FieldType {
 	return f.Type()
 }
 
-// StringVal returns the raw string value stored in this field.
+// StringValue returns the raw string value stored in this field.
 // This is only meaningful when Type() returns StringType, JSONType, or TimefType.
 //
 // Returns:
 //
 // the string value stored in this field.
-func (f Field) StringVal() string {
+func (f Field) StringValue() string {
 	return f.strVal
 }
 
-// IntVal returns the raw int64 value stored in this field.
+// IntValue returns the raw int64 value stored in this field.
 // This is only meaningful when Type() returns Int64Type, Int8Type, Int16Type, or Int32Type.
 //
 // Returns:
 //
 // the int64 value stored in this field.
-func (f Field) IntVal() int64 {
+func (f Field) IntValue() int64 {
 	return f.intVal
 }
 
-// Uint64Val returns the raw uint64 value stored in this field.
+// Uint64Value returns the raw uint64 value stored in this field.
 // This is only meaningful when Type() returns UintType, Uint8Type, Uint16Type, Uint32Type, or Uint64Type.
 //
 // Returns:
 //
 // the uint64 value stored in this field.
-func (f Field) Uint64Val() uint64 {
+func (f Field) Uint64Value() uint64 {
 	return f.uint64Val
 }
 
-// FloatVal returns the raw float64 value stored in this field.
+// FloatValue returns the raw float64 value stored in this field.
 // This is only meaningful when Type() returns Float64Type or Float32Type.
 //
 // Returns:
 //
 // the float64 value stored in this field.
-func (f Field) FloatVal() float64 {
+func (f Field) FloatValue() float64 {
 	return f.floatVal
 }
 
-// BoolVal returns the raw bool value stored in this field.
+// BoolValue returns the raw bool value stored in this field.
 // This is only meaningful when Type() returns BoolType.
 //
 // Returns:
 //
 // the bool value stored in this field.
-func (f Field) BoolVal() bool {
+func (f Field) BoolValue() bool {
 	return f.boolVal
 }
 
-// ErrVal returns the raw error value stored in this field.
+// ErrValue returns the raw error value stored in this field.
 // This is only meaningful when Type() returns ErrorType.
 //
 // Returns:
 //
 // the error value stored in this field.
-func (f Field) ErrVal() error {
+func (f Field) ErrValue() error {
 	return f.errVal
 }
 
-// TimeVal returns the raw time.Time value stored in this field.
+// TimeValue returns the raw time.Time value stored in this field.
 // This is only meaningful when Type() returns TimeType or TimefType.
 //
 // Returns:
 //
 // the time.Time value stored in this field.
-func (f Field) TimeVal() time.Time {
+func (f Field) TimeValue() time.Time {
 	return f.timeVal
 }
 
-// DurVal returns the raw time.Duration value stored in this field.
+// DurationValue returns the raw time.Duration value stored in this field.
 // This is only meaningful when Type() returns DurationType.
 //
 // Returns:
 //
 // the time.Duration value stored in this field.
-func (f Field) DurVal() time.Duration {
+func (f Field) DurationValue() time.Duration {
 	return f.durVal
 }
 
-// AnyVal returns the raw interface{} value stored in this field.
+// AnyValue returns the raw interface{} value stored in this field.
 // This is only meaningful when Type() returns AnyType.
 //
 // Returns:
 //
 // the interface{} value stored in this field.
-func (f Field) AnyVal() any {
+func (f Field) AnyValue() any {
 	return f.anyVal
 }
 

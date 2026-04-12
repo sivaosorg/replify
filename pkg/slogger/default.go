@@ -284,11 +284,11 @@ func newLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
 // newRotatingFile creates and opens a rotating log file for the given level.
 func newRotatingFile(opts RotationOptions, level Level) (*rotatingFile, error) {
 	rf := &rotatingFile{
-		path:     filepath.Join(opts.GetDir(), levelFileName(level)),
-		maxBytes: opts.GetMaxBytes(),
-		maxAge:   opts.GetMaxAge(),
-		compress: opts.IsCompress(),
-		dir:      opts.GetDir(),
+		path:     filepath.Join(opts.dir, levelFileName(level)),
+		maxBytes: opts.maxBytes,
+		maxAge:   opts.maxAge,
+		compress: opts.compress,
+		dir:      opts.dir,
 		level:    level,
 	}
 	if err := rf.open(); err != nil {

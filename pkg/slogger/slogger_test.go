@@ -954,7 +954,7 @@ func TestSlogger_LevelFileWriter_Basic(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
-		WithDir(dir).
+		WithDirectory(dir).
 		WithMaxBytes(1024 * 1024).
 		WithCompress(false))
 	if err != nil {
@@ -976,7 +976,7 @@ func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
-		WithDir(dir).
+		WithDirectory(dir).
 		WithMaxBytes(1024 * 1024).
 		WithCompress(false))
 	if err != nil {
@@ -1003,7 +1003,7 @@ func TestSlogger_RotationOptions_Defaults(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
 	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
-		WithDir(dir))
+		WithDirectory(dir))
 	// MaxBytes zero -> should default to 10MB
 	if err != nil {
 		t.Fatalf("NewLevelFileWriter with defaults: %v", err)
@@ -1021,7 +1021,7 @@ func TestSlogger_WithRotation_Option(t *testing.T) {
 			o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 		},
 		slogger.WithRotation(slogger.NewRotationOptions().
-			WithDir(dir).
+			WithDirectory(dir).
 			WithMaxBytes(1024*1024).
 			WithCompress(false)),
 	)

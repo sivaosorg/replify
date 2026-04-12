@@ -14,35 +14,35 @@ import (
 // RotationOptions accessors
 // ///////////////////////////////////////////////////////////////////////////
 
-// GetDir returns the log directory.
+// Directory returns the log directory.
 //
 // Returns:
 //
 // the dir value.
-func (r *RotationOptions) GetDir() string {
+func (r *RotationOptions) Directory() string {
 	if r == nil {
 		return ""
 	}
 	return r.dir
 }
 
-// SetDir sets the log directory.
+// SetDirectory sets the log directory.
 //
 // Parameters:
 //   - `dir`: the log directory path
-func (r *RotationOptions) SetDir(dir string) {
+func (r *RotationOptions) SetDirectory(dir string) {
 	if r == nil {
 		return
 	}
 	r.dir = dir
 }
 
-// GetMaxBytes returns the maximum file size before rotation.
+// MaxBytes returns the maximum file size before rotation.
 //
 // Returns:
 //
 // the maxBytes value.
-func (r *RotationOptions) GetMaxBytes() int64 {
+func (r *RotationOptions) MaxBytes() int64 {
 	if r == nil {
 		return 0
 	}
@@ -60,12 +60,12 @@ func (r *RotationOptions) SetMaxBytes(maxBytes int64) {
 	r.maxBytes = maxBytes
 }
 
-// GetMaxAge returns the maximum age before rotation.
+// MaxAge returns the maximum age before rotation.
 //
 // Returns:
 //
 // the maxAge value.
-func (r *RotationOptions) GetMaxAge() time.Duration {
+func (r *RotationOptions) MaxAge() time.Duration {
 	if r == nil {
 		return 0
 	}
@@ -76,11 +76,11 @@ func (r *RotationOptions) GetMaxAge() time.Duration {
 //
 // Parameters:
 //   - `maxAge`: the maximum age duration
-func (r *RotationOptions) SetMaxAge(maxAge time.Duration) {
+func (r *RotationOptions) SetMaxAge(age time.Duration) {
 	if r == nil {
 		return
 	}
-	r.maxAge = maxAge
+	r.maxAge = age
 }
 
 // IsCompress returns whether compression is enabled.
@@ -106,7 +106,7 @@ func (r *RotationOptions) SetCompress(compress bool) {
 	r.compress = compress
 }
 
-// WithDir sets the log directory and returns the receiver for chaining.
+// WithDirectory sets the log directory and returns the receiver for chaining.
 //
 // Parameters:
 //   - `dir`: the log directory path
@@ -114,8 +114,8 @@ func (r *RotationOptions) SetCompress(compress bool) {
 // Returns:
 //
 // the receiver, for method chaining.
-func (r *RotationOptions) WithDir(dir string) *RotationOptions {
-	r.SetDir(dir)
+func (r *RotationOptions) WithDirectory(dir string) *RotationOptions {
+	r.SetDirectory(dir)
 	return r
 }
 
@@ -192,12 +192,12 @@ func (h *LevelWriterHook) Writer() *LevelFileWriter {
 	return h.writer
 }
 
-// GetFormatter returns the formatter used by this hook.
+// Formatter returns the formatter used by this hook.
 //
 // Returns:
 //
 // the Formatter used to serialise entries.
-func (h *LevelWriterHook) GetFormatter() Formatter {
+func (h *LevelWriterHook) Formatter() Formatter {
 	if h == nil {
 		return nil
 	}
@@ -220,7 +220,9 @@ func (h *LevelWriterHook) SetFormatter(formatter Formatter) {
 // Returns:
 //
 // the slice of Level values for which this hook's Fire method will be called.
-func (h *LevelWriterHook) Levels() []Level { return h.levels }
+func (h *LevelWriterHook) Levels() []Level {
+	return h.levels
+}
 
 // Fire implements Hook by serialising the entry with the configured Formatter
 // and writing the result to the appropriate level-specific file.

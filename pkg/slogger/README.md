@@ -595,18 +595,16 @@ or alert on. Reserve formatted messages for truly free-form diagnostic output
 
 ```go
 log := slogger.New(
-    func(o *slogger.Options) {
-        o.Level     = slogger.DebugLevel
-        o.Formatter = slogger.NewJSONFormatter()
-        o.Output    = os.Stdout
-        o.Caller    = true
-        o.CallerSkip = 0
-        o.Name      = "my-service"
-        o.Fields    = []slogger.Field{
-            slogger.String("version", "1.2.3"),
-        }
-    },
-)
+		func(o *slogger.Options) {
+			o.SetLevel(slogger.DebugLevel)
+			o.SetFormatter(slogger.NewTextFormatter(os.Stdout))
+			o.SetOutput(os.Stdout)
+			o.SetCaller(true)
+			o.SetCallerSkip(0)
+			o.SetName("my-service")
+			o.AddFields(slogger.String("version", "1.2.3"))
+		},
+	)
 ```
 
 If `New` is called with no options, the logger uses:

@@ -18,7 +18,7 @@ func (o *Options) GetLevel() Level {
 	if o == nil {
 		return InfoLevel
 	}
-	return o.Level
+	return o.level
 }
 
 // SetLevel sets the minimum log level.
@@ -29,7 +29,7 @@ func (o *Options) SetLevel(level Level) {
 	if o == nil {
 		return
 	}
-	o.Level = level
+	o.level = level
 }
 
 // GetFormatter returns the formatter.
@@ -41,7 +41,7 @@ func (o *Options) GetFormatter() Formatter {
 	if o == nil {
 		return nil
 	}
-	return o.Formatter
+	return o.formatter
 }
 
 // SetFormatter sets the formatter.
@@ -52,7 +52,7 @@ func (o *Options) SetFormatter(formatter Formatter) {
 	if o == nil {
 		return
 	}
-	o.Formatter = formatter
+	o.formatter = formatter
 }
 
 // GetOutput returns the output writer.
@@ -64,7 +64,7 @@ func (o *Options) GetOutput() io.Writer {
 	if o == nil {
 		return nil
 	}
-	return o.Output
+	return o.output
 }
 
 // SetOutput sets the output writer.
@@ -75,7 +75,7 @@ func (o *Options) SetOutput(output io.Writer) {
 	if o == nil {
 		return
 	}
-	o.Output = output
+	o.output = output
 }
 
 // IsCallerReporter returns whether caller reporting is enabled.
@@ -87,7 +87,7 @@ func (o *Options) IsCallerReporter() bool {
 	if o == nil {
 		return false
 	}
-	return o.CallerReporter
+	return o.callerReporter
 }
 
 // SetCallerReporter enables or disables caller reporting.
@@ -98,7 +98,7 @@ func (o *Options) SetCallerReporter(enable bool) {
 	if o == nil {
 		return
 	}
-	o.CallerReporter = enable
+	o.callerReporter = enable
 }
 
 // GetCallerSkip returns the caller skip count.
@@ -110,7 +110,7 @@ func (o *Options) GetCallerSkip() int {
 	if o == nil {
 		return 0
 	}
-	return o.CallerSkip
+	return o.callerSkip
 }
 
 // SetCallerSkip sets the caller skip count.
@@ -121,7 +121,7 @@ func (o *Options) SetCallerSkip(skip int) {
 	if o == nil {
 		return
 	}
-	o.CallerSkip = skip
+	o.callerSkip = skip
 }
 
 // GetFields returns a copy of the fields.
@@ -130,11 +130,11 @@ func (o *Options) SetCallerSkip(skip int) {
 //
 // a copy of the []Field slice configured in Options.
 func (o *Options) GetFields() []Field {
-	if o == nil || o.Fields == nil {
+	if o == nil || o.fields == nil {
 		return nil
 	}
-	result := make([]Field, len(o.Fields))
-	copy(result, o.Fields)
+	result := make([]Field, len(o.fields))
+	copy(result, o.fields)
 	return result
 }
 
@@ -147,11 +147,22 @@ func (o *Options) SetFields(fields []Field) {
 		return
 	}
 	if fields == nil {
-		o.Fields = nil
+		o.fields = nil
 		return
 	}
-	o.Fields = make([]Field, len(fields))
-	copy(o.Fields, fields)
+	o.fields = make([]Field, len(fields))
+	copy(o.fields, fields)
+}
+
+// AddFields appends fields to the existing field list.
+//
+// Parameters:
+//   - `fields`: the fields to append
+func (o *Options) AddFields(fields ...Field) {
+	if o == nil {
+		return
+	}
+	o.fields = append(o.fields, fields...)
 }
 
 // GetName returns the logger name.
@@ -163,7 +174,7 @@ func (o *Options) GetName() string {
 	if o == nil {
 		return ""
 	}
-	return o.Name
+	return o.name
 }
 
 // SetName sets the logger name.
@@ -174,7 +185,7 @@ func (o *Options) SetName(name string) {
 	if o == nil {
 		return
 	}
-	o.Name = name
+	o.name = name
 }
 
 // GetSamplingOpts returns the sampling options.
@@ -186,7 +197,7 @@ func (o *Options) GetSamplingOpts() *SamplingOptions {
 	if o == nil {
 		return nil
 	}
-	return o.SamplingOpts
+	return o.samplingOpts
 }
 
 // SetSamplingOpts sets the sampling options.
@@ -197,7 +208,7 @@ func (o *Options) SetSamplingOpts(opts *SamplingOptions) {
 	if o == nil {
 		return
 	}
-	o.SamplingOpts = opts
+	o.samplingOpts = opts
 }
 
 // GetRotationOpts returns the rotation options.
@@ -209,7 +220,7 @@ func (o *Options) GetRotationOpts() *RotationOptions {
 	if o == nil {
 		return nil
 	}
-	return o.RotationOpts
+	return o.rotationOpts
 }
 
 // SetRotationOpts sets the rotation options.
@@ -220,7 +231,7 @@ func (o *Options) SetRotationOpts(opts *RotationOptions) {
 	if o == nil {
 		return
 	}
-	o.RotationOpts = opts
+	o.rotationOpts = opts
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -231,12 +242,12 @@ func (o *Options) SetRotationOpts(opts *RotationOptions) {
 //
 // Returns:
 //
-// the First value.
+// the first value.
 func (s *SamplingOptions) GetFirst() int {
 	if s == nil {
 		return 0
 	}
-	return s.First
+	return s.first
 }
 
 // SetFirst sets the number of messages always logged within the period.
@@ -247,19 +258,19 @@ func (s *SamplingOptions) SetFirst(first int) {
 	if s == nil {
 		return
 	}
-	s.First = first
+	s.first = first
 }
 
 // GetPeriod returns the sampling window duration.
 //
 // Returns:
 //
-// the Period value.
+// the period value.
 func (s *SamplingOptions) GetPeriod() time.Duration {
 	if s == nil {
 		return 0
 	}
-	return s.Period
+	return s.period
 }
 
 // SetPeriod sets the sampling window duration.
@@ -270,19 +281,19 @@ func (s *SamplingOptions) SetPeriod(period time.Duration) {
 	if s == nil {
 		return
 	}
-	s.Period = period
+	s.period = period
 }
 
 // GetThereafter returns the interval for logging after First is exhausted.
 //
 // Returns:
 //
-// the Thereafter value.
+// the thereafter value.
 func (s *SamplingOptions) GetThereafter() int {
 	if s == nil {
 		return 0
 	}
-	return s.Thereafter
+	return s.thereafter
 }
 
 // SetThereafter sets the interval for logging after First is exhausted.
@@ -293,7 +304,7 @@ func (s *SamplingOptions) SetThereafter(thereafter int) {
 	if s == nil {
 		return
 	}
-	s.Thereafter = thereafter
+	s.thereafter = thereafter
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -304,12 +315,12 @@ func (s *SamplingOptions) SetThereafter(thereafter int) {
 //
 // Returns:
 //
-// the Dir value.
+// the dir value.
 func (r *RotationOptions) GetDir() string {
 	if r == nil {
 		return ""
 	}
-	return r.Dir
+	return r.dir
 }
 
 // SetDir sets the log directory.
@@ -320,19 +331,19 @@ func (r *RotationOptions) SetDir(dir string) {
 	if r == nil {
 		return
 	}
-	r.Dir = dir
+	r.dir = dir
 }
 
 // GetMaxBytes returns the maximum file size before rotation.
 //
 // Returns:
 //
-// the MaxBytes value.
+// the maxBytes value.
 func (r *RotationOptions) GetMaxBytes() int64 {
 	if r == nil {
 		return 0
 	}
-	return r.MaxBytes
+	return r.maxBytes
 }
 
 // SetMaxBytes sets the maximum file size before rotation.
@@ -343,19 +354,19 @@ func (r *RotationOptions) SetMaxBytes(maxBytes int64) {
 	if r == nil {
 		return
 	}
-	r.MaxBytes = maxBytes
+	r.maxBytes = maxBytes
 }
 
 // GetMaxAge returns the maximum age before rotation.
 //
 // Returns:
 //
-// the MaxAge value.
+// the maxAge value.
 func (r *RotationOptions) GetMaxAge() time.Duration {
 	if r == nil {
 		return 0
 	}
-	return r.MaxAge
+	return r.maxAge
 }
 
 // SetMaxAge sets the maximum age before rotation.
@@ -366,7 +377,7 @@ func (r *RotationOptions) SetMaxAge(maxAge time.Duration) {
 	if r == nil {
 		return
 	}
-	r.MaxAge = maxAge
+	r.maxAge = maxAge
 }
 
 // IsCompress returns whether compression is enabled.
@@ -378,7 +389,7 @@ func (r *RotationOptions) IsCompress() bool {
 	if r == nil {
 		return false
 	}
-	return r.Compress
+	return r.compress
 }
 
 // SetCompress enables or disables compression.
@@ -389,7 +400,116 @@ func (r *RotationOptions) SetCompress(compress bool) {
 	if r == nil {
 		return
 	}
-	r.Compress = compress
+	r.compress = compress
+}
+
+// WithDir sets the log directory and returns the receiver for chaining.
+//
+// Parameters:
+//   - `dir`: the log directory path
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (r *RotationOptions) WithDir(dir string) *RotationOptions {
+	r.SetDir(dir)
+	return r
+}
+
+// WithMaxBytes sets the maximum file size before rotation and returns the receiver for chaining.
+//
+// Parameters:
+//   - `maxBytes`: the maximum size in bytes
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (r *RotationOptions) WithMaxBytes(maxBytes int64) *RotationOptions {
+	r.SetMaxBytes(maxBytes)
+	return r
+}
+
+// WithMaxAge sets the maximum age before rotation and returns the receiver for chaining.
+//
+// Parameters:
+//   - `maxAge`: the maximum age duration
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (r *RotationOptions) WithMaxAge(maxAge time.Duration) *RotationOptions {
+	r.SetMaxAge(maxAge)
+	return r
+}
+
+// WithCompress enables or disables compression and returns the receiver for chaining.
+//
+// Parameters:
+//   - `compress`: whether to compress rotated files
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (r *RotationOptions) WithCompress(compress bool) *RotationOptions {
+	r.SetCompress(compress)
+	return r
+}
+
+// NewRotationOptions creates a new RotationOptions with default values.
+//
+// Returns:
+//
+// a new *RotationOptions with sensible defaults.
+func NewRotationOptions() *RotationOptions {
+	return &RotationOptions{}
+}
+
+// NewSamplingOptions creates a new SamplingOptions with default values.
+//
+// Returns:
+//
+// a new *SamplingOptions.
+func NewSamplingOptions() *SamplingOptions {
+	return &SamplingOptions{}
+}
+
+// WithFirst sets the first count and returns the receiver for chaining.
+//
+// Parameters:
+//   - `first`: the number of messages
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (s *SamplingOptions) WithFirst(first int) *SamplingOptions {
+	s.SetFirst(first)
+	return s
+}
+
+// WithPeriod sets the sampling window duration and returns the receiver for chaining.
+//
+// Parameters:
+//   - `period`: the sampling window
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (s *SamplingOptions) WithPeriod(period time.Duration) *SamplingOptions {
+	s.SetPeriod(period)
+	return s
+}
+
+// WithThereafter sets the interval for logging after First is exhausted and returns the receiver for chaining.
+//
+// Parameters:
+//   - `thereafter`: every Nth message after First
+//
+// Returns:
+//
+// the receiver, for method chaining.
+func (s *SamplingOptions) WithThereafter(thereafter int) *SamplingOptions {
+	s.SetThereafter(thereafter)
+	return s
 }
 
 // ///////////////////////////////////////////////////////////////////////////

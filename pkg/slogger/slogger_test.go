@@ -228,9 +228,9 @@ func TestSlogger_TextFormatter(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	log.Info("hello world", slogger.String("key", "val"))
@@ -257,9 +257,9 @@ func TestSlogger_TextFormatter_QuotedValues(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	log.Info("msg", slogger.String("msg", "hello world"))
 	out := buf.String()
@@ -277,9 +277,9 @@ func TestSlogger_JSONFormatter(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Info("json test", slogger.String("env", "prod"), slogger.Int("count", 3))
@@ -307,12 +307,12 @@ func TestSlogger_JSONFormatter_CustomKeys(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter().
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter().
 			WithTimeKey("timestamp").
 			WithLevelKey("severity").
-			WithMessageKey("message")
+			WithMessageKey("message"))
 	})
 	log.Info("custom keys")
 	out := strings.TrimSpace(buf.String())
@@ -339,9 +339,9 @@ func TestSlogger_Logger_New(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	log.Info("startup complete")
 	if !strings.Contains(buf.String(), "startup complete") {
@@ -357,9 +357,9 @@ func TestSlogger_Logger_With(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	child := log.With(slogger.String("component", "auth"))
 	child.Info("login attempt")
@@ -377,9 +377,9 @@ func TestSlogger_Logger_Named(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	db := log.Named("db")
 	rw := db.Named("reader")
@@ -394,9 +394,9 @@ func TestSlogger_Logger_Named_NoParent(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	named := log.Named("api")
 	named.Info("route registered")
@@ -431,9 +431,9 @@ func TestSlogger_Logger_IsLevelEnabled(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.WarnLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.WarnLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	if log.IsLevelEnabled(slogger.DebugLevel) {
 		t.Error("IsLevelEnabled(DebugLevel) should be false when min=WarnLevel")
@@ -466,9 +466,9 @@ func TestSlogger_Logger_SetOutput(t *testing.T) {
 	t.Parallel()
 	var buf1, buf2 bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf1
-		o.Formatter = slogger.NewTextFormatter(&buf1).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf1)
+		o.SetFormatter(slogger.NewTextFormatter(&buf1).WithDisableColor())
 	})
 	log.Info("first destination")
 	if !strings.Contains(buf1.String(), "first destination") {
@@ -490,9 +490,9 @@ func TestSlogger_Logger_SetFormatter(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	log.SetFormatter(slogger.NewJSONFormatter())
 	log.Info("formatted as json")
@@ -527,9 +527,9 @@ func TestSlogger_Hooks(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	hook := &testHook{levels: []slogger.Level{slogger.ErrorLevel, slogger.WarnLevel}}
 	log.AddHook(hook)
@@ -597,9 +597,9 @@ func TestSlogger_Context_Logging(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	ctx := slogger.WithContextFields(context.Background(), slogger.String("req_id", "xyz"))
 	log.WithContext(ctx).Info("handling request")
@@ -617,14 +617,13 @@ func TestSlogger_Sampling(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp()
-		o.SamplingOpts = &slogger.SamplingOptions{
-			First:      3,
-			Period:     10 * time.Second,
-			Thereafter: 0, // drop all after first 3
-		}
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp())
+		o.SetSamplingOpts(slogger.NewSamplingOptions().
+			WithFirst(3).
+			WithPeriod(10 * time.Second).
+			WithThereafter(0)) // drop all after first 3
 	})
 
 	for i := 0; i < 10; i++ {
@@ -641,14 +640,13 @@ func TestSlogger_Sampling_Thereafter(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp()
-		o.SamplingOpts = &slogger.SamplingOptions{
-			First:      2,
-			Period:     10 * time.Second,
-			Thereafter: 2, // every 2nd after first 2
-		}
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor().WithDisableTimestamp())
+		o.SetSamplingOpts(slogger.NewSamplingOptions().
+			WithFirst(2).
+			WithPeriod(10 * time.Second).
+			WithThereafter(2)) // every 2nd after first 2
 	})
 	// 2 always + msgs 3,4,5,6,7,8,9,10 = 8 more; allow at positions (count-first-1)%2==0 => 0,2,4,6 => 4 more
 	// total expected: 2 + 4 = 6
@@ -669,9 +667,9 @@ func TestSlogger_GlobalLogger(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	original := slogger.GlobalLogger()
@@ -697,9 +695,9 @@ func TestSlogger_EntryMethods(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	ctx := context.Background()
@@ -729,9 +727,9 @@ func TestSlogger_EntryMethods_Panic(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	defer func() {
@@ -755,9 +753,9 @@ func TestSlogger_Fatal_Hook(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 	hook := &testHook{levels: []slogger.Level{slogger.FatalLevel}}
 	log.AddHook(hook)
@@ -792,9 +790,9 @@ func TestSlogger_Concurrent(t *testing.T) {
 	var buf bytes.Buffer
 	var mu sync.Mutex
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	const goroutines = 50
@@ -830,9 +828,9 @@ func TestSlogger_MultiWriter(t *testing.T) {
 	var buf1, buf2 bytes.Buffer
 	mw := slogger.NewMultiWriter(&buf1, &buf2)
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = mw
-		o.Formatter = slogger.NewTextFormatter(mw).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(mw)
+		o.SetFormatter(slogger.NewTextFormatter(mw).WithDisableColor())
 	})
 	log.Info("multiwriter test")
 	if !strings.Contains(buf1.String(), "multiwriter test") {
@@ -852,9 +850,9 @@ func TestSlogger_EntryAccessors(t *testing.T) {
 	var buf bytes.Buffer
 
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
@@ -911,10 +909,10 @@ func TestSlogger_CallerInfoAccessors(t *testing.T) {
 	var buf bytes.Buffer
 
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
-		o.CallerReporter = true
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
+		o.SetCallerReporter(true)
 	})
 
 	hook := &testHook{levels: []slogger.Level{slogger.InfoLevel}}
@@ -955,11 +953,10 @@ func TestSlogger_CallerInfoAccessors(t *testing.T) {
 func TestSlogger_LevelFileWriter_Basic(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
-		Dir:      dir,
-		MaxBytes: 1024 * 1024,
-		Compress: false,
-	})
+	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
+		WithDir(dir).
+		WithMaxBytes(1024 * 1024).
+		WithCompress(false))
 	if err != nil {
 		t.Fatalf("NewLevelFileWriter: %v", err)
 	}
@@ -978,11 +975,10 @@ func TestSlogger_LevelFileWriter_Basic(t *testing.T) {
 func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
-		Dir:      dir,
-		MaxBytes: 1024 * 1024,
-		Compress: false,
-	})
+	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
+		WithDir(dir).
+		WithMaxBytes(1024 * 1024).
+		WithCompress(false))
 	if err != nil {
 		t.Fatalf("NewLevelFileWriter: %v", err)
 	}
@@ -991,9 +987,9 @@ func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
 	var buf bytes.Buffer
 	formatter := slogger.NewTextFormatter(&buf).WithDisableColor()
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = formatter
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(formatter)
 	})
 	hook := slogger.NewLevelWriterHook(lfw, formatter)
 	log.AddHook(hook)
@@ -1006,10 +1002,9 @@ func TestSlogger_LevelWriterHook_Routing(t *testing.T) {
 func TestSlogger_RotationOptions_Defaults(t *testing.T) {
 	t.Parallel()
 	dir := t.TempDir()
-	lfw, err := slogger.NewLevelFileWriter(slogger.RotationOptions{
-		Dir: dir,
-		// MaxBytes zero -> should default to 10MB
-	})
+	lfw, err := slogger.NewLevelFileWriter(*slogger.NewRotationOptions().
+		WithDir(dir))
+	// MaxBytes zero -> should default to 10MB
 	if err != nil {
 		t.Fatalf("NewLevelFileWriter with defaults: %v", err)
 	}
@@ -1022,14 +1017,13 @@ func TestSlogger_WithRotation_Option(t *testing.T) {
 	var buf bytes.Buffer
 	log := slogger.New(
 		func(o *slogger.Options) {
-			o.Output = &buf
-			o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+			o.SetOutput(&buf)
+			o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 		},
-		slogger.WithRotation(slogger.RotationOptions{
-			Dir:      dir,
-			MaxBytes: 1024 * 1024,
-			Compress: false,
-		}),
+		slogger.WithRotation(*slogger.NewRotationOptions().
+			WithDir(dir).
+			WithMaxBytes(1024*1024).
+			WithCompress(false)),
 	)
 	// Just verify logger was constructed successfully and can log
 	log.Info("with rotation test")
@@ -1050,9 +1044,9 @@ func TestSlogger_JSONFormatter_AnyJSONString(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Warn("server started",
@@ -1091,9 +1085,9 @@ func TestSlogger_JSONFormatter_JSONFieldWithString(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Warn("server started",
@@ -1126,9 +1120,9 @@ func TestSlogger_JSONFormatter_JSONFieldWithMap(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Info("event",
@@ -1156,9 +1150,9 @@ func TestSlogger_JSONFormatter_AnyNormalString(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Info("event",
@@ -1187,9 +1181,9 @@ func TestSlogger_JSONFormatter_AnyStruct(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Info("event",
@@ -1224,9 +1218,9 @@ func TestSlogger_JSONFormatter_ColorDisabled(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter().WithColor(false)
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter().WithColor(false))
 	})
 
 	log.Info("color test", slogger.String("key", "val"), slogger.Int("n", 42))
@@ -1255,10 +1249,10 @@ func TestSlogger_JSONFormatter_ColorDefaultNonTTY(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
 		// Default JSONFormatter has enableColor: true, but buf is not a TTY.
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Warn("server started", slogger.String("addr", ":8080"), slogger.Int("port", 8080))
@@ -1286,13 +1280,13 @@ func TestSlogger_JSONFormatter_WithColorChaining(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter().
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter().
 			WithColor(false).
 			WithTimeKey("timestamp").
 			WithLevelKey("severity").
-			WithMessageKey("message")
+			WithMessageKey("message"))
 	})
 
 	log.Info("chaining test")
@@ -1330,10 +1324,10 @@ func TestSlogger_TrimFilePath_CrossPlatform(t *testing.T) {
 	// The trimFilepath function should produce valid file:line output regardless of OS.
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller()
-		o.CallerReporter = true
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor().WithEnableCaller())
+		o.SetCallerReporter(true)
 	})
 
 	log.Info("test caller")
@@ -1359,9 +1353,9 @@ func TestSlogger_Itoa64_MinInt64(t *testing.T) {
 	// Test by logging an Int64 with math.MinInt64
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewJSONFormatter()
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewJSONFormatter())
 	})
 
 	log.Info("test minint64", slogger.Int64("val", minInt64))
@@ -1406,9 +1400,9 @@ func TestSlogger_WithConcurrent(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	const goroutines = 100
@@ -1440,10 +1434,10 @@ func TestSlogger_TextFormatter_ConcurrentFormatSafety(t *testing.T) {
 	formatter := slogger.NewTextFormatter(&buf).WithDisableColor()
 
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.TraceLevel
-		o.Output = &buf
-		o.Formatter = formatter
-		o.CallerReporter = true
+		o.SetLevel(slogger.TraceLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(formatter)
+		o.SetCallerReporter(true)
 	})
 
 	const goroutines = 50
@@ -1475,9 +1469,9 @@ func TestSlogger_EntryWithContext_Safety(t *testing.T) {
 
 	var buf bytes.Buffer
 	log := slogger.New(func(o *slogger.Options) {
-		o.Level = slogger.InfoLevel
-		o.Output = &buf
-		o.Formatter = slogger.NewTextFormatter(&buf).WithDisableColor()
+		o.SetLevel(slogger.InfoLevel)
+		o.SetOutput(&buf)
+		o.SetFormatter(slogger.NewTextFormatter(&buf).WithDisableColor())
 	})
 
 	ctx1 := context.Background()

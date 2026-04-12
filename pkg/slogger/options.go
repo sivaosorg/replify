@@ -12,7 +12,7 @@ import "io"
 // a functional option that sets Level on the logger's Options.
 func WithLevel(level Level) func(*Options) {
 	return func(o *Options) {
-		o.Level = level
+		o.SetLevel(level)
 	}
 }
 
@@ -26,7 +26,7 @@ func WithLevel(level Level) func(*Options) {
 // a functional option that sets Formatter on the logger's Options.
 func WithFormatter(formatter Formatter) func(*Options) {
 	return func(o *Options) {
-		o.Formatter = formatter
+		o.SetFormatter(formatter)
 	}
 }
 
@@ -40,7 +40,7 @@ func WithFormatter(formatter Formatter) func(*Options) {
 // a functional option that sets Output on the logger's Options.
 func WithOutput(output io.Writer) func(*Options) {
 	return func(o *Options) {
-		o.Output = output
+		o.SetOutput(output)
 	}
 }
 
@@ -54,7 +54,7 @@ func WithOutput(output io.Writer) func(*Options) {
 // a functional option that sets CallerReporter on the logger's Options.
 func WithCaller(enable bool) func(*Options) {
 	return func(o *Options) {
-		o.CallerReporter = enable
+		o.SetCallerReporter(enable)
 	}
 }
 
@@ -68,7 +68,7 @@ func WithCaller(enable bool) func(*Options) {
 // a functional option that sets CallerSkip on the logger's Options.
 func WithCallerSkip(skip int) func(*Options) {
 	return func(o *Options) {
-		o.CallerSkip = skip
+		o.SetCallerSkip(skip)
 	}
 }
 
@@ -82,7 +82,7 @@ func WithCallerSkip(skip int) func(*Options) {
 // a functional option that adds Fields to the logger's Options.
 func WithFields(fields ...Field) func(*Options) {
 	return func(o *Options) {
-		o.Fields = append(o.Fields, fields...)
+		o.AddFields(fields...)
 	}
 }
 
@@ -96,7 +96,7 @@ func WithFields(fields ...Field) func(*Options) {
 // a functional option that sets Name on the logger's Options.
 func WithName(name string) func(*Options) {
 	return func(o *Options) {
-		o.Name = name
+		o.SetName(name)
 	}
 }
 
@@ -110,7 +110,7 @@ func WithName(name string) func(*Options) {
 // a functional option that sets SamplingOpts on the logger's Options.
 func WithSamplingOpts(opts *SamplingOptions) func(*Options) {
 	return func(o *Options) {
-		o.SamplingOpts = opts
+		o.SetSamplingOpts(opts)
 	}
 }
 
@@ -126,6 +126,6 @@ func WithSamplingOpts(opts *SamplingOptions) func(*Options) {
 // a functional option that sets RotationOpts on the logger's Options.
 func WithRotation(opts RotationOptions) func(*Options) {
 	return func(o *Options) {
-		o.RotationOpts = &opts
+		o.SetRotationOpts(&opts)
 	}
 }

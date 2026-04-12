@@ -157,47 +157,47 @@ type Hooks struct {
 // All fields are optional; unset fields fall back to production-safe defaults
 // (InfoLevel, TextFormatter, os.Stderr).
 type Options struct {
-	// Level is the minimum level that will be logged.
-	Level Level
+	// level is the minimum level that will be logged.
+	level Level
 
-	// Formatter serialises entries; defaults to TextFormatter on os.Stderr.
-	Formatter Formatter
+	// formatter serialises entries; defaults to TextFormatter on os.Stderr.
+	formatter Formatter
 
-	// Output is the destination writer; defaults to os.Stderr.
-	Output io.Writer
+	// output is the destination writer; defaults to os.Stderr.
+	output io.Writer
 
-	// CallerReporter enables automatic source-location capture.
-	CallerReporter bool
+	// callerReporter enables automatic source-location capture.
+	callerReporter bool
 
-	// CallerSkip adds extra skip frames for library wrappers.
-	CallerSkip int
+	// callerSkip adds extra skip frames for library wrappers.
+	callerSkip int
 
-	// Fields are attached to every entry emitted by the logger.
-	Fields []Field
+	// fields are attached to every entry emitted by the logger.
+	fields []Field
 
-	// Name is a dot-separated logger identifier prepended to output.
-	Name string
+	// name is a dot-separated logger identifier prepended to output.
+	name string
 
-	// SamplingOpts, when non-nil, enables per-message rate limiting.
-	SamplingOpts *SamplingOptions
+	// samplingOpts, when non-nil, enables per-message rate limiting.
+	samplingOpts *SamplingOptions
 
-	// RotationOpts, when non-nil, enables per-level file rotation.
-	RotationOpts *RotationOptions
+	// rotationOpts, when non-nil, enables per-level file rotation.
+	rotationOpts *RotationOptions
 }
 
 // SamplingOptions configures per-message rate limiting for a Logger.
 // The first First messages per Period are always logged.
 // After that, every Thereafter-th message is logged (0 means drop all remaining).
 type SamplingOptions struct {
-	// First is the number of identical messages always logged within Period.
-	First int `json:"first"`
+	// first is the number of identical messages always logged within Period.
+	first int
 
-	// Period is the window after which the counter resets.
-	Period time.Duration `json:"period"`
+	// period is the window after which the counter resets.
+	period time.Duration
 
-	// Thereafter logs every Nth message after the First are exhausted.
+	// thereafter logs every Nth message after the First are exhausted.
 	// Zero means drop all subsequent messages.
-	Thereafter int `json:"thereafter"`
+	thereafter int
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -253,17 +253,17 @@ type MultiWriter struct {
 // RotationOptions configures the rotating file writer.
 // Pass RotationOptions to WithRotation to enable per-level log file rotation.
 type RotationOptions struct {
-	// Dir is the base log directory. Defaults to defaultLogDir ("logs").
-	Dir string `json:"dir"`
+	// dir is the base log directory. Defaults to defaultLogDir ("logs").
+	dir string
 
-	// MaxBytes is the maximum file size before rotation. Defaults to 10 MiB.
-	MaxBytes int64 `json:"max_bytes"`
+	// maxBytes is the maximum file size before rotation. Defaults to 10 MiB.
+	maxBytes int64
 
-	// MaxAge is the maximum age of a log file before rotation. Zero means no age-based rotation.
-	MaxAge time.Duration `json:"max_age"`
+	// maxAge is the maximum age of a log file before rotation. Zero means no age-based rotation.
+	maxAge time.Duration
 
-	// Compress controls whether rotated files are zipped. Defaults to false.
-	Compress bool `json:"compress"`
+	// compress controls whether rotated files are zipped. Defaults to false.
+	compress bool
 }
 
 // LevelFileWriter writes log entries to separate files per log level.

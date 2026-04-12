@@ -33,26 +33,26 @@ func New(opts ...func(*Options)) *Logger {
 	}
 	l := &Logger{
 		wmu:        &sync.Mutex{}, // shared mutex for write synchronization
-		formatter:  o.Formatter,
-		output:     o.Output,
+		formatter:  o.GetFormatter(),
+		output:     o.GetOutput(),
 		hooks:      NewHooks(),
-		fields:     append([]Field(nil), o.Fields...),
-		name:       o.Name,
-		caller:     o.CallerReporter,
-		callerSkip: o.CallerSkip,
+		fields:     append([]Field(nil), o.GetFields()...),
+		name:       o.GetName(),
+		caller:     o.IsCallerReporter(),
+		callerSkip: o.GetCallerSkip(),
 	}
-	l.level.Store(int32(o.Level))
-	if o.SamplingOpts != nil {
-		l.sampling = newSampler(*o.SamplingOpts)
+	l.level.Store(int32(o.GetLevel()))
+	if o.GetSamplingOpts() != nil {
+		l.sampling = newSampler(*o.GetSamplingOpts())
 	}
-	if o.RotationOpts != nil {
-		lfw, err := newLevelFileWriter(*o.RotationOpts)
+	if o.GetRotationOpts() != nil {
+		lfw, err := newLevelFileWriter(*o.GetRotationOpts())
 		if err != nil {
 			// Rotation setup failed; write diagnostic to stderr and continue
 			// without rotation so the logger remains usable.
 			_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
 		} else {
-			l.hooks.Add(NewLevelWriterHook(lfw, o.Formatter))
+			l.hooks.Add(NewLevelWriterHook(lfw, o.GetFormatter()))
 		}
 	}
 	return l
@@ -194,11 +194,11 @@ func NewMultiWriter(writers ...io.Writer) *MultiWriter {
 // an *Options pre-populated with sensible production settings.
 func defaultOptions() *Options {
 	out := os.Stderr
-	return &Options{
-		Level:     InfoLevel,
-		Output:    out,
-		Formatter: NewTextFormatter(out),
-	}
+	o := &Options{}
+	o.SetLevel(InfoLevel)
+	o.SetOutput(out)
+	o.SetFormatter(NewTextFormatter(out))
+	return o
 }
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -232,16 +232,16 @@ func newSampler(opts SamplingOptions) *sampler {
 //
 // a ready-to-use *LevelFileWriter and any initialisation error.
 func newLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
-	if strutil.IsEmpty(opts.Dir) {
-		opts.Dir = defaultLogDir
+	if strutil.IsEmpty(opts.GetDir()) {
+		opts.SetDir(defaultLogDir)
 	}
-	if opts.MaxBytes <= 0 {
-		opts.MaxBytes = defaultMaxBytes
+	if opts.GetMaxBytes() <= 0 {
+		opts.SetMaxBytes(defaultMaxBytes)
 	}
 
-	if !sysx.DirExists(opts.Dir) {
-		if err := os.MkdirAll(opts.Dir, 0755); err != nil {
-			return nil, fmt.Errorf("slogger: cannot create log directory %q: %w", opts.Dir, err)
+	if !sysx.DirExists(opts.GetDir()) {
+		if err := os.MkdirAll(opts.GetDir(), 0755); err != nil {
+			return nil, fmt.Errorf("slogger: cannot create log directory %q: %w", opts.GetDir(), err)
 		}
 	}
 
@@ -266,11 +266,11 @@ func newLevelFileWriter(opts RotationOptions) (*LevelFileWriter, error) {
 // newRotatingFile creates and opens a rotating log file for the given level.
 func newRotatingFile(opts RotationOptions, level Level) (*rotatingFile, error) {
 	rf := &rotatingFile{
-		path:     filepath.Join(opts.Dir, levelFileName(level)),
-		maxBytes: opts.MaxBytes,
-		maxAge:   opts.MaxAge,
-		compress: opts.Compress,
-		dir:      opts.Dir,
+		path:     filepath.Join(opts.GetDir(), levelFileName(level)),
+		maxBytes: opts.GetMaxBytes(),
+		maxAge:   opts.GetMaxAge(),
+		compress: opts.IsCompress(),
+		dir:      opts.GetDir(),
 		level:    level,
 	}
 	if err := rf.open(); err != nil {

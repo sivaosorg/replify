@@ -424,9 +424,9 @@ func (l *Logger) WithCallerSkip(skip int) *Logger {
 // Returns:
 //
 // the receiver *Logger, enabling method chaining.
-func (l *Logger) WithSampling(opts SamplingOptions) *Logger {
+func (l *Logger) WithSampling(opts *SamplingOptions) *Logger {
 	l.mu.Lock()
-	l.sampling = newSampler(opts)
+	l.sampling = newSampler(*opts)
 	l.mu.Unlock()
 	return l
 }

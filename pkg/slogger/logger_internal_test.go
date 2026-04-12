@@ -778,7 +778,7 @@ func TestLogger_WithSampling(t *testing.T) {
 		WithOutput(&buf).
 		WithLevel(TraceLevel).
 		WithFormatter(NewTextFormatter(&buf).WithDisableColor()).
-		WithSampling(SamplingOptions{first: 1, thereafter: 0, period: time.Hour})
+		WithSampling(NewSamplingOptions().WithFirst(1).WithThereafter(0).WithPeriod(time.Hour))
 
 	// First message should be logged
 	log.Info("test sampling")

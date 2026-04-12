@@ -812,11 +812,10 @@ Rate-limit identical log messages to prevent log storms during error spikes:
 ```go
 log := slogger.NewLogger().
     WithLevel(slogger.InfoLevel).
-    WithSampling(slogger.SamplingOptions{
-        First:      10,              // log the first 10 identical messages per second
-        Period:     time.Second,     // sliding window duration
-        Thereafter: 100,             // then log every 100th message
-    })
+    WithSampling(slogger.NewSamplingOptions().
+        WithFirst(10). // log the first 10 identical messages per second
+        WithPeriod(time.Second). // sliding window duration
+        WithThereafter(100)) // then log every 100th message
 ```
 
 Sampling is keyed on the exact message string. Each unique message maintains an

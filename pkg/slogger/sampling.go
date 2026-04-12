@@ -20,18 +20,18 @@ func (s *sampler) allow(msg string) bool {
 	now := time.Now()
 	if now.After(b.resetAt) {
 		b.count = 0
-		b.resetAt = now.Add(s.opts.GetPeriod())
+		b.resetAt = now.Add(s.opts.period)
 	}
 
 	b.count++
 	cnt := b.count
 
-	first := uint64(s.opts.GetFirst())
+	first := uint64(s.opts.first)
 	if cnt <= first {
 		return true
 	}
-	if s.opts.GetThereafter() == 0 {
+	if s.opts.thereafter == 0 {
 		return false
 	}
-	return (cnt-first-1)%uint64(s.opts.GetThereafter()) == 0
+	return (cnt-first-1)%uint64(s.opts.thereafter) == 0
 }

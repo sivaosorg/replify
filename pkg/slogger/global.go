@@ -193,12 +193,13 @@ func ApplyGlobalConfig(cfg SloggerConfig) error {
 
 	// 5. Enable file rotation if configured.
 	if cfg.Output.File && cfg.Rotation.IsEnabled {
-		rotOpts := NewRotationOptions().
-			WithDir(cfg.File.Directory).
-			WithMaxBytes(cfg.Rotation.MaxSizeMB * int64(1024) * 1024).
-			WithMaxAge(time.Duration(cfg.Rotation.MaxAgeDays) * 24 * time.Hour).
-			WithCompress(cfg.Rotation.Compress)
-		log = log.WithRotation(*rotOpts)
+		rotOpts := RotationOptions{
+			dir:      cfg.File.Directory,
+			maxBytes: cfg.Rotation.MaxSizeMB * int64(1024) * 1024,
+			maxAge:   time.Duration(cfg.Rotation.MaxAgeDays) * 24 * time.Hour,
+			compress: cfg.Rotation.Compress,
+		}
+		log = log.WithRotation(rotOpts)
 	}
 
 	// 6. Set the global logger.

@@ -74,11 +74,15 @@ func (mw *MultiWriter) AddWriter(w io.Writer) {
 // Returns:
 //
 // os.Stdout wrapped as an io.Writer.
-func Stdout() io.Writer { return os.Stdout }
+func Stdout() io.Writer {
+	return os.Stdout
+}
 
 // Stderr returns os.Stderr as an io.Writer.
 //
 // Returns:
 //
 // os.Stderr wrapped as an io.Writer.
-func Stderr() io.Writer { return os.Stderr }
+func Stderr() io.Writer {
+	return os.Stderr
+}

@@ -212,10 +212,11 @@ func NewSamplingOptions() *SamplingOptions {
 // an *Options pre-populated with sensible production settings.
 func defaultOptions() *Options {
 	out := os.Stderr
-	o := &Options{}
-	o.SetLevel(InfoLevel)
-	o.SetOutput(out)
-	o.SetFormatter(NewTextFormatter(out))
+	o := &Options{
+		level:     InfoLevel,
+		output:    out,
+		formatter: NewTextFormatter(out),
+	}
 	return o
 }
 

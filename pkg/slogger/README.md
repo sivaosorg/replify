@@ -661,15 +661,6 @@ colorFormatter := slogger.NewTextFormatter(os.Stdout).WithColorMode(slogger.Colo
 The deprecated `WithDisableColor()` and `WithEnableColor()` methods are retained for
 backward compatibility but `WithColorMode()` is recommended for new code.
 
-**Strip ANSI Helper:**
-
-Use `StripANSI()` to remove ANSI escape sequences from strings:
-
-```go
-clean := slogger.StripANSI("\033[32mINFO\033[0m message")
-// clean == "INFO message"
-```
-
 #### JSONFormatter
 
 Machine-parseable single-line JSON, ideal for production and log aggregators:

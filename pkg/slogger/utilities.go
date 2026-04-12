@@ -423,7 +423,7 @@ func istty(w io.Writer) bool {
 	return sysx.IsTTY(w)
 }
 
-// StripANSI removes all ANSI escape sequences from s.
+// stripANSI removes all ANSI escape sequences from s.
 // Use this to sanitise log output before writing to files or other
 // non-terminal destinations that do not interpret escape codes.
 //
@@ -440,10 +440,10 @@ func istty(w io.Writer) bool {
 //
 // Example:
 //
-//	clean := slogger.StripANSI("\033[32mINFO\033[0m message")
+//	clean := stripANSI("\033[32mINFO\033[0m message")
 //	// clean == "INFO message"
-func StripANSI(s string) string {
-	if len(s) == 0 {
+func stripANSI(s string) string {
+	if strutil.IsEmpty(s) {
 		return s
 	}
 

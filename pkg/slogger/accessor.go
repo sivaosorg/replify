@@ -455,24 +455,6 @@ func (r *RotationOptions) WithCompress(compress bool) *RotationOptions {
 	return r
 }
 
-// NewRotationOptions creates a new RotationOptions with default values.
-//
-// Returns:
-//
-// a new *RotationOptions with sensible defaults.
-func NewRotationOptions() *RotationOptions {
-	return &RotationOptions{}
-}
-
-// NewSamplingOptions creates a new SamplingOptions with default values.
-//
-// Returns:
-//
-// a new *SamplingOptions.
-func NewSamplingOptions() *SamplingOptions {
-	return &SamplingOptions{}
-}
-
 // WithFirst sets the first count and returns the receiver for chaining.
 //
 // Parameters:

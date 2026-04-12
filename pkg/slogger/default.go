@@ -186,6 +186,24 @@ func NewMultiWriter(writers ...io.Writer) *MultiWriter {
 	return &MultiWriter{writers: dst}
 }
 
+// NewRotationOptions creates a new RotationOptions with default values.
+//
+// Returns:
+//
+// a new *RotationOptions with sensible defaults.
+func NewRotationOptions() *RotationOptions {
+	return &RotationOptions{}
+}
+
+// NewSamplingOptions creates a new SamplingOptions with default values.
+//
+// Returns:
+//
+// a new *SamplingOptions.
+func NewSamplingOptions() *SamplingOptions {
+	return &SamplingOptions{}
+}
+
 // defaultOptions returns production-ready defaults:
 // InfoLevel, TextFormatter writing to os.Stderr, no caller capture.
 //

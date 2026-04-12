@@ -713,7 +713,7 @@ log := slogger.NewLogger().
 		WithLevel(slogger.InfoLevel).
 		WithFormatter(slogger.NewJSONFormatter()).
 		WithOutput(os.Stdout).
-		WithRotation(*slogger.NewRotationOptions().
+		WithRotation(slogger.NewRotationOptions().
 			WithDirectory("logs"). // base directory; created if absent
 			WithMaxBytes(50 * 1024 * 1024). // rotate at 50 MiB
 			WithMaxAge(24 * time.Hour). // or after 24 hours, whichever comes first

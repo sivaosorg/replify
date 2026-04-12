@@ -52,7 +52,10 @@ func New(opts ...func(*Options)) *Logger {
 			// without rotation so the logger remains usable.
 			_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
 		} else {
-			l.hooks.Add(NewLevelWriterHook(lfw, o.formatter))
+			// Use a colour-disabled formatter for file output to prevent
+			// ANSI escape sequences from appearing in log files.
+			fileFormatter := cloneFormatterForFile(o.formatter)
+			l.hooks.Add(NewLevelWriterHook(lfw, fileFormatter))
 		}
 	}
 	return l

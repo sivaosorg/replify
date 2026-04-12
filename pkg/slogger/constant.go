@@ -94,6 +94,27 @@ const (
 )
 
 // ///////////////////////////////////////////////////////////////////////////
+// ColorMode constants
+// ///////////////////////////////////////////////////////////////////////////
+
+// ColorMode values control when ANSI colour codes are emitted by TextFormatter.
+const (
+	// ColorAuto enables colours only when the output writer is a TTY.
+	// This is the default and recommended mode for most applications.
+	ColorAuto ColorMode = iota
+
+	// ColorAlways forces colour output regardless of output destination.
+	// Useful when piping to colour-aware tools (e.g. less -R) or when the
+	// TTY detection gives a false negative.
+	ColorAlways
+
+	// ColorNever disables colour output unconditionally.
+	// Use this for file output, CI pipelines, or log aggregators that do not
+	// interpret ANSI escape sequences.
+	ColorNever
+)
+
+// ///////////////////////////////////////////////////////////////////////////
 // ANSI color codes
 // ///////////////////////////////////////////////////////////////////////////
 

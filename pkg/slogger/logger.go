@@ -436,6 +436,9 @@ func (l *Logger) WithSampling(opts *SamplingOptions) *Logger {
 // LevelWriterHook on the logger. If initialisation fails, a diagnostic message
 // is written to stderr and the logger continues without rotation.
 //
+// The hook automatically uses ColorNever mode for file output to prevent
+// ANSI escape sequences from appearing in log files.
+//
 // Parameters:
 //   - `opts`: the RotationOptions that configure directory, size limits, and compression
 //
@@ -451,7 +454,12 @@ func (l *Logger) WithRotation(opts *RotationOptions) *Logger {
 	l.mu.RLock()
 	formatter := l.formatter
 	l.mu.RUnlock()
-	l.hooks.Add(NewLevelWriterHook(lfw, formatter))
+
+	// Ensure file output does not contain ANSI colour codes.
+	// Create a colour-disabled copy of TextFormatter, or use the formatter as-is
+	// for other formatter types (e.g. JSONFormatter).
+	fileFormatter := cloneFormatterForFile(formatter)
+	l.hooks.Add(NewLevelWriterHook(lfw, fileFormatter))
 	return l
 }
 

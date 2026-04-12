@@ -422,3 +422,91 @@ func itoa64(n int64) string {
 func istty(w io.Writer) bool {
 	return sysx.IsTTY(w)
 }
+
+// StripANSI removes all ANSI escape sequences from s.
+// Use this to sanitise log output before writing to files or other
+// non-terminal destinations that do not interpret escape codes.
+//
+// The function uses an optimised byte-by-byte scan to avoid regex overhead.
+// It handles standard SGR (Select Graphic Rendition) sequences of the form
+// ESC [ ... m as well as other CSI sequences.
+//
+// Parameters:
+//   - `s`: the string potentially containing ANSI escape sequences
+//
+// Returns:
+//
+// a copy of s with all ANSI sequences removed.
+//
+// Example:
+//
+//	clean := slogger.StripANSI("\033[32mINFO\033[0m message")
+//	// clean == "INFO message"
+func StripANSI(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+
+	// Quick check: if no ESC character, return as-is (common case)
+	hasEsc := false
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\033' {
+			hasEsc = true
+			break
+		}
+	}
+	if !hasEsc {
+		return s
+	}
+
+	// Build result, skipping ANSI sequences
+	var b strings.Builder
+	b.Grow(len(s)) // Pre-allocate to avoid reallocations
+
+	i := 0
+	for i < len(s) {
+		if s[i] == '\033' && i+1 < len(s) && s[i+1] == '[' {
+			// Found CSI sequence (ESC [), skip until terminator
+			i += 2 // Skip ESC [
+			for i < len(s) {
+				c := s[i]
+				i++
+				// CSI sequences end with a byte in range 0x40-0x7E
+				if c >= 0x40 && c <= 0x7E {
+					break
+				}
+			}
+		} else {
+			b.WriteByte(s[i])
+			i++
+		}
+	}
+	return b.String()
+}
+
+// cloneFormatterForFile creates a copy of the formatter suitable for file output.
+// For TextFormatter, it returns a new instance with ColorNever mode to ensure
+// no ANSI escape sequences appear in file output. For other formatter types
+// (e.g. JSONFormatter), it returns the original formatter unchanged.
+//
+// Parameters:
+//   - `f`: the formatter to clone
+//
+// Returns:
+//
+// a formatter configured for file output (no colours).
+func cloneFormatterForFile(f Formatter) Formatter {
+	if tf, ok := f.(*TextFormatter); ok {
+		// Create a copy of TextFormatter with ColorNever
+		return &TextFormatter{
+			timeFormat:       tf.timeFormat,
+			disableColors:    true,
+			disableTimestamp: tf.disableTimestamp,
+			enableCaller:     tf.enableCaller,
+			output:           nil, // No TTY detection needed for ColorNever
+			colorMode:        ColorNever,
+		}
+	}
+	// For other formatters (JSONFormatter, custom), return as-is
+	return f
+}

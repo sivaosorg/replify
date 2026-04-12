@@ -27,11 +27,15 @@ func (f *TextFormatter) WithTimeFormat(fmt string) *TextFormatter {
 // Useful when writing to files, pipes, or CI environments that do not
 // interpret escape sequences.
 //
+// Deprecated: Use WithColorMode(ColorNever) instead for explicit control.
+// This method is retained for backward compatibility and sets ColorNever.
+//
 // Returns:
 //
 // the receiver, for method chaining.
 func (f *TextFormatter) WithDisableColor() *TextFormatter {
 	f.disableColors = true
+	f.colorMode = ColorNever
 	return f
 }
 
@@ -41,11 +45,46 @@ func (f *TextFormatter) WithDisableColor() *TextFormatter {
 // terminal or when constructing a formatter that starts with colours disabled
 // and opts back in conditionally (e.g. based on a config flag).
 //
+// Deprecated: Use WithColorMode(ColorAuto) or WithColorMode(ColorAlways) instead.
+// This method is retained for backward compatibility and sets ColorAuto.
+//
 // Returns:
 //
 // the receiver, for method chaining.
 func (f *TextFormatter) WithEnableColor() *TextFormatter {
 	f.disableColors = false
+	f.colorMode = ColorAuto
+	return f
+}
+
+// WithColorMode sets the colour mode for the formatter.
+//
+// ColorMode controls when ANSI colour codes are emitted:
+//   - ColorAuto (default): colours when output is a TTY
+//   - ColorAlways: colours unconditionally
+//   - ColorNever: never emit colours
+//
+// This method supersedes the legacy WithDisableColor and WithEnableColor methods
+// and provides more explicit control over colour behaviour.
+//
+// Parameters:
+//   - `mode`: the ColorMode to use
+//
+// Returns:
+//
+// the receiver, for method chaining.
+//
+// Example:
+//
+//	// File output: no colours
+//	f := slogger.NewTextFormatter(file).WithColorMode(slogger.ColorNever)
+//
+//	// Force colours even when not a TTY
+//	f := slogger.NewTextFormatter(os.Stdout).WithColorMode(slogger.ColorAlways)
+func (f *TextFormatter) WithColorMode(mode ColorMode) *TextFormatter {
+	f.colorMode = mode
+	// Sync legacy field for backward compatibility with IsDisableColors()
+	f.disableColors = (mode == ColorNever)
 	return f
 }
 
@@ -132,6 +171,36 @@ func (f *TextFormatter) Output() io.Writer {
 	return f.output
 }
 
+// ColorMode returns the colour mode configured for this formatter.
+//
+// Returns:
+//
+// the ColorMode (ColorAuto, ColorAlways, or ColorNever).
+func (f *TextFormatter) ColorMode() ColorMode {
+	if f == nil {
+		return ColorAuto
+	}
+	return f.colorMode
+}
+
+// shouldUseColor determines whether ANSI colour codes should be emitted
+// based on the configured ColorMode and output writer.
+//
+// Returns:
+//
+// true if colours should be used for the current output.
+func (f *TextFormatter) shouldUseColor() bool {
+	switch f.colorMode {
+	case ColorAlways:
+		return true
+	case ColorNever:
+		return false
+	default: // ColorAuto
+		// Legacy behaviour: check disableColors flag and TTY detection
+		return !f.disableColors && istty(f.output)
+	}
+}
+
 // Format serialises e to a human-readable key=value byte slice.
 //
 // Parameters:
@@ -143,7 +212,7 @@ func (f *TextFormatter) Output() io.Writer {
 func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 	var b strings.Builder
 
-	useColor := !f.disableColors && istty(f.output)
+	useColor := f.shouldUseColor()
 
 	// Determine whether to include caller info based on entry's caller or formatter setting
 	// Note: We use a local variable instead of modifying f.enableCaller to maintain thread-safety

@@ -25,6 +25,14 @@ type Level int32
 // rather than setting FieldType directly.
 type FieldType int
 
+// ColorMode controls when ANSI colour codes are emitted by TextFormatter.
+//
+// Use ColorAuto (the default) to let the formatter detect whether the output
+// is a TTY and enable colours only when appropriate. Use ColorAlways to force
+// colours regardless of output type, or ColorNever to guarantee plain text
+// output (suitable for files, pipes, CI environments).
+type ColorMode int
+
 // ///////////////////////////////////////////////////////////////////////////
 // Logger — core type
 // ///////////////////////////////////////////////////////////////////////////
@@ -209,12 +217,24 @@ type SamplingOptions struct {
 // Output format:
 //
 // 2006-01-02 15:04:05.999999 INFO  message  key=value key2=value2\n
+//
+// Color Behaviour:
+//
+// By default (ColorAuto), TextFormatter emits ANSI colour codes only when the
+// output writer is a terminal (TTY). Use WithColorMode to override this:
+//   - ColorAuto:   colours when output is a TTY
+//   - ColorAlways: colours unconditionally (useful for piped output to tools like less -R)
+//   - ColorNever:  never emit colours (suitable for files, CI, log aggregators)
+//
+// The legacy WithDisableColor and WithEnableColor methods set ColorNever and
+// ColorAuto respectively for backward compatibility.
 type TextFormatter struct {
 	timeFormat       string
 	disableColors    bool
 	disableTimestamp bool
 	enableCaller     bool
 	output           io.Writer
+	colorMode        ColorMode
 }
 
 // JSONFormatter formats log entries as single-line JSON objects.

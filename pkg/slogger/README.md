@@ -627,12 +627,48 @@ Human-readable output, ideal for development and CLI tools:
 f := slogger.NewTextFormatter(os.Stderr).
     WithTimeFormat(time.RFC3339Nano).  // custom timestamp layout
     WithEnableCaller().                // append caller=pkg/foo/bar.go:42
-    WithDisableColor().                // disable ANSI codes (e.g. for files)
+    WithColorMode(slogger.ColorNever). // explicit color control (recommended)
     WithDisableTimestamp()             // omit timestamp (when infra adds its own)
 ```
 
-`TextFormatter` automatically detects whether its output writer is a terminal
-using `IsTTY`. Color codes are only emitted when connected to a TTY.
+**Color Mode:**
+
+`TextFormatter` supports three color modes via `WithColorMode()`:
+
+| Mode | Behaviour |
+|------|-----------|
+| `ColorAuto` (default) | Emit colours only when output is a TTY |
+| `ColorAlways` | Always emit ANSI colour codes |
+| `ColorNever` | Never emit ANSI colour codes (for files, CI, log aggregators) |
+
+```go
+// Terminal output with auto-detection (default)
+termFormatter := slogger.NewTextFormatter(os.Stdout).WithColorMode(slogger.ColorAuto)
+
+// File output without colours
+fileFormatter := slogger.NewTextFormatter(file).WithColorMode(slogger.ColorNever)
+
+// Force colours even when not a TTY (e.g., piping to less -R)
+colorFormatter := slogger.NewTextFormatter(os.Stdout).WithColorMode(slogger.ColorAlways)
+```
+
+> **Note:** When using `WithRotation()`, file output automatically uses `ColorNever`
+> to prevent ANSI escape sequences from appearing in log files, regardless of the
+> formatter's configured color mode.
+
+**Legacy Methods:**
+
+The deprecated `WithDisableColor()` and `WithEnableColor()` methods are retained for
+backward compatibility but `WithColorMode()` is recommended for new code.
+
+**Strip ANSI Helper:**
+
+Use `StripANSI()` to remove ANSI escape sequences from strings:
+
+```go
+clean := slogger.StripANSI("\033[32mINFO\033[0m message")
+// clean == "INFO message"
+```
 
 #### JSONFormatter
 

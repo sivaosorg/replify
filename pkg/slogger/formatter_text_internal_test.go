@@ -46,6 +46,7 @@ func TestTextFormatter_WithDisableColor(t *testing.T) {
 
 	f := NewTextFormatter(nil).WithDisableColor()
 	assertTrue(t, f.IsDisableColors())
+	assertEqual(t, ColorNever, f.ColorMode()) // Should also set ColorNever
 }
 
 func TestTextFormatter_WithEnableColor(t *testing.T) {
@@ -53,6 +54,7 @@ func TestTextFormatter_WithEnableColor(t *testing.T) {
 
 	f := NewTextFormatter(nil).WithDisableColor().WithEnableColor()
 	assertFalse(t, f.IsDisableColors())
+	assertEqual(t, ColorAuto, f.ColorMode()) // Should reset to ColorAuto
 }
 
 func TestTextFormatter_WithDisableTimestamp(t *testing.T) {
@@ -407,6 +409,249 @@ func TestTextFormatter_SpecialCharactersInField(t *testing.T) {
 	assertNoError(t, err)
 	// Should be quoted or escaped
 	assertNotEmpty(t, string(data))
+}
+
+// =============================================================================
+// ColorMode Tests
+// =============================================================================
+
+func TestTextFormatter_WithColorMode(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ColorNever disables colors", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		f := NewTextFormatter(&buf).WithColorMode(ColorNever)
+		assertEqual(t, ColorNever, f.ColorMode())
+		assertTrue(t, f.IsDisableColors())
+	})
+
+	t.Run("ColorAlways enables colors", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		f := NewTextFormatter(&buf).WithColorMode(ColorAlways)
+		assertEqual(t, ColorAlways, f.ColorMode())
+		assertFalse(t, f.IsDisableColors())
+	})
+
+	t.Run("ColorAuto is default", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		f := NewTextFormatter(&buf)
+		assertEqual(t, ColorAuto, f.ColorMode())
+	})
+}
+
+func TestTextFormatter_ColorMode_FormatOutput(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ColorNever produces no ANSI codes", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		f := NewTextFormatter(&buf).WithColorMode(ColorNever)
+		log := New(WithOutput(&buf), WithFormatter(f))
+
+		entry := &Entry{
+			logger:  log,
+			time:    time.Now(),
+			level:   InfoLevel,
+			message: "test message",
+		}
+
+		data, err := f.Format(entry)
+		assertNoError(t, err)
+		out := string(data)
+
+		// Verify no ANSI escape sequences
+		assertNotContains(t, out, "\033[")
+		assertNotContains(t, out, colorGreen)
+		assertNotContains(t, out, colorReset)
+		assertContains(t, out, "INFO")
+	})
+
+	t.Run("ColorAlways produces ANSI codes", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		f := NewTextFormatter(&buf).WithColorMode(ColorAlways)
+		log := New(WithOutput(&buf), WithFormatter(f))
+
+		entry := &Entry{
+			logger:  log,
+			time:    time.Now(),
+			level:   InfoLevel,
+			message: "test message",
+		}
+
+		data, err := f.Format(entry)
+		assertNoError(t, err)
+		out := string(data)
+
+		// Verify ANSI escape sequences are present
+		assertContains(t, out, "\033[")
+		assertContains(t, out, colorReset)
+	})
+
+	t.Run("ColorAuto with non-TTY produces no ANSI codes", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer // bytes.Buffer is not a TTY
+		f := NewTextFormatter(&buf).WithColorMode(ColorAuto)
+		log := New(WithOutput(&buf), WithFormatter(f))
+
+		entry := &Entry{
+			logger:  log,
+			time:    time.Now(),
+			level:   WarnLevel,
+			message: "warning message",
+		}
+
+		data, err := f.Format(entry)
+		assertNoError(t, err)
+		out := string(data)
+
+		// bytes.Buffer is not a TTY, so no colours
+		assertNotContains(t, out, "\033[")
+		assertContains(t, out, "WARN")
+	})
+}
+
+func TestTextFormatter_ColorMode_NilReceiver(t *testing.T) {
+	t.Parallel()
+
+	var f *TextFormatter
+	assertEqual(t, ColorAuto, f.ColorMode())
+}
+
+// =============================================================================
+// StripANSI Tests
+// =============================================================================
+
+func TestStripANSI(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty string", func(t *testing.T) {
+		t.Parallel()
+		assertEqual(t, "", StripANSI(""))
+	})
+
+	t.Run("no escape sequences", func(t *testing.T) {
+		t.Parallel()
+		input := "plain text message"
+		assertEqual(t, input, StripANSI(input))
+	})
+
+	t.Run("strips color codes", func(t *testing.T) {
+		t.Parallel()
+		input := colorGreen + "INFO" + colorReset + " message"
+		expected := "INFO message"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("strips bold", func(t *testing.T) {
+		t.Parallel()
+		input := colorBold + "BOLD" + colorReset
+		expected := "BOLD"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("strips multiple sequences", func(t *testing.T) {
+		t.Parallel()
+		input := colorRed + colorBold + "ERROR" + colorReset + " " + colorYellow + "warning" + colorReset
+		expected := "ERROR warning"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("preserves unicode", func(t *testing.T) {
+		t.Parallel()
+		input := colorGreen + "日本語" + colorReset + " 🎉"
+		expected := "日本語 🎉"
+		assertEqual(t, expected, StripANSI(input))
+	})
+
+	t.Run("handles real log line", func(t *testing.T) {
+		t.Parallel()
+		// Simulate actual colored log output
+		input := "2026-04-12 10:30:00 " + colorGreen + colorBold + "INFO " + colorReset + " application started"
+		expected := "2026-04-12 10:30:00 INFO  application started"
+		assertEqual(t, expected, StripANSI(input))
+	})
+}
+
+// =============================================================================
+// cloneFormatterForFile Tests
+// =============================================================================
+
+func TestCloneFormatterForFile(t *testing.T) {
+	t.Parallel()
+
+	t.Run("TextFormatter gets ColorNever", func(t *testing.T) {
+		t.Parallel()
+		var buf bytes.Buffer
+		original := NewTextFormatter(&buf).
+			WithTimeFormat("2006-01-02").
+			WithEnableCaller().
+			WithColorMode(ColorAlways) // Even if ColorAlways, file should be ColorNever
+
+		cloned := cloneFormatterForFile(original)
+		tf, ok := cloned.(*TextFormatter)
+		assertTrue(t, ok)
+		assertEqual(t, ColorNever, tf.ColorMode())
+		assertTrue(t, tf.IsDisableColors())
+		assertEqual(t, "2006-01-02", tf.TimeFormat())
+		assertTrue(t, tf.IsEnableCaller())
+	})
+
+	t.Run("JSONFormatter returned unchanged", func(t *testing.T) {
+		t.Parallel()
+		original := NewJSONFormatter().WithTimeFormat("2006-01-02")
+		cloned := cloneFormatterForFile(original)
+
+		// Should be the same instance for JSONFormatter
+		assertEqual(t, original, cloned)
+	})
+}
+
+// =============================================================================
+// Integration Tests
+// =============================================================================
+
+func TestTextFormatter_FileOutput_NoColors(t *testing.T) {
+	t.Parallel()
+
+	// Simulate the scenario where TextFormatter is used for both stdout and file
+	var stdoutBuf bytes.Buffer
+
+	// Formatter for stdout with auto-detect (non-TTY in test)
+	stdoutFormatter := NewTextFormatter(&stdoutBuf).WithColorMode(ColorAlways)
+
+	// Formatter for file output should have ColorNever
+	fileFormatter := cloneFormatterForFile(stdoutFormatter)
+
+	log := New(WithOutput(&stdoutBuf), WithFormatter(stdoutFormatter))
+
+	entry := &Entry{
+		logger:  log,
+		time:    time.Now(),
+		level:   ErrorLevel,
+		message: "error occurred",
+	}
+
+	// Format for stdout (colored)
+	stdoutData, err := stdoutFormatter.Format(entry)
+	assertNoError(t, err)
+
+	// Format for file (no colors)
+	fileData, err := fileFormatter.Format(entry)
+	assertNoError(t, err)
+
+	// Verify stdout has colors
+	assertContains(t, string(stdoutData), "\033[")
+
+	// Verify file has no colors
+	assertNotContains(t, string(fileData), "\033[")
+
+	// Both should contain the message
+	assertContains(t, string(stdoutData), "error occurred")
+	assertContains(t, string(fileData), "error occurred")
 }
 
 // =============================================================================

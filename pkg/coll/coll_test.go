@@ -500,3 +500,35 @@ func TestUnflattenMap(t *testing.T) {
 		t.Errorf("age = %v; want 30", got["age"])
 	}
 }
+
+// ─── HashMap nil-receiver safety ────────────────────────────────────────────
+
+func TestHashMap_NilReceiver(t *testing.T) {
+	var m *coll.HashMap[string, int]
+
+	t.Run("Get", func(t *testing.T) {
+		if v := m.Get("key"); v != 0 {
+			t.Errorf("Get() on nil = %d; want 0", v)
+		}
+	})
+	t.Run("Size", func(t *testing.T) {
+		if v := m.Size(); v != 0 {
+			t.Errorf("Size() on nil = %d; want 0", v)
+		}
+	})
+	t.Run("IsEmpty", func(t *testing.T) {
+		if !m.IsEmpty() {
+			t.Error("IsEmpty() on nil = false; want true")
+		}
+	})
+	t.Run("ContainsKey", func(t *testing.T) {
+		if m.ContainsKey("key") {
+			t.Error("ContainsKey() on nil = true; want false")
+		}
+	})
+	t.Run("KeySet", func(t *testing.T) {
+		if ks := m.KeySet(); ks != nil {
+			t.Errorf("KeySet() on nil = %v; want nil", ks)
+		}
+	})
+}

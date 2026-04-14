@@ -413,3 +413,14 @@ func TestAsConvError_Nil(t *testing.T) {
 		t.Errorf("AsConvError(nil) should return (nil, false)")
 	}
 }
+
+func TestToTime_FromTimeValue(t *testing.T) {
+	now := time.Now().Truncate(time.Second)
+	got, err := conv.Time(now)
+	if err != nil {
+		t.Fatalf("Time(time.Time) error = %v", err)
+	}
+	if !got.Equal(now) {
+		t.Errorf("Time(time.Time) = %v; want %v", got, now)
+	}
+}

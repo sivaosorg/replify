@@ -942,3 +942,21 @@ func TestHash_ValidateNilHasher(t *testing.T) {
 		t.Errorf("error %q does not contain %q", err.Error(), want)
 	}
 }
+
+func TestHash_TimeValue(t *testing.T) {
+	now := time.Now()
+	h1, err := hashy.Hash(now)
+	if err != nil {
+		t.Fatalf("Hash(time.Time) error = %v", err)
+	}
+	if h1 == 0 {
+		t.Error("Hash(time.Time) returned zero")
+	}
+	h2, err := hashy.Hash(now)
+	if err != nil {
+		t.Fatalf("Hash(time.Time) second call error = %v", err)
+	}
+	if h1 != h2 {
+		t.Errorf("Hash(time.Time) not deterministic: %d != %d", h1, h2)
+	}
+}

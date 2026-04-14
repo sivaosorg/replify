@@ -118,7 +118,13 @@ func windowsOSVersion() string {
 //	A non-nil *sync.Mutex unique to the provided path.
 func getFileMutex(path string) *sync.Mutex {
 	v, _ := fileMutexes.LoadOrStore(path, &sync.Mutex{})
-	return v.(*sync.Mutex)
+	mu, ok := v.(*sync.Mutex)
+	if !ok {
+		// Should never happen: fileMutexes only stores *sync.Mutex values.
+		mu = &sync.Mutex{}
+		fileMutexes.Store(path, mu)
+	}
+	return mu
 }
 
 // parseBool parses a lowercase, trimmed string as a boolean.

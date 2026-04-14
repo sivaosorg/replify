@@ -47,6 +47,9 @@ func (hash *HashMap[K, V]) Put(key K, value V) {
 //
 //	value := hashMap.Get("apple") // Retrieves the value associated with "apple".
 func (hash *HashMap[K, V]) Get(key K) (value V) {
+	if hash == nil || hash.items == nil {
+		return value
+	}
 	return hash.items[key]
 }
 
@@ -79,6 +82,9 @@ func (hash *HashMap[K, V]) Clear() {
 //
 //	size := hashMap.Size() // Gets the size of the map.
 func (hash *HashMap[K, V]) Size() int {
+	if hash == nil {
+		return 0
+	}
 	return len(hash.items)
 }
 
@@ -90,7 +96,7 @@ func (hash *HashMap[K, V]) Size() int {
 //
 //	isEmpty := hashMap.IsEmpty() // Returns true if the map is empty.
 func (hash *HashMap[K, V]) IsEmpty() bool {
-	return len(hash.items) == 0
+	return hash.Size() == 0
 }
 
 // ContainsKey checks whether the specified key exists in the HashMap.
@@ -104,6 +110,9 @@ func (hash *HashMap[K, V]) IsEmpty() bool {
 //
 //	exists := hashMap.ContainsKey("apple") // Checks if the key "apple" exists in the map.
 func (hash *HashMap[K, V]) ContainsKey(key K) bool {
+	if hash == nil || hash.items == nil {
+		return false
+	}
 	_, ok := hash.items[key]
 	return ok
 }
@@ -116,6 +125,9 @@ func (hash *HashMap[K, V]) ContainsKey(key K) bool {
 //
 //	keys := hashMap.KeySet() // Returns all the keys in the map.
 func (hash *HashMap[K, V]) KeySet() []K {
+	if hash == nil {
+		return nil
+	}
 	keys := make([]K, hash.Size())
 	i := 0
 	for key := range hash.items {

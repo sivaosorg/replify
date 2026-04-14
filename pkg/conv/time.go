@@ -417,7 +417,9 @@ func (c *Converter) timeFromReflect(from any) (time.Time, error) {
 		return c.stringToTime(value.String())
 	case kind == reflect.Struct:
 		if value.Type() == typeOfTime && value.CanInterface() {
-			return value.Interface().(time.Time), nil
+			if t, ok := value.Interface().(time.Time); ok {
+				return t, nil
+			}
 		}
 	case isKindInt(kind):
 		return time.Unix(value.Int(), 0), nil

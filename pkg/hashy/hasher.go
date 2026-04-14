@@ -165,7 +165,11 @@ func (h *hasher) hashNumeric(value reflect.Value) (uint64, error) {
 //	fmt.Println(hash, err) // time.Now().Unix() nil
 func (h *hasher) hashTime(value reflect.Value) (uint64, error) {
 	h.hash.Reset()
-	timeVal := value.Interface().(time.Time)
+	iface := value.Interface()
+	timeVal, ok := iface.(time.Time)
+	if !ok {
+		return 0, fmt.Errorf("hashy: expected time.Time, got %T", iface)
+	}
 	data, err := timeVal.MarshalBinary()
 	if err != nil {
 		return 0, err

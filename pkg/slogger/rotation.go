@@ -285,10 +285,13 @@ func (lfw *LevelFileWriter) WriteLevel(level Level, p []byte) (int, error) {
 			rf = lfw.writers[ErrorLevel]
 		}
 	}
-	lfw.mu.Unlock()
 	if rf == nil {
+		lfw.mu.Unlock()
 		return 0, nil
 	}
+	// Hold lfw.mu until after the write completes so that a concurrent
+	// Close cannot invalidate rf between the lookup and the write.
+	defer lfw.mu.Unlock()
 	return rf.write(p)
 }
 

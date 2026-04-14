@@ -214,7 +214,7 @@ func IsReadable(path string) bool {
 		if err != nil {
 			return false
 		}
-		f.Close()
+		defer f.Close()
 		return true
 	}
 	fi, err := os.Stat(path)
@@ -246,7 +246,7 @@ func IsWritable(path string) bool {
 	if err != nil {
 		return false
 	}
-	f.Close()
+	defer f.Close()
 	return true
 }
 

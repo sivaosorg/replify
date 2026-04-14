@@ -40,7 +40,9 @@ func lockFile(f *os.File, isWrite bool) error {
 		uintptr(unsafe.Pointer(ol)),
 	)
 	if r1 == 0 {
-		if err != nil && err.Error() != "The operation completed successfully." {
+		// err is always a syscall.Errno after a Call; compare directly
+		// instead of relying on the locale-dependent Error() string.
+		if err != syscall.Errno(0) {
 			return err
 		}
 		return syscall.EINVAL
@@ -59,7 +61,7 @@ func unlockFile(f *os.File) error {
 		uintptr(unsafe.Pointer(ol)),
 	)
 	if r1 == 0 {
-		if err != nil && err.Error() != "The operation completed successfully." {
+		if err != syscall.Errno(0) {
 			return err
 		}
 		return syscall.EINVAL

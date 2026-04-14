@@ -3606,17 +3606,26 @@ func (w *wrapper) Respond() map[string]any {
 	if !w.Available() {
 		return nil
 	}
+
+	// Fast path: check cache under read lock.
 	w.cacheMutex.RLock()
 	hash := w.Hash256()
-
 	if w.cacheHash == hash && w.cachedWrap != nil {
-		defer w.cacheMutex.RUnlock()
-		return w.cachedWrap
+		cached := w.cachedWrap
+		w.cacheMutex.RUnlock()
+		return cached
 	}
 	w.cacheMutex.RUnlock()
 
+	// Slow path: acquire write lock and double-check before rebuilding.
 	w.cacheMutex.Lock()
 	defer w.cacheMutex.Unlock()
+
+	// Re-compute hash under write lock to avoid using a stale value.
+	hash = w.Hash256()
+	if w.cacheHash == hash && w.cachedWrap != nil {
+		return w.cachedWrap
+	}
 
 	response := w.build()
 	w.cachedWrap = response

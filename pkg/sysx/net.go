@@ -168,7 +168,7 @@ func IsPortAvailable(port int) bool {
 	if err != nil {
 		return false
 	}
-	ln.Close()
+	defer ln.Close()
 	return true
 }
 
@@ -454,7 +454,7 @@ func CheckTCPConn(host string, port int, timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("sysx: TCP connection to %s failed: %w", addr, err)
 	}
-	conn.Close()
+	defer conn.Close()
 	return nil
 }
 

@@ -96,7 +96,10 @@ func (hash *HashMap[K, V]) Size() int {
 //
 //	isEmpty := hashMap.IsEmpty() // Returns true if the map is empty.
 func (hash *HashMap[K, V]) IsEmpty() bool {
-	return hash.Size() == 0
+	if hash == nil {
+		return true
+	}
+	return len(hash.items) == 0
 }
 
 // ContainsKey checks whether the specified key exists in the HashMap.

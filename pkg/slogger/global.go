@@ -58,6 +58,11 @@ func Error(msg string, fields ...Field) {
 	GlobalLogger().dispatch(ErrorLevel, msg, fields...)
 }
 
+// Fatal logs a FATAL-level message via the global logger.
+func Fatal(msg string, fields ...Field) {
+	GlobalLogger().dispatch(FatalLevel, msg, fields...)
+}
+
 // Tracef logs a TRACE-level formatted message via the global logger.
 func Tracef(format string, args ...any) {
 	GlobalLogger().Tracef(format, args...)
@@ -81,6 +86,11 @@ func Warnf(format string, args ...any) {
 // Errorf logs an ERROR-level formatted message via the global logger.
 func Errorf(format string, args ...any) {
 	GlobalLogger().Errorf(format, args...)
+}
+
+// Fatalf logs a FATAL-level formatted message via the global logger.
+func Fatalf(format string, args ...any) {
+	GlobalLogger().Fatalf(format, args...)
 }
 
 // GlobalWithContextFields returns a new context that carries the provided fields for

@@ -151,6 +151,20 @@ func String(key, val string) Field {
 	return Field{key: key, typ: StringType, strVal: val}
 }
 
+// Stringf constructs a Field carrying a formatted string value.
+//
+// Parameters:
+//   - `key`: the field name
+//   - `format`: the format string
+//   - `args`: the arguments to format
+//
+// Returns:
+//
+// a Field of type StringType.
+func Stringf(key, format string, args ...any) Field {
+	return Field{key: key, typ: StringType, strVal: fmt.Sprintf(format, args...)}
+}
+
 // Bool constructs a Field carrying a bool value.
 //
 // Parameters:

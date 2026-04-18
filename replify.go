@@ -2983,6 +2983,38 @@ func (w *wrapper) AppendErrorf(err error, format string, args ...any) *wrapper {
 	return w
 }
 
+// AppendErrors appends multiple errors to the `wrapper` instance.
+//
+// This function iterates through the provided errors slice, skips nil entries,
+// and folds each error into the wrapper's internal error chain.
+//
+// Rules:
+//   - If `w.errors` is nil, it will be set to the first non-nil error.
+//   - For subsequent errors, it wraps the existing chain using AppendErrorAck
+//     with the error's message.
+//
+// Parameters:
+//   - errs: A slice of errors to be appended.
+//
+// Returns:
+//   - A pointer to the modified `wrapper` instance to support method chaining.
+func (w *wrapper) AppendErrors(errs []error) *wrapper {
+	if !w.Available() || len(errs) == 0 {
+		return w
+	}
+	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+		if w.errors == nil {
+			w.errors = err
+			continue
+		}
+		w.errors = AppendErrorAck(w.errors, err.Error())
+	}
+	return w
+}
+
 // BindCause sets the error for the `wrapper` instance using its current message.
 //
 // This function creates an error object from the `message` field of the `wrapper`,

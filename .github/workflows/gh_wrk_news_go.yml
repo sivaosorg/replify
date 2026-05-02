@@ -3,31 +3,27 @@
 
 name: GH Workflow News Golang
 
+# on:
+#   push:
+#     branches: ["master"]
+#   pull_request:
+#     branches: ["master"]
 on:
-  push:
-    branches: ["master"]
-    tags:
-      - "v*"
-  pull_request:
-    branches: ["master"]
+  workflow_dispatch: # disabled: previously triggered on push/PR to master and version tags
 
 jobs:
-  # This job will build and test the Go project across multiple OS and Go versions
-  # to validate cross-platform compatibility (Linux, macOS, Windows).
+  # This job will build and test the Go project
+  # It will run on the latest Ubuntu environment
   build:
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
+    runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest] # windows-latest
-        go: ["1.21.x", "1.23.x", "1.24.x", "1.25.x"] # Add Go versions as needed, previous version "1.19", "1.20.x"
+        go: ["1.23.x", "1.24.x", "1.25.x"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
 
@@ -36,41 +32,3 @@ jobs:
 
       - name: Test
         run: go test -v ./...
-  # This job will create a GitHub release when a tag is pushed
-  # It will only run if the tag starts with 'v' (e.g., v1.0.0)
-  # It will also check if the tag already exists to avoid duplicate releases
-  create-release:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') # Only run this job when a valid tag is pushed
-    steps:
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if [ -n "$GITHUB_REF" ]; then
-            TAG=${GITHUB_REF#refs/tags/}
-            # echo "::set-output name=tag::$TAG"
-            echo "TAG=${TAG}" >> $GITHUB_ENV
-          else
-            # echo "::set-output name=tag::"
-            echo "TAG=" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Ensure all history is fetched
-
-      - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ env.TAG }}
-          body: |
-            :gem: released new version ${{ env.TAG }}
-            Changelog:
-            ${{ env.CHANGELOG }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

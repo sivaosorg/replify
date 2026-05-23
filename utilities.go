@@ -7,6 +7,7 @@ import (
 
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/randn"
+	"github.com/sivaosorg/replify/pkg/slogger"
 )
 
 // calculateSize calculates the size of the marshaled data.
@@ -152,4 +153,53 @@ func jsonpass(data any) string {
 //	jsonPrettyStr := jsonpretty(myStruct)
 func jsonpretty(data any) string {
 	return encoding.JSONPretty(data)
+}
+
+// httpStatusLevel maps an HTTP status code to its corresponding [slogger.Level].
+//
+//   - 1xx → Debug  (informational)
+//   - 2xx → Info   (success)
+//   - 3xx → Warn   (redirection)
+//   - 4xx → Error  (client error)
+//   - 5xx → Error  (server error; Fatal is avoided — it calls os.Exit(1))
+//   - other → Trace
+func httpStatusLevel(code int) slogger.Level {
+	switch {
+	case code >= 400:
+		return slogger.ErrorLevel
+	case code >= 300:
+		return slogger.WarnLevel
+	case code >= 200:
+		return slogger.InfoLevel
+	case code >= 100:
+		return slogger.DebugLevel
+	default:
+		return slogger.TraceLevel
+	}
+}
+
+// logAtLevel dispatches a single log entry to l at the given level.
+// It uses the appropriate method of the slogger.Logger based on the provided slogger.Level.
+//
+// Parameters:
+//   - `l`: The slogger.Logger instance to which the log entry will be dispatched.
+//   - `lvl`: The slogger.Level indicating the severity of the log entry (e.g., ErrorLevel, WarnLevel, InfoLevel, DebugLevel, TraceLevel).
+//   - `msg`: The message string to be logged.
+//   - `f`: A slogger.Field containing additional structured data to be included in the log entry.
+//
+// The function uses a switch statement to determine which logging method to call on the logger based on the provided level.
+// If the level does not match any of the defined levels (ErrorLevel, WarnLevel, InfoLevel, DebugLevel), it defaults to using Trace.
+func logAtLevel(l *slogger.Logger, lvl slogger.Level, msg string, f slogger.Field) {
+	switch lvl {
+	case slogger.ErrorLevel:
+		l.Error(msg, f)
+	case slogger.WarnLevel:
+		l.Warn(msg, f)
+	case slogger.InfoLevel:
+		l.Info(msg, f)
+	case slogger.DebugLevel:
+		l.Debug(msg, f)
+	default:
+		l.Trace(msg, f)
+	}
 }

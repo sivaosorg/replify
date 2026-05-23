@@ -3,7 +3,7 @@
 //
 // The package operates exclusively on UTF-8 strings. Where character
 // counting is relevant, functions work on Unicode code points (runes) rather
-// than raw bytes, ensuring correct behaviour for multi-byte characters.
+// than raw bytes, ensuring correct behavior for multi-byte characters.
 //
 // # Emptiness Checks
 //
@@ -12,10 +12,10 @@
 //	strutil.IsAllEmpty(a, b, ...)   // true when all arguments are empty
 //	strutil.IsNotEmpty(s)           // convenience negation of IsEmpty
 //
-// # Trimming and Normalisation
+// # Trimming and Normalization
 //
 // Functions cover left/right/both-side trimming, duplicate-whitespace
-// collapse, Unicode normalisation, and removal of specific characters or
+// collapse, Unicode normalization, and removal of specific characters or
 // substrings.
 //
 // # Case Conversion

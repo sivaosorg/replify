@@ -3865,3 +3865,14 @@ func (w *wrapper) build() map[string]any {
 	}
 	return m
 }
+
+// Value returns the integer value of the StatusCode.
+//
+// This method allows for easy retrieval of the underlying integer value of a StatusCode instance,
+// which can be useful for comparisons, logging, or when interfacing with APIs that require numeric status codes.
+//
+// Returns:
+//   - An integer representing the value of the StatusCode.
+func (s StatusCode) Value() int {
+	return int(s)
+}

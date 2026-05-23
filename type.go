@@ -78,6 +78,12 @@ type BufferPool struct {
 	size    int64
 }
 
+// StatusCode is a typed HTTP status code.
+// Use the predeclared Status* constants (e.g. [StatusOK], [StatusBadRequest])
+// rather than raw integers to benefit from compile-time safety when calling
+// [WithStatusCode].
+type StatusCode int
+
 // StreamConfig contains streaming configuration
 // options for handling large data transfers.
 type StreamConfig struct {

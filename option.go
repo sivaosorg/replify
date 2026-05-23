@@ -12,7 +12,7 @@ import (
 // Example:
 //
 //	w := replify.Wrap(
-//	    replify.WithStatusCode(http.StatusOK),
+//	    replify.WithStatusCode(replify.StatusOK),
 //	    replify.WithHeader(replify.OK),
 //	    replify.WithMessage("Resource retrieved"),
 //	    replify.WithBody(payload),
@@ -29,7 +29,7 @@ type ROption func(*wrapper)
 // Example:
 //
 //	w := replify.Wrap(
-//	    replify.WithStatusCode(http.StatusOK),
+//	    replify.WithStatusCode(replify.StatusOK),
 //	    replify.WithHeader(replify.OK),
 //	    replify.WithMessage("users retrieved"),
 //	    replify.WithBody(users),
@@ -51,10 +51,11 @@ func Wrap(opts ...ROption) *wrapper {
 }
 
 // WithStatusCode returns an [ROption] that sets the HTTP status code.
-// Values outside [100, 599] are clamped to 500 by the underlying method.
-func WithStatusCode(code int) ROption {
+// Use the typed [StatusCode] constants (e.g. [StatusOK], [StatusBadRequest])
+// instead of raw integers. Values outside [100, 599] are clamped to 500.
+func WithStatusCode(code StatusCode) ROption {
 	return func(w *wrapper) {
-		w.WithStatusCode(code)
+		w.WithStatusCode(code.Value())
 	}
 }
 

@@ -419,7 +419,7 @@ func (l *Logger) WithCallerSkip(skip int) *Logger {
 // identical messages per opts.Period, then every opts.Thereafter-th message.
 //
 // Parameters:
-//   - `opts`: the SamplingOptions that define the rate-limiting behaviour
+//   - `opts`: the SamplingOptions that define the rate-limiting behavior
 //
 // Returns:
 //
@@ -455,8 +455,8 @@ func (l *Logger) WithRotation(opts *RotationOptions) *Logger {
 	formatter := l.formatter
 	l.mu.RUnlock()
 
-	// Ensure file output does not contain ANSI colour codes.
-	// Create a colour-disabled copy of TextFormatter, or use the formatter as-is
+	// Ensure file output does not contain ANSI color codes.
+	// Create a color-disabled copy of TextFormatter, or use the formatter as-is
 	// for other formatter types (e.g. JSONFormatter).
 	fileFormatter := cloneFormatterForFile(formatter)
 	l.hooks.Add(NewLevelWriterHook(lfw, fileFormatter))
@@ -493,9 +493,7 @@ func (l *Logger) getCaller(skip int) *CallerInfo {
 //   - `msg`: the message to dispatch
 //   - `fields`: optional structured fields
 func (l *Logger) dispatch(level Level, msg string, fields ...Field) {
-	//nolint:gochecknoglobals
-	//nolint:SA1012
-	l.dispatchContext(nil, level, msg, fields...)
+	l.dispatchContext(context.Background(), level, msg, fields...)
 }
 
 // dispatchContext is the internal dispatch point for all log events.
@@ -520,13 +518,16 @@ func (l *Logger) dispatchContext(ctx context.Context, level Level, msg string, f
 	e.time = time.Now()
 	e.level = level
 	e.message = msg
-	e.ctx = ctx
+	// Store nil for background context so Entry.Context() returns nil when
+	// no explicit context was provided (dispatch path).
+	if ctx != context.Background() {
+		e.ctx = ctx
+	}
 
 	// Calculate total number of fields.
 	total := len(l.fields) + len(fields)
-	if ctx != nil {
-		total += len(FieldsFromContext(ctx))
-	}
+	ctxFields := FieldsFromContext(ctx)
+	total += len(ctxFields)
 
 	// Ensure enough capacity for all fields.
 	if cap(e.fields) < total {
@@ -535,9 +536,7 @@ func (l *Logger) dispatchContext(ctx context.Context, level Level, msg string, f
 
 	// Append fields in order: logger-bound, context, call-site.
 	e.fields = append(e.fields, l.fields...)
-	if ctx != nil {
-		e.fields = append(e.fields, FieldsFromContext(ctx)...)
-	}
+	e.fields = append(e.fields, ctxFields...)
 	e.fields = append(e.fields, fields...)
 
 	// Add caller information if enabled.

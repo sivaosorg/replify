@@ -434,12 +434,12 @@ type CallerConfig struct {
 	IsEnabled bool `yaml:"enabled" json:"enabled"`
 }
 
-// ColorConfig controls whether ANSI colour codes are applied to log output.
-// Colour is applied only when the formatter is TextFormatter and the
+// ColorConfig controls whether ANSI color codes are applied to log output.
+// Color is applied only when the formatter is TextFormatter and the
 // destination writer is a TTY; non-TTY writers (files, pipes, CI) are never
-// colourised regardless of this setting.
+// coloured regardless of this setting.
 type ColorConfig struct {
-	// IsEnabled opts in to ANSI colour codes for text-format output.
+	// IsEnabled opts in to ANSI color codes for text-format output.
 	// Has no effect when Formatter is set to "json" or when the output
 	// writer is not a TTY (e.g. a file or a CI pipeline).
 	IsEnabled bool `yaml:"enabled" json:"enabled"`

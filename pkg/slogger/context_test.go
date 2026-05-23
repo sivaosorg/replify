@@ -24,7 +24,7 @@ func TestFieldsFromContext(t *testing.T) {
 
 	t.Run("returns nil for nil context", func(t *testing.T) {
 		t.Parallel()
-		got := FieldsFromContext(nil)
+		got := FieldsFromContext(context.TODO())
 		assertNil(t, got)
 	})
 

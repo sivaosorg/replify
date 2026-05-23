@@ -265,7 +265,7 @@ func (m *meta) Respond() map[string]any {
 		mk["locale"] = m.locale
 	}
 	if m.IsRequestedTimePresent() {
-		mk["requested_time"] = m.requestedTime
+		mk["requested_time"] = m.requestedTime.Format("2006-01-02 15:04:05.999999")
 	}
 	if m.IsCustomPresent() {
 		mk["custom_fields"] = m.customFields

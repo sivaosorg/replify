@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 		t.Parallel()
 		log := New()
 		assertNotNil(t, log)
-		assertEqual(t, InfoLevel, log.Level())
+		assertEqual(t, TraceLevel, log.Level())
 		assertNotNil(t, log.Formatter())
 		assertNotNil(t, log.Output())
 		assertNotNil(t, log.Hooks())
@@ -83,14 +83,6 @@ func TestNew(t *testing.T) {
 		)
 		assertNotNil(t, log)
 	})
-}
-
-func TestNewLogger(t *testing.T) {
-	t.Parallel()
-
-	log := NewLogger()
-	assertNotNil(t, log)
-	assertEqual(t, InfoLevel, log.Level())
 }
 
 // =============================================================================

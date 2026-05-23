@@ -50,9 +50,9 @@ func New(opts ...func(*Options)) *Logger {
 		if err != nil {
 			// Rotation setup failed; write diagnostic to stderr and continue
 			// without rotation so the logger remains usable.
-			_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v\n", err)
+			_, _ = fmt.Fprintf(os.Stderr, "slogger: rotation setup failed: %v", err)
 		} else {
-			// Use a colour-disabled formatter for file output to prevent
+			// Use a color-disabled formatter for file output to prevent
 			// ANSI escape sequences from appearing in log files.
 			fileFormatter := cloneFormatterForFile(o.formatter)
 			l.hooks.Add(NewLevelWriterHook(lfw, fileFormatter))
@@ -107,7 +107,7 @@ func NewJSONFormatter() *JSONFormatter {
 //
 // Returns:
 //
-// a *TextFormatter with RFC3339 timestamps and colours enabled when output is
+// a *TextFormatter with RFC3339 timestamps and colors enabled when output is
 // a terminal.
 func NewTextFormatter(output io.Writer) *TextFormatter {
 	return &TextFormatter{
@@ -136,7 +136,7 @@ func NewHooks() *Hooks {
 //
 // Parameters:
 //   - `lfw`: the LevelFileWriter that handles per-level file output
-//   - `formatter`: the Formatter used to serialise each Entry before writing
+//   - `formatter`: the Formatter used to serialize each Entry before writing
 //   - `levels`: the log levels this hook responds to; if empty all levels fire
 //
 // Returns:
@@ -216,7 +216,7 @@ func NewSamplingOptions() *SamplingOptions {
 func defaultOptions() *Options {
 	out := os.Stderr
 	o := &Options{
-		level:     InfoLevel,
+		level:     TraceLevel,
 		output:    out,
 		formatter: NewTextFormatter(out),
 	}

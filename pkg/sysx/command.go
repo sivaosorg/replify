@@ -51,7 +51,9 @@ func NewCommand(name string) *Command {
 //
 //	cmd := sysx.NewCommand("git")
 //	fmt.Println(cmd.Name()) // "git"
-func (c *Command) Name() string { return c.name }
+func (c *Command) Name() string {
+	return c.name
+}
 
 // Args returns the positional arguments configured on the Command.
 //
@@ -63,7 +65,9 @@ func (c *Command) Name() string { return c.name }
 //
 //	cmd := sysx.NewCommand("git").WithArgs("log", "--oneline")
 //	fmt.Println(cmd.Args()) // ["log", "--oneline"]
-func (c *Command) Args() []string { return c.args }
+func (c *Command) Args() []string {
+	return c.args
+}
 
 // Dir returns the working directory configured on the Command.
 // An empty string means the child process inherits the caller's directory.
@@ -71,7 +75,9 @@ func (c *Command) Args() []string { return c.args }
 // Returns:
 //
 //	A string containing the working directory path, or empty if not set.
-func (c *Command) Dir() string { return c.dir }
+func (c *Command) Dir() string {
+	return c.dir
+}
 
 // Env returns the extra environment variable bindings ("KEY=VALUE") that
 // will be merged on top of the calling process environment when the command
@@ -80,7 +86,9 @@ func (c *Command) Dir() string { return c.dir }
 // Returns:
 //
 //	A slice of "KEY=VALUE" strings; nil if no extra bindings were added.
-func (c *Command) Env() []string { return c.env }
+func (c *Command) Env() []string {
+	return c.env
+}
 
 // Timeout returns the maximum execution duration configured on the Command.
 // A zero duration means no timeout is applied.
@@ -88,7 +96,9 @@ func (c *Command) Env() []string { return c.env }
 // Returns:
 //
 //	A time.Duration; zero if no timeout was set.
-func (c *Command) Timeout() time.Duration { return c.timeout }
+func (c *Command) Timeout() time.Duration {
+	return c.timeout
+}
 
 // WithArgs sets the positional arguments passed to the program.
 // Calling WithArgs replaces any previously set arguments.
@@ -292,26 +302,26 @@ func (c *Command) Execute() *CommandResult {
 	}
 
 	start := time.Now()
-	runErr := cmd.Run()
-	dur := time.Since(start)
+	err := cmd.Run()
+	duration := time.Since(start)
 
-	res := &CommandResult{duration: dur}
+	result := &CommandResult{duration: duration}
 	if c.stdout == nil {
-		res.stdout = outBuf.String()
+		result.stdout = outBuf.String()
 	}
 	if c.stderr == nil {
-		res.stderr = errBuf.String()
+		result.stderr = errBuf.String()
 	}
-	if runErr != nil {
-		res.err = runErr
+	if err != nil {
+		result.err = err
 		var exitErr *exec.ExitError
-		if errors.As(runErr, &exitErr) {
-			res.exitCode = exitErr.ExitCode()
+		if errors.As(err, &exitErr) {
+			result.exitCode = exitErr.ExitCode()
 		} else {
-			res.exitCode = -1
+			result.exitCode = -1
 		}
 	}
-	return res
+	return result
 }
 
 // Run runs the command, discarding all output, and returns only the error.
@@ -369,7 +379,9 @@ func (c *Command) buildCmd() (*exec.Cmd, context.CancelFunc) {
 // Returns:
 //
 //	A string containing the captured stdout of the command.
-func (r *CommandResult) Stdout() string { return r.stdout }
+func (r *CommandResult) Stdout() string {
+	return r.stdout
+}
 
 // Stderr returns the captured standard error of the command.
 // Returns an empty string when a custom io.Writer was provided via WithStderr.
@@ -377,7 +389,9 @@ func (r *CommandResult) Stdout() string { return r.stdout }
 // Returns:
 //
 //	A string containing the captured stderr of the command.
-func (r *CommandResult) Stderr() string { return r.stderr }
+func (r *CommandResult) Stderr() string {
+	return r.stderr
+}
 
 // ExitCode returns the process exit code; 0 indicates success.
 // -1 indicates that the exit code could not be determined
@@ -386,14 +400,18 @@ func (r *CommandResult) Stderr() string { return r.stderr }
 // Returns:
 //
 //	An int representing the process exit code.
-func (r *CommandResult) ExitCode() int { return r.exitCode }
+func (r *CommandResult) ExitCode() int {
+	return r.exitCode
+}
 
 // Duration returns the wall-clock time spent waiting for the command to complete.
 //
 // Returns:
 //
 //	A time.Duration representing the execution time.
-func (r *CommandResult) Duration() time.Duration { return r.duration }
+func (r *CommandResult) Duration() time.Duration {
+	return r.duration
+}
 
 // Err returns the error from command execution.
 // A non-nil value indicates the command could not be started or exited non-zero.
@@ -401,21 +419,27 @@ func (r *CommandResult) Duration() time.Duration { return r.duration }
 // Returns:
 //
 //	An error describing the failure, or nil on success.
-func (r *CommandResult) Err() error { return r.err }
+func (r *CommandResult) Err() error {
+	return r.err
+}
 
 // Success reports whether the command completed without error.
 //
 // Returns:
 //
 //	true when Err() is nil; false otherwise.
-func (r *CommandResult) IsSuccess() bool { return r.err == nil }
+func (r *CommandResult) IsSuccess() bool {
+	return r.err == nil
+}
 
 // Combined returns the concatenation of Stdout followed by Stderr.
 //
 // Returns:
 //
 //	A string containing the combined output of the command.
-func (r *CommandResult) Combined() string { return r.stdout + r.stderr }
+func (r *CommandResult) Combined() string {
+	return r.stdout + r.stderr
+}
 
 // Write appends p to the buffer.
 func (b *commandBuffer) Write(p []byte) (int, error) {

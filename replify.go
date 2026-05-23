@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"reflect"
 	"time"
@@ -1405,9 +1406,7 @@ func (w *wrapper) Clone() *wrapper {
 
 		if w.meta.customFields != nil {
 			customFieldsCopy := make(map[string]any)
-			for k, v := range w.meta.customFields {
-				customFieldsCopy[k] = v
-			}
+			maps.Copy(customFieldsCopy, w.meta.customFields)
 			clone.meta.WithCustomFields(customFieldsCopy)
 		}
 	}
@@ -1425,9 +1424,7 @@ func (w *wrapper) Clone() *wrapper {
 	// Clone debug
 	if w.debug != nil {
 		clone.debug = make(map[string]any)
-		for k, v := range w.debug {
-			clone.debug[k] = v
-		}
+		maps.Copy(clone.debug, w.debug)
 	}
 
 	return clone

@@ -16,7 +16,6 @@ import (
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/hashy"
-	"github.com/sivaosorg/replify/pkg/randn"
 	"github.com/sivaosorg/replify/pkg/slogger"
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
@@ -2498,9 +2497,7 @@ func (m *meta) RequestID() string {
 	if !m.Available() {
 		return ""
 	}
-	if strutil.IsEmpty(m.requestID) || strutil.IsBlank(m.requestID) {
-		m.WithRequestID(randn.CryptoID())
-	}
+	m.autoRequestID()
 	return m.requestID
 }
 

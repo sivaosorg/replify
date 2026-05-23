@@ -312,7 +312,7 @@ func (m *meta) JSONPretty() string {
 // Returns:
 //   - A pointer to the modified `meta` instance, enabling method chaining.
 func (m *meta) RandRequestID() *meta {
-	return m.WithRequestID(cryptoID())
+	return m.forceRequestID()
 }
 
 // RandDeltaValue sets a random delta value for the `meta` instance.
@@ -372,4 +372,31 @@ func (m *meta) Equal(other *meta) bool {
 		return false
 	}
 	return true
+}
+
+// autoRequestID generates and sets a random request ID for the `meta` instance if it is not already present.
+//
+// This function checks if the `requestID` field of the `meta` instance is already set. If it is not present,
+// it generates a new random request ID using the `CryptoID` function and assigns it to the `requestID` field.
+// The modified `meta` instance is returned to allow for method chaining.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) autoRequestID() *meta {
+	if !m.IsRequestIDPresent() {
+		m.forceRequestID()
+	}
+	return m
+}
+
+// forceRequestID generates and sets a random request ID for the `meta` instance, regardless of its current state.
+//
+// This function unconditionally generates a new random request ID using the `CryptoID` function and assigns it
+// to the `requestID` field of the `meta` instance. The modified `meta` instance is returned to allow for method chaining.
+//
+// Returns:
+//   - A pointer to the modified `meta` instance, enabling method chaining.
+func (m *meta) forceRequestID() *meta {
+	m.WithRequestID(randn.NewXID().String())
+	return m
 }

@@ -5,20 +5,6 @@ import (
 	"time"
 )
 
-// ROption is a functional option for configuring a [wrapper] instance.
-// Functions of this type are passed to [Wrap] to apply settings in a
-// declarative, composable way.
-//
-// Example:
-//
-//	w := replify.Wrap(
-//	    replify.WithStatusCode(replify.StatusOK),
-//	    replify.WithHeader(replify.OK),
-//	    replify.WithMessage("Resource retrieved"),
-//	    replify.WithBody(payload),
-//	)
-type ROption func(*wrapper)
-
 // Wrap creates a new [wrapper] instance and applies each provided [ROption]
 // in order. It is the functional-options entry-point alternative to the
 // fluent builder chain started by [New].
@@ -29,8 +15,7 @@ type ROption func(*wrapper)
 // Example:
 //
 //	w := replify.Wrap(
-//	    replify.WithStatusCode(replify.StatusOK),
-//	    replify.WithHeader(replify.OK),
+//	    replify.WithStatusCode(replify.OK),
 //	    replify.WithMessage("users retrieved"),
 //	    replify.WithBody(users),
 //	    replify.WithPagination(replify.FromPages(120, 10).WithPage(1)),
@@ -50,12 +35,11 @@ func Wrap(opts ...ROption) *wrapper {
 	return w
 }
 
-// WithStatusCode returns an [ROption] that sets the HTTP status code.
-// Use the typed [StatusCode] constants (e.g. [StatusOK], [StatusBadRequest])
-// instead of raw integers. Values outside [100, 599] are clamped to 500.
-func WithStatusCode(code StatusCode) ROption {
+// WithStatusCode returns an [ROption] that sets the HTTP status code of the response.
+// Use the redeclared Status* constants (e.g. [OK], [BadRequest]) rather than
+func WithStatusCode(h *header) ROption {
 	return func(w *wrapper) {
-		w.WithStatusCode(code.Value())
+		w.WithHeader(h)
 	}
 }
 
@@ -100,13 +84,6 @@ func WithPath(v string) ROption {
 func WithPathf(format string, args ...any) ROption {
 	return func(w *wrapper) {
 		w.WithPath(fmt.Sprintf(format, args...))
-	}
-}
-
-// WithHeader returns an [ROption] that sets the structured HTTP header info.
-func WithHeader(v *header) ROption {
-	return func(w *wrapper) {
-		w.WithHeader(v)
 	}
 }
 

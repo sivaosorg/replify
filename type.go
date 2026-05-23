@@ -19,6 +19,19 @@ type R struct {
 	*wrapper
 }
 
+// ROption is a functional option for configuring a [wrapper] instance.
+// Functions of this type are passed to [Wrap] to apply settings in a
+// declarative, composable way.
+//
+// Example:
+//
+//	w := replify.Wrap(
+//	    replify.WithStatusCode(replify.OK),
+//	    replify.WithMessage("Resource retrieved"),
+//	    replify.WithBody(payload),
+//	)
+type ROption func(*wrapper)
+
 // Locale represents an IETF-style locale identifier
 // formatted as language_COUNTRY (e.g., en_US).
 type Locale string

@@ -1,7 +1,6 @@
 package replify
 
 import (
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -180,22 +179,7 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	// if the data is a json.RawMessage, keep it as a json.RawMessage
 	// otherwise, keep it as a json.RawMessage.
 	if value, exists := data["data"]; exists {
-		switch v := value.(type) {
-		case string:
-			if encoding.IsValidJSON(v) {
-				w.data = json.RawMessage(encoding.Ugly([]byte(v)))
-			} else {
-				w.data = v
-			}
-		case []byte:
-			if encoding.IsValidJSONBytes(v) {
-				w.data = json.RawMessage(encoding.Ugly(v))
-			} else {
-				w.data = v
-			}
-		default:
-			w.data = value
-		}
+		w.data = safeBody(value)
 	}
 	return w, nil
 }

@@ -3862,22 +3862,7 @@ func (w *wrapper) JSONBytes() []byte {
 func (w *wrapper) build() map[string]any {
 	m := make(map[string]any)
 	if w.IsBodyPresent() {
-		switch v := w.data.(type) {
-		case string:
-			if encoding.IsValidJSON(v) {
-				m["data"] = json.RawMessage(encoding.Ugly([]byte(v)))
-			} else {
-				m["data"] = v
-			}
-		case []byte:
-			if encoding.IsValidJSONBytes(v) {
-				m["data"] = json.RawMessage(encoding.Ugly(v))
-			} else {
-				m["data"] = v
-			}
-		default:
-			m["data"] = w.data
-		}
+		m["data"] = safeBody(w.data)
 	}
 	if w.IsHeaderPresent() {
 		m["headers"] = w.header.Respond()

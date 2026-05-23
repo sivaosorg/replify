@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"encoding/base64"
+	"encoding/json"
 
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/slogger"
@@ -179,4 +180,39 @@ func logAtLevel(l *slogger.Logger, lvl slogger.Level, msg string, f slogger.Fiel
 	default:
 		l.Trace(msg, f)
 	}
+}
+
+// safeBody checks if the provided value is a valid JSON string or byte slice and returns a safe representation.
+//
+// This function takes an input value and determines if it is a valid JSON string or byte slice.
+// If the value is a valid JSON string, it returns a `json.RawMessage` containing the JSON data.
+// If the value is a valid JSON byte slice, it also returns a `json.RawMessage` containing the JSON data.
+// For any other type of value, it returns the original value as is.
+//
+// Parameters:
+//   - value: The input value to be checked and processed.
+//
+// Returns:
+//   - A `json.RawMessage` if the input is a valid JSON string or byte slice.
+//   - The original value for any other type of input.
+func safeBody(value any) any {
+	var result any
+	switch v := value.(type) {
+	case string:
+		if encoding.IsValidJSON(v) {
+			result = json.RawMessage(encoding.Ugly([]byte(v)))
+		} else {
+			result = v
+		}
+	case []byte:
+		if encoding.IsValidJSONBytes(v) {
+			result = json.RawMessage(encoding.Ugly(v))
+		} else {
+			result = v
+		}
+	default:
+		result = value
+	}
+
+	return result
 }

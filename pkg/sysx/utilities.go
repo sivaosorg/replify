@@ -56,13 +56,15 @@ func linuxOSVersion() string {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "PRETTY_NAME=") {
-			val := strings.TrimPrefix(line, "PRETTY_NAME=")
-			val = strings.Trim(val, `"`)
-			if val != "" {
-				return val
+		if after, ok := strings.CutPrefix(line, "PRETTY_NAME="); ok {
+			after = strings.Trim(after, `"`)
+			if after != "" {
+				return after
 			}
 		}
+	}
+	if err := scanner.Err(); err != nil {
+		return runtime.GOOS
 	}
 	return runtime.GOOS
 }

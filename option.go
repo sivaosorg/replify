@@ -1,0 +1,329 @@
+package replify
+
+import (
+	"fmt"
+	"time"
+)
+
+// ROption is a functional option for configuring a [wrapper] instance.
+// Functions of this type are passed to [Wrap] to apply settings in a
+// declarative, composable way.
+//
+// Example:
+//
+//	w := replify.Wrap(
+//	    replify.WithStatusCode(http.StatusOK),
+//	    replify.WithHeader(replify.OK),
+//	    replify.WithMessage("Resource retrieved"),
+//	    replify.WithBody(payload),
+//	)
+type ROption func(*wrapper)
+
+// Wrap creates a new [wrapper] instance and applies each provided [ROption]
+// in order. It is the functional-options entry-point alternative to the
+// fluent builder chain started by [New].
+//
+// Zero options are valid; Wrap() returns a freshly initialized wrapper
+// identical to what [New] returns.
+//
+// Example:
+//
+//	w := replify.Wrap(
+//	    replify.WithStatusCode(http.StatusOK),
+//	    replify.WithHeader(replify.OK),
+//	    replify.WithMessage("users retrieved"),
+//	    replify.WithBody(users),
+//	    replify.WithPagination(replify.FromPages(120, 10).WithPage(1)),
+//	    replify.WithMeta(
+//	        replify.Meta().
+//	            WithApiVersion("v1.0.0").
+//	            WithLocale("en_US"),
+//	    ),
+//	)
+func Wrap(opts ...ROption) *wrapper {
+	w := New()
+	for _, opt := range opts {
+		if opt != nil {
+			opt(w)
+		}
+	}
+	return w
+}
+
+// WithStatusCode returns an [ROption] that sets the HTTP status code.
+// Values outside [100, 599] are clamped to 500 by the underlying method.
+func WithStatusCode(code int) ROption {
+	return func(w *wrapper) {
+		w.WithStatusCode(code)
+	}
+}
+
+// WithTotal returns an [ROption] that sets the total item count.
+func WithTotal(total int) ROption {
+	return func(w *wrapper) {
+		w.WithTotal(total)
+	}
+}
+
+// WithMessage returns an [ROption] that sets the response message.
+func WithMessage(message string) ROption {
+	return func(w *wrapper) {
+		w.WithMessage(message)
+	}
+}
+
+// WithMessagef returns an [ROption] that sets the response message using
+// [fmt.Sprintf] formatting.
+func WithMessagef(format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithMessage(fmt.Sprintf(format, args...))
+	}
+}
+
+// WithBody returns an [ROption] that sets the response body payload.
+func WithBody(v any) ROption {
+	return func(w *wrapper) {
+		w.WithBody(v)
+	}
+}
+
+// WithPath returns an [ROption] that sets the request path.
+func WithPath(v string) ROption {
+	return func(w *wrapper) {
+		w.WithPath(v)
+	}
+}
+
+// WithPathf returns an [ROption] that sets the request path using
+// [fmt.Sprintf] formatting.
+func WithPathf(format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithPath(fmt.Sprintf(format, args...))
+	}
+}
+
+// WithHeader returns an [ROption] that sets the structured HTTP header info.
+func WithHeader(v *header) ROption {
+	return func(w *wrapper) {
+		w.WithHeader(v)
+	}
+}
+
+// WithMeta returns an [ROption] that sets the response metadata.
+func WithMeta(v *meta) ROption {
+	return func(w *wrapper) {
+		w.WithMeta(v)
+	}
+}
+
+// WithPagination returns an [ROption] that attaches pagination details.
+func WithPagination(v *pagination) ROption {
+	return func(w *wrapper) {
+		w.WithPagination(v)
+	}
+}
+
+// WithDebugging returns an [ROption] that replaces the debug map wholesale.
+func WithDebugging(v map[string]any) ROption {
+	return func(w *wrapper) {
+		w.WithDebugging(v)
+	}
+}
+
+// WithDebuggingKV returns an [ROption] that adds a single key/value pair to
+// the debug map.
+func WithDebuggingKV(key string, value any) ROption {
+	return func(w *wrapper) {
+		w.WithDebuggingKV(key, value)
+	}
+}
+
+// WithDebuggingKVf returns an [ROption] that adds a formatted string value
+// under key to the debug map.
+func WithDebuggingKVf(key string, format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithDebuggingKVf(key, format, args...)
+	}
+}
+
+// WithError returns an [ROption] that attaches an error by message string.
+func WithError(message string) ROption {
+	return func(w *wrapper) {
+		w.WithError(message)
+	}
+}
+
+// WithErrorf returns an [ROption] that attaches a formatted error message.
+func WithErrorf(format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithErrorf(format, args...)
+	}
+}
+
+// WithErrorAck returns an [ROption] that wraps an existing error.
+func WithErrorAck(err error) ROption {
+	return func(w *wrapper) {
+		w.WithErrorAck(err)
+	}
+}
+
+// WithErrorAckf returns an [ROption] that wraps an existing error with
+// additional formatted context.
+func WithErrorAckf(err error, format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithErrorAckf(err, format, args...)
+	}
+}
+
+// WithApiVersion returns an [ROption] that sets the API version on the
+// embedded meta. A meta is created automatically if not yet present.
+func WithApiVersion(v string) ROption {
+	return func(w *wrapper) {
+		w.WithApiVersion(v)
+	}
+}
+
+// WithApiVersionf returns an [ROption] that sets the API version using
+// [fmt.Sprintf] formatting.
+func WithApiVersionf(format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithApiVersionf(format, args...)
+	}
+}
+
+// WithRequestID returns an [ROption] that sets the request ID on the meta.
+func WithRequestID(v string) ROption {
+	return func(w *wrapper) {
+		w.WithRequestID(v)
+	}
+}
+
+// WithRequestIDf returns an [ROption] that sets the request ID using
+// [fmt.Sprintf] formatting.
+func WithRequestIDf(format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithRequestIDf(format, args...)
+	}
+}
+
+// WithLocale returns an [ROption] that sets the locale on the meta.
+func WithLocale(v string) ROption {
+	return func(w *wrapper) {
+		w.WithLocale(v)
+	}
+}
+
+// WithLocaleValue returns an [ROption] that sets the locale on the embedded
+// meta using a [Locale] typed value.
+func WithLocaleValue(locale Locale) ROption {
+	return func(w *wrapper) {
+		if !w.IsMetaPresent() {
+			w.meta = Meta()
+		}
+		w.meta.WithLocaleValue(locale)
+	}
+}
+
+// WithRequestedTime returns an [ROption] that sets the requested time on the meta.
+func WithRequestedTime(v time.Time) ROption {
+	return func(w *wrapper) {
+		w.WithRequestedTime(v)
+	}
+}
+
+// WithCustomFields returns an [ROption] that replaces the custom fields map
+// on the meta.
+func WithCustomFields(values map[string]any) ROption {
+	return func(w *wrapper) {
+		w.WithCustomFields(values)
+	}
+}
+
+// WithCustomFieldKV returns an [ROption] that adds a single custom field
+// key/value pair to the meta.
+func WithCustomFieldKV(key string, value any) ROption {
+	return func(w *wrapper) {
+		w.WithCustomFieldKV(key, value)
+	}
+}
+
+// WithCustomFieldKVf returns an [ROption] that adds a formatted custom field
+// value under key to the meta.
+func WithCustomFieldKVf(key string, format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.WithCustomFieldKVf(key, format, args...)
+	}
+}
+
+// WithPage returns an [ROption] that sets the current page number on the
+// embedded pagination. A pagination object is created automatically if not
+// yet present.
+func WithPage(v int) ROption {
+	return func(w *wrapper) {
+		w.WithPage(v)
+	}
+}
+
+// WithPerPage returns an [ROption] that sets the items-per-page count on
+// the embedded pagination.
+func WithPerPage(v int) ROption {
+	return func(w *wrapper) {
+		w.WithPerPage(v)
+	}
+}
+
+// WithTotalPages returns an [ROption] that sets the total number of pages on
+// the embedded pagination.
+func WithTotalPages(v int) ROption {
+	return func(w *wrapper) {
+		w.WithTotalPages(v)
+	}
+}
+
+// WithTotalItems returns an [ROption] that sets the total item count on the
+// embedded pagination.
+func WithTotalItems(v int) ROption {
+	return func(w *wrapper) {
+		w.WithTotalItems(v)
+	}
+}
+
+// WithIsLast returns an [ROption] that marks whether the current page is the
+// last page on the embedded pagination.
+func WithIsLast(v bool) ROption {
+	return func(w *wrapper) {
+		w.WithIsLast(v)
+	}
+}
+
+// WithAppendErrorAck returns an [ROption] that wraps err with an additional
+// message and appends it to the wrapper's error chain.
+func WithAppendErrorAck(err error, message string) ROption {
+	return func(w *wrapper) {
+		w.AppendErrorAck(err, message)
+	}
+}
+
+// WithAppendError returns an [ROption] that wraps err with a plain contextual
+// message and appends it to the wrapper's error chain.
+func WithAppendError(err error, message string) ROption {
+	return func(w *wrapper) {
+		w.AppendError(err, message)
+	}
+}
+
+// WithAppendErrorf returns an [ROption] that wraps err with a formatted
+// contextual message and appends it to the wrapper's error chain.
+func WithAppendErrorf(err error, format string, args ...any) ROption {
+	return func(w *wrapper) {
+		w.AppendErrorf(err, format, args...)
+	}
+}
+
+// WithAppendErrors returns an [ROption] that folds a slice of errors into the
+// wrapper's error chain, skipping nil entries.
+func WithAppendErrors(errs ...error) ROption {
+	return func(w *wrapper) {
+		w.AppendErrors(errs)
+	}
+}

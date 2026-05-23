@@ -3842,66 +3842,6 @@ func (w *wrapper) JSONBytes() []byte {
 	return []byte(w.JSON())
 }
 
-// build generates a map representation of the `wrapper` instance.
-// This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
-// and organizes them into a key-value map. It ensures that only non-empty or meaningful fields
-// are included in the resulting map, providing a clean and structured response.
-// The following fields are included in the response:
-//   - `data`: The primary data payload, if present.
-//   - `headers`: The structured header details, if present.
-//   - `meta`: Metadata about the response, if present.
-//   - `pagination`: Pagination details, if applicable.
-//   - `debug`: Debugging information, if provided.
-//   - `total`: Total number of items, if set to a valid non-negative value.
-//   - `status_code`: The HTTP status code, if greater than 0.
-//   - `message`: A descriptive message, if not empty.
-//   - `path`: The request path, if not empty.
-//
-// Returns:
-//   - A `map[string]interface{}` containing the structured response data.
-func (w *wrapper) build() map[string]any {
-	m := make(map[string]any)
-	if w.IsBodyPresent() {
-		m["data"] = safeBody(w.data)
-	}
-	if w.IsHeaderPresent() {
-		m["headers"] = w.header.Respond()
-	}
-	if w.IsMetaPresent() {
-		m["meta"] = w.meta.Respond()
-	}
-	if w.IsPagingPresent() {
-		m["pagination"] = w.pagination.Respond()
-	}
-	if w.IsDebuggingPresent() {
-		m["debug"] = w.debug
-	}
-	if w.IsTotalPresent() {
-		m["total"] = w.total
-	}
-	if w.IsStatusCodePresent() {
-		m["status_code"] = w.statusCode
-	}
-	if strutil.IsNotEmpty(w.message) {
-		m["message"] = w.message
-	}
-	if strutil.IsNotEmpty(w.path) {
-		m["path"] = w.path
-	}
-	return m
-}
-
-// Value returns the integer value of the StatusCode.
-//
-// This method allows for easy retrieval of the underlying integer value of a StatusCode instance,
-// which can be useful for comparisons, logging, or when interfacing with APIs that require numeric status codes.
-//
-// Returns:
-//   - An integer representing the value of the StatusCode.
-func (s StatusCode) Value() int {
-	return int(s)
-}
-
 // Logging dispatches a structured log entry for this response using [slogger].
 // The log level is automatically selected based on the HTTP status code range:
 //
@@ -3968,4 +3908,64 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 
 	logAtLevel(child, httpStatusLevel(code), msg, slogger.JSON("REPLY", w.Respond()))
 	return w
+}
+
+// build generates a map representation of the `wrapper` instance.
+// This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
+// and organizes them into a key-value map. It ensures that only non-empty or meaningful fields
+// are included in the resulting map, providing a clean and structured response.
+// The following fields are included in the response:
+//   - `data`: The primary data payload, if present.
+//   - `headers`: The structured header details, if present.
+//   - `meta`: Metadata about the response, if present.
+//   - `pagination`: Pagination details, if applicable.
+//   - `debug`: Debugging information, if provided.
+//   - `total`: Total number of items, if set to a valid non-negative value.
+//   - `status_code`: The HTTP status code, if greater than 0.
+//   - `message`: A descriptive message, if not empty.
+//   - `path`: The request path, if not empty.
+//
+// Returns:
+//   - A `map[string]interface{}` containing the structured response data.
+func (w *wrapper) build() map[string]any {
+	m := make(map[string]any)
+	if w.IsBodyPresent() {
+		m["data"] = safeBody(w.data)
+	}
+	if w.IsHeaderPresent() {
+		m["headers"] = w.header.Respond()
+	}
+	if w.IsMetaPresent() {
+		m["meta"] = w.meta.Respond()
+	}
+	if w.IsPagingPresent() {
+		m["pagination"] = w.pagination.Respond()
+	}
+	if w.IsDebuggingPresent() {
+		m["debug"] = w.debug
+	}
+	if w.IsTotalPresent() {
+		m["total"] = w.total
+	}
+	if w.IsStatusCodePresent() {
+		m["status_code"] = w.statusCode
+	}
+	if strutil.IsNotEmpty(w.message) {
+		m["message"] = w.message
+	}
+	if strutil.IsNotEmpty(w.path) {
+		m["path"] = w.path
+	}
+	return m
+}
+
+// Value returns the integer value of the StatusCode.
+//
+// This method allows for easy retrieval of the underlying integer value of a StatusCode instance,
+// which can be useful for comparisons, logging, or when interfacing with APIs that require numeric status codes.
+//
+// Returns:
+//   - An integer representing the value of the StatusCode.
+func (s StatusCode) Value() int {
+	return int(s)
 }

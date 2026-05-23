@@ -3679,6 +3679,32 @@ func (w *wrapper) AsStreaming(reader io.Reader) *StreamingWrapper {
 	return w.WithStreaming(reader, NewStreamConfig())
 }
 
+// hashFor computes a fast, allocation-free cache key over every field that
+// build() serializes. It must be called without any mutex held; wrapper fields
+// are expected to be stable (immutable after Wrap-time construction via With*
+// options), so concurrent reads are safe.
+//
+// Unlike Hash256(), this helper avoids the *wrapper allocation that
+// MustHash256() introduces on every call, and it covers ALL nine fields that
+// build() writes to the response map—the public Hash256() only covers four.
+func (w *wrapper) hashFor() string {
+	h, err := hashy.Hash256(
+		w.StatusCode(),
+		w.message,
+		w.data,
+		w.header.Respond(),
+		w.meta.Respond(),
+		w.pagination.Respond(),
+		w.debug,
+		w.total,
+		w.path,
+	)
+	if err != nil {
+		return ""
+	}
+	return h
+}
+
 // Respond generates a map representation of the `wrapper` instance.
 //
 // This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
@@ -3696,6 +3722,19 @@ func (w *wrapper) AsStreaming(reader io.Reader) *StreamingWrapper {
 //   - `message`: A descriptive message, if not empty.
 //   - `path`: The request path, if not empty.
 //
+// # Caching
+//
+// The result is cached and reused as long as the wrapper's state does not
+// change. Cache validity is checked with a hash that covers all nine output
+// fields. The hash is computed before any mutex is acquired, so concurrent
+// readers only contend on the brief cache-read/write critical sections—not on
+// the (potentially expensive) hash or build steps.
+//
+// # Thread-safety
+//
+// Safe for concurrent use. Multiple goroutines may call Respond on the same
+// wrapper simultaneously; at most one will execute build() for any given state.
+//
 // Returns:
 //   - A `map[string]interface{}` containing the structured response data.
 func (w *wrapper) Respond() map[string]any {
@@ -3703,9 +3742,14 @@ func (w *wrapper) Respond() map[string]any {
 		return nil
 	}
 
+	// Compute the hash BEFORE taking any lock.
+	// Fields are immutable after construction, so this concurrent read is safe.
+	// Keeping the potentially-expensive hash computation outside the lock
+	// prevents readers from blocking each other.
+	hash := w.hashFor()
+
 	// Fast path: check cache under read lock.
 	w.cacheMutex.RLock()
-	hash := w.Hash256()
 	if w.cacheHash == hash && w.cachedWrap != nil {
 		cached := w.cachedWrap
 		w.cacheMutex.RUnlock()
@@ -3713,12 +3757,12 @@ func (w *wrapper) Respond() map[string]any {
 	}
 	w.cacheMutex.RUnlock()
 
-	// Slow path: acquire write lock and double-check before rebuilding.
+	// Slow path: acquire write lock, double-check, then rebuild.
+	// The hash was computed from immutable fields, so it is stable across the
+	// gap between the two lock acquisitions; no recomputation is needed.
 	w.cacheMutex.Lock()
 	defer w.cacheMutex.Unlock()
 
-	// Re-compute hash under write lock to avoid using a stale value.
-	hash = w.Hash256()
 	if w.cacheHash == hash && w.cachedWrap != nil {
 		return w.cachedWrap
 	}
@@ -3726,7 +3770,6 @@ func (w *wrapper) Respond() map[string]any {
 	response := w.build()
 	w.cachedWrap = response
 	w.cacheHash = hash
-
 	return response
 }
 

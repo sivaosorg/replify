@@ -326,3 +326,50 @@ func (m *meta) RandRequestID() *meta {
 func (m *meta) RandDeltaValue() *meta {
 	return m.WithDeltaValue(randn.RandFt64())
 }
+
+// Equal checks if the current `meta` instance is equal to another `meta` instance.
+//
+// This function compares the fields of the current `meta` instance with those of another `meta` instance.
+// It returns `true` if all fields are equal, and `false` otherwise. The comparison includes
+// checking for nil values, field-by-field equality, and deep comparison of the `customFields` map.
+//
+// Parameters:
+//   - `other`: A pointer to another `meta` instance to compare against.
+//
+// Returns:
+//   - A boolean value indicating whether the two `meta` instances are equal.
+func (m *meta) Equal(other *meta) bool {
+	if m == other {
+		return true
+	}
+	if other == nil {
+		return false
+	}
+	if m.apiVersion != other.apiVersion {
+		return false
+	}
+	if m.requestID != other.requestID {
+		return false
+	}
+	if m.locale != other.locale {
+		return false
+	}
+	if !m.requestedTime.Equal(other.requestedTime) {
+		return false
+	}
+	if len(m.customFields) != len(other.customFields) {
+		return false
+	}
+	for k, v := range m.customFields {
+		if ov, ok := other.customFields[k]; !ok || ov != v {
+			return false
+		}
+	}
+	if m.deltaValue != other.deltaValue {
+		return false
+	}
+	if m.deltaCnt != other.deltaCnt {
+		return false
+	}
+	return true
+}

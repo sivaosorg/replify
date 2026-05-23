@@ -41,7 +41,7 @@ func (w *SafeFileWriter) WithPerm(perm os.FileMode) *SafeFileWriter {
 }
 
 // WriteBytes appends data to the file, creating it if it does not exist.
-// The operation is serialised by an internal mutex, making it safe to call
+// The operation is serialized by an internal mutex, making it safe to call
 // concurrently from multiple goroutines.
 //
 // Parameters:
@@ -63,7 +63,7 @@ func (w *SafeFileWriter) WriteBytes(data []byte) error {
 }
 
 // WriteString appends s to the file, creating it if it does not exist.
-// The operation is serialised by an internal mutex.
+// The operation is serialized by an internal mutex.
 //
 // Parameters:
 //   - `s`: the string to append.
@@ -76,7 +76,7 @@ func (w *SafeFileWriter) WriteString(s string) error {
 }
 
 // Overwrite replaces the entire file content with data, atomically using the
-// temporary-file-and-rename pattern. The operation is serialised by an
+// temporary-file-and-rename pattern. The operation is serialized by an
 // internal mutex.
 //
 // Parameters:
@@ -130,11 +130,11 @@ func WriteBytes(path string, data []byte) error {
 }
 
 // WriteBytesWithLocked writes data to path using a per-path in-process mutex,
-// ensuring that concurrent calls with the same path value are serialised. The
+// ensuring that concurrent calls with the same path value are serialized. The
 // file is created with permission 0644 if it does not exist, or truncated if
 // it does.
 //
-// Note: this provides in-process synchronisation only. For cross-process
+// Note: this provides in-process synchronization only. For cross-process
 // safety, use AtomicWriteFile or a platform-specific file locking mechanism.
 //
 // Parameters:

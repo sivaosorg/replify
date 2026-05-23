@@ -192,6 +192,72 @@ func Cause(err error) error {
 	return err
 }
 
+// Is reports whether any error in err's chain matches target. An error is considered to match a target if it is equal to that target or if it implements a method
+// Is(error) bool such that Is(target) returns true.
+//
+// Usage example:
+//
+//	err := Wrap(errors.New("file not found"), "Failed to open file")
+//	fmt.Println(Is(err, errors.New("file not found"))) // true
+//
+// An error value has an Is method if it implements the following
+// interface:
+//
+//	type issuer interface {
+//	       Is(error) bool
+//	}
+//
+// If the error does not implement Is, Is will compare the error directly to
+// the target. If the error is nil, Is will return false.
+func Is(err, target error) bool {
+	if err == target {
+		return true
+	}
+	type causer interface {
+		Cause() error
+	}
+	for err != nil {
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+		if err == target {
+			return true
+		}
+	}
+	return false
+}
+
+// IsOwned reports whether the error or any error in its chain was created
+// by this package (i.e., via NewError, NewErrorf, NewErrorAck, NewErrorAckf,
+// AppendError, AppendErrorf, AppendErrorAck, or AppendErrorAckf).
+//
+// Usage example:
+//
+//	err := NewError("something went wrong")
+//	fmt.Println(IsOwned(err)) // true
+//
+//	err2 := errors.New("standard error")
+//	fmt.Println(IsOwned(err2)) // false
+func IsOwned(err error) bool {
+	type causer interface {
+		Cause() error
+	}
+	for err != nil {
+		switch err.(type) {
+		case *underlying, *underlyingStack, *underlyingMessage:
+			return true
+		}
+		cause, ok := err.(causer)
+		if !ok {
+			break
+		}
+		err = cause.Cause()
+	}
+	return false
+}
+
 // Error implements the error interface for the `underlying` type, returning the
 // message stored in the error object. It is used to retrieve the error message.
 //

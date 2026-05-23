@@ -1,6 +1,10 @@
 package replify
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/sivaosorg/replify/pkg/strutil"
+)
 
 // WithCode sets the `code` field of the `header` instance.
 //
@@ -122,4 +126,27 @@ func (h *header) JSON() string {
 //   - A prettified JSON string representation of the `header` instance, formatted for improved readability.
 func (h *header) JSONPretty() string {
 	return jsonpretty(h.Respond())
+}
+
+// Equal compares the current `header` instance with another `header` instance for equality.
+//
+// This function checks if both `header` instances are nil, in which case they are considered equal.
+// If one instance is nil and the other is not, they are considered not equal. If both instances
+// are non-nil, it compares their `code` and `text` fields for equality. The comparison focuses on
+// these two fields as they are the primary identifiers of a header's status and message.
+//
+// Parameters:
+//   - `other`: A pointer to another `header` instance to compare against.
+//
+// Returns:
+//   - A boolean value indicating whether the two `header` instances are considered equal based on their `code` and `text` fields.
+func (h *header) Equal(other *header) bool {
+	if h == nil && other == nil {
+		return true
+	}
+	if h == nil || other == nil {
+		return false
+	}
+	return h.code == other.code &&
+		strutil.EqualsIgnoreCase(other.text, h.text)
 }

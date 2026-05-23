@@ -180,6 +180,32 @@ func (p *pagination) JSONPretty() string {
 	return jsonpretty(p.Respond())
 }
 
+// Equal compares the current `pagination` instance with another `pagination` instance for equality.
+//
+// This method checks if both `pagination` instances are non-nil and then compares their
+// fields (`page`, `perPage`, `totalPages`, `totalItems`, and `isLast`) for equality.
+// It returns true if all corresponding fields are equal, indicating that the two
+// pagination instances represent the same pagination state.
+//
+// Parameters:
+//   - `other`: A pointer to another `pagination` instance to compare against.
+//
+// Returns:
+//   - A boolean value indicating whether the two `pagination` instances are equal.
+func (p *pagination) Equal(other *pagination) bool {
+	if p == nil && other == nil {
+		return true
+	}
+	if p == nil || other == nil {
+		return false
+	}
+	return p.page == other.page &&
+		p.perPage == other.perPage &&
+		p.totalPages == other.totalPages &&
+		p.totalItems == other.totalItems &&
+		p.isLast == other.isLast
+}
+
 // calculate computes the total pages and determines if the current page is the last one.
 //
 // This method performs calculations based on the `totalItems` and `perPage` fields

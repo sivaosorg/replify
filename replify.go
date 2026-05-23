@@ -1296,6 +1296,73 @@ func (w *wrapper) IsLastPage() bool {
 	return w.Available() && w.IsPagingPresent() && w.pagination.IsLast()
 }
 
+// EqualHeader compares the header information of the `wrapper` instance with another `header` instance.
+//
+// This function checks if the `wrapper` is available and if the provided `header` instance is not nil.
+// It then compares the `code` and `text` fields of the `wrapper`'s header with those of the provided `header`.
+// The comparison of the `text` field is case-insensitive.
+//
+// Parameters:
+//   - `h`: A pointer to a `header` instance to compare with the `wrapper`'s header.
+//
+// Returns:
+//   - A boolean value indicating whether the headers are equal:
+//   - `true` if both headers have the same code and text (case-insensitive).
+//   - `false` if the `wrapper` is not available, the provided header is nil, or the headers do not match.
+func (w *wrapper) EqualHeader(h *header) bool {
+	if !w.Available() || h == nil {
+		return false
+	}
+	if w.header == nil {
+		return false
+	}
+	return w.header.Equal(h)
+}
+
+// EqualPages compares the pagination information of the `wrapper` instance with another `pagination` instance.
+//
+// This function checks if the `wrapper` is available and if the provided `pagination` instance is not nil.
+// It then compares the pagination details of the `wrapper` with those of the provided `pagination` instance.
+//
+// Parameters:
+//   - `p`: A pointer to a `pagination` instance to compare with the `wrapper`'s pagination.
+//
+// Returns:
+//   - A boolean value indicating whether the pagination information is equal:
+//   - `true` if both pagination instances have the same pagination details.
+//   - `false` if the `wrapper` is not available, the provided pagination is nil, or the pagination details do not match.
+func (w *wrapper) EqualPages(p *pagination) bool {
+	if !w.Available() || p == nil {
+		return false
+	}
+	if w.pagination == nil {
+		return false
+	}
+	return w.pagination.Equal(p)
+}
+
+// EqualMeta compares the metadata information of the `wrapper` instance with another `meta` instance.
+//
+// This function checks if the `wrapper` is available and if the provided `meta` instance is not nil.
+// It then compares the metadata details of the `wrapper` with those of the provided `meta` instance.
+//
+// Parameters:
+//   - `m`: A pointer to a `meta` instance to compare with the `wrapper`'s metadata.
+//
+// Returns:
+//   - A boolean value indicating whether the metadata information is equal:
+//   - `true` if both meta instances have the same metadata details.
+//   - `false` if the `wrapper` is not available, the provided meta is nil, or the metadata details do not match.
+func (w *wrapper) EqualMeta(m *meta) bool {
+	if !w.Available() || m == nil {
+		return false
+	}
+	if w.meta == nil {
+		return false
+	}
+	return w.meta.Equal(m)
+}
+
 // Clone creates a deep copy of the `wrapper` instance.
 //
 // This function creates a new `wrapper` instance with the same fields as the original instance.

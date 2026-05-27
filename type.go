@@ -11,10 +11,10 @@ import (
 // Section exported types
 // ///////////////////////////
 
-// R represents a wrapper around the main `wrapper` struct. It is used as a high-level
+// R represents a wrapper around the main [wrapper] struct. It is used as a high-level
 // abstraction to provide a simplified interface for handling API responses.
 // The `R` type allows for easier manipulation of the wrapped data, metadata, and other
-// response components, while maintaining the flexibility of the underlying `wrapper` structure.
+// response components, while maintaining the flexibility of the underlying [wrapper] structure.
 type R struct {
 	*wrapper
 }

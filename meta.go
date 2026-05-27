@@ -4,150 +4,152 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/randn"
+	"github.com/sivaosorg/replify/pkg/strchain"
 )
 
-// WithApiVersion sets the API version for the `meta` instance.
+// WithApiVersion sets the API version for the [meta] instance.
 //
-// This function updates the `apiVersion` field of the `meta` instance with the specified value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `apiVersion` field of the [meta] instance with the specified value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `v`: A string representing the API version to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithApiVersion(v string) *meta {
 	m.apiVersion = v
 	return m
 }
 
-// WithApiVersionf sets the API version for the `meta` instance using a formatted string.
+// WithApiVersionf sets the API version for the [meta] instance using a formatted string.
 //
 // This function constructs a formatted string for the API version using the provided `format` string
-// and arguments (`args`). It then assigns the formatted value to the `apiVersion` field of the `meta` instance.
-// The method supports method chaining by returning a pointer to the modified `meta` instance.
+// and arguments (`args`). It then assigns the formatted value to the `apiVersion` field of the [meta] instance.
+// The method supports method chaining by returning a pointer to the modified [meta] instance.
 //
 // Parameters:
 //   - format: A format string to construct the API version.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithApiVersionf(format string, args ...any) *meta {
 	return m.WithApiVersion(fmt.Sprintf(format, args...))
 }
 
-// WithRequestID sets the request ID for the `meta` instance.
+// WithRequestID sets the request ID for the [meta] instance.
 //
-// This function updates the `requestID` field of the `meta` instance with the specified value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `requestID` field of the [meta] instance with the specified value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `v`: A string representing the request ID to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithRequestID(v string) *meta {
 	m.requestID = v
 	return m
 }
 
-// WithRequestIDf sets the request ID for the `meta` instance using a formatted string.
+// WithRequestIDf sets the request ID for the [meta] instance using a formatted string.
 //
 // This function constructs a formatted string for the request ID using the provided `format` string
-// and arguments (`args`). It then assigns the formatted value to the `requestID` field of the `meta` instance.
-// The method supports method chaining by returning a pointer to the modified `meta` instance.
+// and arguments (`args`). It then assigns the formatted value to the `requestID` field of the [meta] instance.
+// The method supports method chaining by returning a pointer to the modified [meta] instance.
 //
 // Parameters:
 //   - format: A format string to construct the request ID.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithRequestIDf(format string, args ...any) *meta {
 	return m.WithRequestID(fmt.Sprintf(format, args...))
 }
 
-// WithLocale sets the locale for the `meta` instance.
+// WithLocale sets the locale for the [meta] instance.
 //
-// This function updates the `locale` field of the `meta` instance with the specified value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `locale` field of the [meta] instance with the specified value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `v`: A string representing the locale to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithLocale(v string) *meta {
 	m.locale = v
 	return m
 }
 
-// WithLocalef sets the locale for the `meta` instance using a formatted string.
+// WithLocalef sets the locale for the [meta] instance using a formatted string.
 //
 // This function constructs a formatted string for the locale using the provided `format` string
-// and arguments (`args`). It then assigns the formatted value to the `locale` field of the `meta` instance.
+// and arguments (`args`). It then assigns the formatted value to the `locale` field of the [meta] instance.
 //
-// The method supports method chaining by returning a pointer to the modified `meta` instance.
+// The method supports method chaining by returning a pointer to the modified [meta] instance.
 //
 // Parameters:
 //   - format: A format string to construct the locale.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithLocalef(format string, args ...any) *meta {
 	return m.WithLocale(fmt.Sprintf(format, args...))
 }
 
-// WithLocaleValue sets the locale for the `meta` instance using a `Locale` type.
+// WithLocaleValue sets the locale for the [meta] instance using a `Locale` type.
 //
-// This function updates the `locale` field of the `meta` instance with the string representation
-// of the provided `Locale` value. It returns the updated `meta` instance for method chaining.
+// This function updates the `locale` field of the [meta] instance with the string representation
+// of the provided `Locale` value. It returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `locale`: A `Locale` type representing the locale to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithLocaleValue(locale Locale) *meta {
 	return m.WithLocale(string(locale))
 }
 
-// WithRequestedTime sets the requested time for the `meta` instance.
+// WithRequestedTime sets the requested time for the [meta] instance.
 //
-// This function updates the `requestedTime` field of the `meta` instance with the specified value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `requestedTime` field of the [meta] instance with the specified value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `v`: A `time.Time` object representing the requested time to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithRequestedTime(v time.Time) *meta {
 	m.requestedTime = v
 	return m
 }
 
-// WithCustomFields sets the custom fields for the `meta` instance.
+// WithCustomFields sets the custom fields for the [meta] instance.
 //
-// This function updates the `customFields` map of the `meta` instance with the provided values
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `customFields` map of the [meta] instance with the provided values
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `values`: A map of string keys to interface{} values representing custom fields.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithCustomFields(values map[string]any) *meta {
 	m.customFields = values
 	return m
 }
 
-// WithCustomFieldKV sets a specific custom field key-value pair for the `meta` instance.
+// WithCustomFieldKV sets a specific custom field key-value pair for the [meta] instance.
 //
-// This function adds or updates a custom field in the `customFields` map of the `meta` instance.
+// This function adds or updates a custom field in the `customFields` map of the [meta] instance.
 // If the `customFields` map is empty, it is initialized first.
 //
 // Parameters:
@@ -155,7 +157,7 @@ func (m *meta) WithCustomFields(values map[string]any) *meta {
 //   - `value`: An interface{} representing the value to associate with the custom field key.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithCustomFieldKV(key string, value any) *meta {
 	if !m.IsCustomPresent() {
 		m.customFields = make(map[string]interface{})
@@ -164,12 +166,12 @@ func (m *meta) WithCustomFieldKV(key string, value any) *meta {
 	return m
 }
 
-// WithCustomFieldKVf sets a specific custom field key-value pair for the `meta` instance
+// WithCustomFieldKVf sets a specific custom field key-value pair for the [meta] instance
 // using a formatted value.
 //
 // This function creates a formatted string value using the provided `format` string and
 // `args`. It then calls `WithCustomFieldKV` to add or update the custom field with the
-// specified key and the formatted value. The modified `meta` instance is returned for
+// specified key and the formatted value. The modified [meta] instance is returned for
 // method chaining.
 //
 // Parameters:
@@ -178,66 +180,66 @@ func (m *meta) WithCustomFieldKV(key string, value any) *meta {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithCustomFieldKVf(key string, format string, args ...any) *meta {
 	return m.WithCustomFieldKV(key, fmt.Sprintf(format, args...))
 }
 
-// WithDeltaValue sets the delta value for the `meta` instance.
+// WithDeltaValue sets the delta value for the [meta] instance.
 // Represents the magnitude of change introduced by payload normalization or transformation.
 //
-// This function updates the `deltaValue` field of the `meta` instance with the specified float64 value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `deltaValue` field of the [meta] instance with the specified float64 value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `value`: A float64 representing the delta value to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithDeltaValue(value float64) *meta {
 	m.deltaValue = value
 	return m
 }
 
-// WithDeltaCnt sets the delta count for the `meta` instance.
+// WithDeltaCnt sets the delta count for the [meta] instance.
 // Represents the number of changes introduced by payload normalization or transformation.
 //
-// This function updates the `deltaCnt` field of the `meta` instance with the specified int value
-// and returns the updated `meta` instance for method chaining.
+// This function updates the `deltaCnt` field of the [meta] instance with the specified int value
+// and returns the updated [meta] instance for method chaining.
 //
 // Parameters:
 //   - `value`: An int representing the delta count to set.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) WithDeltaCnt(value int) *meta {
 	m.deltaCnt = value
 	return m
 }
 
-// IncreaseDeltaCnt increments the delta count for the `meta` instance by 1.
+// IncreaseDeltaCnt increments the delta count for the [meta] instance by 1.
 // Represents an additional change introduced by payload normalization or transformation.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) IncreaseDeltaCnt() *meta {
 	m.deltaCnt++
 	return m
 }
 
-// DecreaseDeltaCnt decrements the delta count for the `meta` instance by 1.
+// DecreaseDeltaCnt decrements the delta count for the [meta] instance by 1.
 // Represents the removal of a change introduced by payload normalization or transformation.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) DecreaseDeltaCnt() *meta {
 	m.deltaCnt--
 	return m
 }
 
-// Respond generates a map representation of the `meta` instance.
+// Respond generates a map representation of the [meta] instance.
 //
-// This method collects various fields of the `meta` instance (e.g., `apiVersion`, `requestID`, etc.)
+// This method collects various fields of the [meta] instance (e.g., `apiVersion`, `requestID`, etc.)
 // and organizes them into a key-value map. Only fields that are available and valid
 // (e.g., non-empty or initialized) are included in the resulting map.
 //
@@ -279,65 +281,65 @@ func (m *meta) Respond() map[string]any {
 	return mk
 }
 
-// JSON serializes the `meta` instance into a compact JSON string.
+// JSON serializes the [meta] instance into a compact JSON string.
 //
 // This function uses the `encoding.JSON` utility to create a compact JSON representation
-// of the `meta` instance. The resulting string is formatted without additional whitespace,
+// of the [meta] instance. The resulting string is formatted without additional whitespace,
 // suitable for efficient storage or transmission of metadata.
 //
 // Returns:
-//   - A compact JSON string representation of the `meta` instance.
+//   - A compact JSON string representation of the [meta] instance.
 func (m *meta) JSON() string {
 	return jsonpass(m.Respond())
 }
 
-// JSONPretty serializes the `meta` instance into a prettified JSON string.
+// JSONPretty serializes the [meta] instance into a prettified JSON string.
 //
 // This function calls the `encoding.JSONPretty` utility to produce a formatted, human-readable
-// JSON string representation of the `meta` instance. The output is useful for debugging
+// JSON string representation of the [meta] instance. The output is useful for debugging
 // or inspecting metadata in a more structured format.
 //
 // Returns:
-//   - A prettified JSON string representation of the `meta` instance.
+//   - A prettified JSON string representation of the [meta] instance.
 func (m *meta) JSONPretty() string {
 	return jsonpretty(m.Respond())
 }
 
-// RandRequestID generates and sets a random request ID for the `meta` instance.
+// RandRequestID generates and sets a random request ID for the [meta] instance.
 //
 // This function utilizes the `CryptoID` function to generate a unique request ID
-// and assigns it to the `requestID` field of the `meta` instance. The modified
-// `meta` instance is returned to allow for method chaining.
+// and assigns it to the `requestID` field of the [meta] instance. The modified
+// [meta] instance is returned to allow for method chaining.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) RandRequestID() *meta {
 	return m.forceRequestID()
 }
 
-// RandDeltaValue sets a random delta value for the `meta` instance.
+// RandDeltaValue sets a random delta value for the [meta] instance.
 //
 // This function assigns the current Unix nanosecond timestamp (converted to float64)
-// to the `deltaValue` field of the `meta` instance. The modified `meta` instance
+// to the `deltaValue` field of the [meta] instance. The modified [meta] instance
 // is returned to allow for method chaining.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) RandDeltaValue() *meta {
 	return m.WithDeltaValue(randn.RandFt64())
 }
 
-// Equal checks if the current `meta` instance is equal to another `meta` instance.
+// Equal checks if the current [meta] instance is equal to another [meta] instance.
 //
-// This function compares the fields of the current `meta` instance with those of another `meta` instance.
+// This function compares the fields of the current [meta] instance with those of another [meta] instance.
 // It returns `true` if all fields are equal, and `false` otherwise. The comparison includes
 // checking for nil values, field-by-field equality, and deep comparison of the `customFields` map.
 //
 // Parameters:
-//   - `other`: A pointer to another `meta` instance to compare against.
+//   - `other`: A pointer to another [meta] instance to compare against.
 //
 // Returns:
-//   - A boolean value indicating whether the two `meta` instances are equal.
+//   - A boolean value indicating whether the two [meta] instances are equal.
 func (m *meta) Equal(other *meta) bool {
 	if m == other {
 		return true
@@ -374,14 +376,58 @@ func (m *meta) Equal(other *meta) bool {
 	return true
 }
 
-// autoRequestID generates and sets a random request ID for the `meta` instance if it is not already present.
+// String provides a string representation of the [meta] instance.
 //
-// This function checks if the `requestID` field of the `meta` instance is already set. If it is not present,
-// it generates a new random request ID using the `CryptoID` function and assigns it to the `requestID` field.
-// The modified `meta` instance is returned to allow for method chaining.
+// This function constructs a string that includes the values of the [meta] instance's fields,
+// such as `apiVersion`, `requestID`, `locale`, `requestedTime`, `customFields`, `deltaCnt`, and `deltaValue`.
+// The output is formatted in a readable manner, making it useful for logging or debugging purposes.
+// If the [meta] instance is nil, it returns an empty string.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A string representation of the [meta] instance, including its fields, or an empty string if the instance is nil.
+func (m *meta) String() string {
+	sw := strchain.New()
+	if m == nil {
+		return sw.String()
+	}
+	if m.IsApiVersionPresent() {
+		sw.AppendF("api_version=%s", m.apiVersion)
+	}
+	if m.IsRequestIDPresent() {
+		sw.Space()
+		sw.AppendF("request_id=%s", m.requestID)
+	}
+	if m.IsLocalePresent() {
+		sw.Space()
+		sw.AppendF("locale=%s", m.locale)
+	}
+	if m.IsRequestedTimePresent() {
+		sw.Space()
+		sw.AppendF("requested_time=%s", m.requestedTime.Format("2006-01-02 15:04:05.999999"))
+	}
+	if m.IsCustomPresent() {
+		sw.Space()
+		sw.AppendF("custom_fields=%v", conv.StringOrEmpty(m.customFields))
+	}
+	if m.IsDeltaCntPresent() {
+		sw.Space()
+		sw.AppendF("delta_cnt=%d", m.deltaCnt)
+	}
+	if m.IsDeltaValuePresent() {
+		sw.Space()
+		sw.AppendF("delta_value=%f", m.deltaValue)
+	}
+	return sw.String()
+}
+
+// autoRequestID generates and sets a random request ID for the [meta] instance if it is not already present.
+//
+// This function checks if the `requestID` field of the [meta] instance is already set. If it is not present,
+// it generates a new random request ID using the `CryptoID` function and assigns it to the `requestID` field.
+// The modified [meta] instance is returned to allow for method chaining.
+//
+// Returns:
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) autoRequestID() *meta {
 	if !m.IsRequestIDPresent() {
 		m.forceRequestID()
@@ -389,13 +435,13 @@ func (m *meta) autoRequestID() *meta {
 	return m
 }
 
-// forceRequestID generates and sets a random request ID for the `meta` instance, regardless of its current state.
+// forceRequestID generates and sets a random request ID for the [meta] instance, regardless of its current state.
 //
 // This function unconditionally generates a new random request ID using the `CryptoID` function and assigns it
-// to the `requestID` field of the `meta` instance. The modified `meta` instance is returned to allow for method chaining.
+// to the `requestID` field of the [meta] instance. The modified [meta] instance is returned to allow for method chaining.
 //
 // Returns:
-//   - A pointer to the modified `meta` instance, enabling method chaining.
+//   - A pointer to the modified [meta] instance, enabling method chaining.
 func (m *meta) forceRequestID() *meta {
 	m.WithRequestID(randn.NewXID().String())
 	return m

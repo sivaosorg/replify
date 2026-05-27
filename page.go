@@ -1,15 +1,17 @@
 package replify
 
-// WithPage sets the page number for the `pagination` instance.
+import "github.com/sivaosorg/replify/pkg/strchain"
+
+// WithPage sets the page number for the [pagination] instance.
 //
-// This function updates the `page` field of the `pagination` and
-// returns the modified `pagination` instance to allow method chaining.
+// This function updates the `page` field of the [pagination] and
+// returns the modified [pagination] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: An integer representing the page number to set.
 //
 // Returns:
-//   - A pointer to the modified `pagination` instance (enabling method chaining).
+//   - A pointer to the modified [pagination] instance (enabling method chaining).
 func (p *pagination) WithPage(v int) *pagination {
 	if v < 1 {
 		v = 1
@@ -19,17 +21,17 @@ func (p *pagination) WithPage(v int) *pagination {
 	return p
 }
 
-// WithPerPage sets the number of items per page for the `pagination` instance.
+// WithPerPage sets the number of items per page for the [pagination] instance.
 //
-// This function updates the `perPage` field of the `pagination` and
-// returns the modified `pagination` instance to allow method chaining.
+// This function updates the `perPage` field of the [pagination] and
+// returns the modified [pagination] instance to allow method chaining.
 // Validates that perPage is >= 1, defaults to 10 if invalid value.
 //
 // Parameters:
 //   - `v`: An integer representing the number of items per page to set.
 //
 // Returns:
-//   - A pointer to the modified `pagination` instance (enabling method chaining).
+//   - A pointer to the modified [pagination] instance (enabling method chaining).
 func (p *pagination) WithPerPage(v int) *pagination {
 	if v < 1 {
 		v = 10
@@ -39,17 +41,17 @@ func (p *pagination) WithPerPage(v int) *pagination {
 	return p
 }
 
-// WithTotalPages sets the total number of pages for the `pagination` instance.
+// WithTotalPages sets the total number of pages for the [pagination] instance.
 // Ensure that totalPages is >= 0, defaults to 0 if invalid value.
 //
-// This function updates the `totalPages` field of the `pagination` and
-// returns the modified `pagination` instance to allow method chaining.
+// This function updates the `totalPages` field of the [pagination] and
+// returns the modified [pagination] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: An integer representing the total number of pages to set.
 //
 // Returns:
-//   - A pointer to the modified `pagination` instance (enabling method chaining).
+//   - A pointer to the modified [pagination] instance (enabling method chaining).
 func (p *pagination) WithTotalPages(v int) *pagination {
 	if v < 0 {
 		v = 0
@@ -58,17 +60,17 @@ func (p *pagination) WithTotalPages(v int) *pagination {
 	return p
 }
 
-// WithTotalItems sets the total number of items for the `pagination` instance.
+// WithTotalItems sets the total number of items for the [pagination] instance.
 // Ensure that totalItems is >= 0, defaults to 0 if invalid value.
 //
-// This function updates the `totalItems` field of the `pagination` and
-// returns the modified `pagination` instance to allow method chaining.
+// This function updates the `totalItems` field of the [pagination] and
+// returns the modified [pagination] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: An integer representing the total number of items to set.
 //
 // Returns:
-//   - A pointer to the modified `pagination` instance (enabling method chaining).
+//   - A pointer to the modified [pagination] instance (enabling method chaining).
 func (p *pagination) WithTotalItems(v int) *pagination {
 	if v < 0 {
 		v = 0
@@ -78,16 +80,16 @@ func (p *pagination) WithTotalItems(v int) *pagination {
 	return p
 }
 
-// WithIsLast sets whether this is the last page in the `pagination` instance.
+// WithIsLast sets whether this is the last page in the [pagination] instance.
 //
-// This function updates the `isLast` field of the `pagination` and
-// returns the modified `pagination` instance to allow method chaining.
+// This function updates the `isLast` field of the [pagination] and
+// returns the modified [pagination] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: A boolean value indicating whether this is the last page.
 //
 // Returns:
-//   - A pointer to the modified `pagination` instance (enabling method chaining).
+//   - A pointer to the modified [pagination] instance (enabling method chaining).
 func (p *pagination) WithIsLast(v bool) *pagination {
 	p.isLast = v
 	return p
@@ -127,7 +129,7 @@ func (p *pagination) Norm() *pagination {
 	return p
 }
 
-// Respond generates a map representation of the `pagination` instance.
+// Respond generates a map representation of the [pagination] instance.
 //
 // This method collects various fields related to pagination (e.g., `page`, `per_page`, etc.)
 // and organizes them into a key-value map. It ensures that only valid pagination details
@@ -155,43 +157,43 @@ func (p *pagination) Respond() map[string]any {
 	return m
 }
 
-// JSON serializes the `pagination` instance into a compact JSON string.
+// JSON serializes the [pagination] instance into a compact JSON string.
 //
 // This function uses the `encoding.JSON` utility to generate a JSON representation
-// of the `pagination` instance. The output is a compact JSON string with no additional
+// of the [pagination] instance. The output is a compact JSON string with no additional
 // whitespace or formatting, providing a minimalistic view of the pagination data.
 //
 // Returns:
-//   - A compact JSON string representation of the `pagination` instance.
+//   - A compact JSON string representation of the [pagination] instance.
 func (p *pagination) JSON() string {
 	return jsonpass(p.Respond())
 }
 
-// JSONPretty serializes the `pagination` instance into a prettified JSON string.
+// JSONPretty serializes the [pagination] instance into a prettified JSON string.
 //
 // This function uses the `encoding.JSONPretty` utility to generate a JSON representation
-// of the `pagination` instance. The output is a human-readable JSON string with
+// of the [pagination] instance. The output is a human-readable JSON string with
 // proper indentation and formatting for better readability, which is helpful for
 // inspecting pagination data during development or debugging.
 //
 // Returns:
-//   - A prettified JSON string representation of the `pagination` instance.
+//   - A prettified JSON string representation of the [pagination] instance.
 func (p *pagination) JSONPretty() string {
 	return jsonpretty(p.Respond())
 }
 
-// Equal compares the current `pagination` instance with another `pagination` instance for equality.
+// Equal compares the current [pagination] instance with another [pagination] instance for equality.
 //
-// This method checks if both `pagination` instances are non-nil and then compares their
+// This method checks if both [pagination] instances are non-nil and then compares their
 // fields (`page`, `perPage`, `totalPages`, `totalItems`, and `isLast`) for equality.
 // It returns true if all corresponding fields are equal, indicating that the two
 // pagination instances represent the same pagination state.
 //
 // Parameters:
-//   - `other`: A pointer to another `pagination` instance to compare against.
+//   - `other`: A pointer to another [pagination] instance to compare against.
 //
 // Returns:
-//   - A boolean value indicating whether the two `pagination` instances are equal.
+//   - A boolean value indicating whether the two [pagination] instances are equal.
 func (p *pagination) Equal(other *pagination) bool {
 	if p == nil && other == nil {
 		return true
@@ -204,6 +206,27 @@ func (p *pagination) Equal(other *pagination) bool {
 		p.totalPages == other.totalPages &&
 		p.totalItems == other.totalItems &&
 		p.isLast == other.isLast
+}
+
+// String returns a string representation of the [pagination] instance.
+//
+// This method constructs a string that summarizes the key fields of the [pagination] instance,
+// such as `page`, `per_page`, `total_pages`, `total_items`, and `is_last`. The resulting string
+// provides a concise overview of the pagination state, which can be useful for logging or debugging purposes.
+//
+// Returns:
+//   - A string representation of the [pagination] instance, summarizing its key fields.
+func (p *pagination) String() string {
+	sw := strchain.New()
+	if p == nil {
+		return sw.String()
+	}
+	sw.AppendF("page=%d", p.page).Space()
+	sw.AppendF("per_page=%d", p.perPage).Space()
+	sw.AppendF("total_pages=%d", p.totalPages).Space()
+	sw.AppendF("total_items=%d", p.totalItems).Space()
+	sw.AppendF("is_last=%t", p.isLast)
+	return sw.String()
 }
 
 // calculate computes the total pages and determines if the current page is the last one.

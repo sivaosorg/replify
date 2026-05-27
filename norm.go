@@ -17,7 +17,7 @@ import (
 //   - NormMessage
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormAll() *wrapper {
 	return w.NormHSC().
 		NormMeta().
@@ -34,7 +34,7 @@ func (w *wrapper) NormAll() *wrapper {
 // on the pagination instance to ensure its values are consistent.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormPaging() *wrapper {
 	if w.IsPagingPresent() {
 		w.pagination.Norm()
@@ -53,7 +53,7 @@ func (w *wrapper) NormPaging() *wrapper {
 // matches the header's code.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormHSC() *wrapper {
 	hasChanges := false
 	switch {
@@ -80,12 +80,12 @@ func (w *wrapper) NormHSC() *wrapper {
 // NormMeta normalizes the metadata in the wrapper.
 //
 // If the meta object is not already initialized, it creates a new one
-// using the `Meta` function. It then ensures that essential fields such as
+// using the [meta] function. It then ensures that essential fields such as
 // locale, API version, request ID, and requested time are set to default
 // values if they are not already present.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormMeta() *wrapper {
 	hasChanges := false
 
@@ -132,7 +132,7 @@ func (w *wrapper) NormMeta() *wrapper {
 //   - For list/array responses, ensures total count is synchronized
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormBody() *wrapper {
 	hasChanges := false
 
@@ -243,7 +243,7 @@ func (w *wrapper) NormBody() *wrapper {
 // server error).
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormMessage() *wrapper {
 	hasChanges := false
 
@@ -280,7 +280,7 @@ func (w *wrapper) NormMessage() *wrapper {
 // the debug map only contains meaningful information.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) NormDebug() *wrapper {
 	if w.debug == nil {
 		return w

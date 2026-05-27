@@ -8,13 +8,13 @@ import (
 	"time"
 )
 
-// New creates a new instance of the `wrapper` struct.
+// New creates a new instance of the [wrapper] struct.
 //
-// This function initializes a `wrapper` struct with its default values,
+// This function initializes a [wrapper] struct with its default values,
 // including an empty map for the `Debug` field.
 //
 // Returns:
-//   - A pointer to a newly created `wrapper` instance with initialized fields.
+//   - A pointer to a newly created [wrapper] instance with initialized fields.
 func New() *wrapper {
 	w := &wrapper{
 		meta:   defaultMetaValues(),
@@ -23,21 +23,21 @@ func New() *wrapper {
 	return w
 }
 
-// Pages creates a new instance of the `pagination` struct.
+// Pages creates a new instance of the [pagination] struct.
 //
-// This function initializes a `pagination` struct with its default values.
+// This function initializes a [pagination] struct with its default values.
 //
 // Returns:
-//   - A pointer to a newly created `pagination` instance.
+//   - A pointer to a newly created [pagination] instance.
 func Pages() *pagination {
 	p := &pagination{}
 	return p
 }
 
-// FromPages creates a new instance of the `pagination` struct
+// FromPages creates a new instance of the [pagination] struct
 // with specified total items and items per page.
 //
-// This function initializes a `pagination` struct and sets
+// This function initializes a [pagination] struct and sets
 // the total number of items and items per page using the provided parameters.
 //
 // Parameters:
@@ -45,18 +45,18 @@ func Pages() *pagination {
 //   - perPage: The number of items to be displayed per page.
 //
 // Returns:
-//   - A pointer to a newly created `pagination` instance with the specified settings.
+//   - A pointer to a newly created [pagination] instance with the specified settings.
 func FromPages(totalItems int, perPage int) *pagination {
 	return Pages().WithPerPage(perPage).WithTotalItems(totalItems)
 }
 
-// Meta creates a new instance of the `meta` struct.
+// Meta creates a new instance of the [meta] struct.
 //
-// This function initializes a `meta` struct with its default values,
+// This function initializes a [meta] struct with its default values,
 // including an empty `CustomFields` map.
 //
 // Returns:
-//   - A pointer to a newly created `meta` instance with initialized fields.
+//   - A pointer to a newly created [meta] instance with initialized fields.
 func Meta() *meta {
 	m := &meta{
 		customFields: map[string]any{},
@@ -64,12 +64,12 @@ func Meta() *meta {
 	return m
 }
 
-// Header creates a new instance of the `header` struct.
+// Header creates a new instance of the [header] struct.
 //
-// This function initializes a `header` struct with its default values.
+// This function initializes a [header] struct with its default values.
 //
 // Returns:
-//   - A pointer to a newly created `header` instance.
+//   - A pointer to a newly created [header] instance.
 func Header() *header {
 	h := &header{}
 	return h
@@ -162,13 +162,13 @@ func NewStreaming(reader io.Reader, config *StreamConfig) *StreamingWrapper {
 	return sw
 }
 
-// defaultMetaValues returns the default values for the `meta` struct.
+// defaultMetaValues returns the default values for the [meta] struct.
 //
-// This function creates a new `meta` instance with the default values,
+// This function creates a new [meta] instance with the default values,
 // including the locale, API version, requested time, and request ID.
 //
 // Returns:
-//   - A pointer to a newly created `meta` instance with the default values.
+//   - A pointer to a newly created [meta] instance with the default values.
 func defaultMetaValues() *meta {
 	return Meta().
 		WithLocale("en_US"). // vi_VN, en_US

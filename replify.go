@@ -17,26 +17,27 @@ import (
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/hashy"
 	"github.com/sivaosorg/replify/pkg/slogger"
+	"github.com/sivaosorg/replify/pkg/strchain"
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// Available checks whether the `wrapper` instance is non-nil.
+// Available checks whether the [wrapper] instance is non-nil.
 //
-// This function ensures that the `wrapper` object exists and is not nil.
+// This function ensures that the [wrapper] object exists and is not nil.
 // It serves as a safety check to avoid null pointer dereferences when accessing the instance's fields or methods.
 //
 // Returns:
-//   - A boolean value indicating whether the `wrapper` instance is non-nil:
-//   - `true` if the `wrapper` instance is non-nil.
-//   - `false` if the `wrapper` instance is nil.
+//   - A boolean value indicating whether the [wrapper] instance is non-nil:
+//   - `true` if the [wrapper] instance is non-nil.
+//   - `false` if the [wrapper] instance is nil.
 func (w *wrapper) Available() bool {
 	return w != nil
 }
 
-// Error retrieves the error associated with the `wrapper` instance.
+// Error retrieves the error associated with the [wrapper] instance.
 //
-// This function returns the `errors` field of the `wrapper`, which contains
-// any errors encountered during the operation of the `wrapper`.
+// This function returns the `errors` field of the [wrapper], which contains
+// any errors encountered during the operation of the [wrapper].
 //
 // Returns:
 //   - An error object, or `nil` if no errors are present.
@@ -52,10 +53,10 @@ func (w *wrapper) Error() string {
 }
 
 // Cause traverses the error chain and returns the underlying cause of the error
-// associated with the `wrapper` instance.
+// associated with the [wrapper] instance.
 //
-// This function checks if the error stored in the `wrapper` is itself another
-// `wrapper` instance. If so, it recursively calls `Cause` on the inner error
+// This function checks if the error stored in the [wrapper] is itself another
+// [wrapper] instance. If so, it recursively calls `Cause` on the inner error
 // to find the ultimate cause. Otherwise, it returns the current error.
 //
 // Returns:
@@ -86,9 +87,9 @@ func (w *wrapper) Cause() error {
 	return cause
 }
 
-// StatusCode retrieves the HTTP status code associated with the `wrapper` instance.
+// StatusCode retrieves the HTTP status code associated with the [wrapper] instance.
 //
-// This function returns the `statusCode` field of the `wrapper`, which represents
+// This function returns the `statusCode` field of the [wrapper], which represents
 // the HTTP status code for the response, indicating the outcome of the request.
 //
 // Returns:
@@ -119,9 +120,9 @@ func (w *wrapper) StatusText() string {
 	return fmt.Sprintf("%d (%s)", w.StatusCode(), http.StatusText(w.StatusCode()))
 }
 
-// Message retrieves the message associated with the `wrapper` instance.
+// Message retrieves the message associated with the [wrapper] instance.
 //
-// This function returns the `message` field of the `wrapper`, which typically
+// This function returns the `message` field of the [wrapper], which typically
 // provides additional context or a description of the operation's outcome.
 //
 // Returns:
@@ -133,9 +134,9 @@ func (w *wrapper) Message() string {
 	return w.message
 }
 
-// Total retrieves the total number of items associated with the `wrapper` instance.
+// Total retrieves the total number of items associated with the [wrapper] instance.
 //
-// This function returns the `total` field of the `wrapper`, which indicates
+// This function returns the `total` field of the [wrapper], which indicates
 // the total number of items available, often used in paginated responses.
 //
 // Returns:
@@ -147,9 +148,9 @@ func (w *wrapper) Total() int {
 	return w.total
 }
 
-// Body retrieves the body data associated with the `wrapper` instance.
+// Body retrieves the body data associated with the [wrapper] instance.
 //
-// This function returns the `data` field of the `wrapper`, which contains
+// This function returns the `data` field of the [wrapper], which contains
 // the primary data payload of the response.
 //
 // Returns:
@@ -161,9 +162,24 @@ func (w *wrapper) Body() any {
 	return w.data
 }
 
+// BodyString retrieves the body data as a string from the [wrapper] instance.
+//
+// This function checks if the [wrapper] instance is available and then attempts to convert the body data to a string.
+// If the conversion is successful, it returns the string representation of the body data. If the conversion fails or if the [wrapper] instance is not available, it returns an empty string.
+// This is useful for cases where the body data is expected to be a string or when a string representation of the body is needed for logging or debugging purposes.
+//
+// Returns:
+//   - A string representation of the body data, or an empty string if the [wrapper] instance is not available or if the body data cannot be converted to a string.
+func (w *wrapper) BodyString() string {
+	if !w.Available() {
+		return ""
+	}
+	return conv.StringOrDefault(w.data, "")
+}
+
 // CompressSafe compresses the body data if it exceeds a specified threshold.
 //
-// This function checks if the `wrapper` instance is available and if the body data
+// This function checks if the [wrapper] instance is available and if the body data
 // exceeds the specified threshold for compression. If the body data is larger than
 // the threshold, it compresses the data using gzip and updates the body with the
 // compressed data. It also adds debugging information about the compression process,
@@ -175,9 +191,9 @@ func (w *wrapper) Body() any {
 //     If the body data size exceeds this threshold, it will be compressed.
 //
 // Returns:
-//   - A pointer to the `wrapper` instance, allowing for method chaining.
+//   - A pointer to the [wrapper] instance, allowing for method chaining.
 //
-// If the `wrapper` is not available, it returns the original instance without modifications.
+// If the [wrapper] is not available, it returns the original instance without modifications.
 func (w *wrapper) CompressSafe(threshold int) *wrapper {
 	if !w.Available() {
 		return w
@@ -217,16 +233,16 @@ func (w *wrapper) CompressSafe(threshold int) *wrapper {
 
 // DecompressSafe decompresses the body data if it is compressed.
 //
-// This function checks if the `wrapper` instance is available and if the body data
+// This function checks if the [wrapper] instance is available and if the body data
 // is compressed. If the body data is compressed, it decompresses the data using gzip
 // and updates the instance with the decompressed data. It also adds debugging information
 // about the decompression process, including the original and decompressed sizes.
 // If the body data is not compressed, it returns the original instance without modifications.
 //
 // Returns:
-//   - A pointer to the `wrapper` instance, allowing for method chaining.
+//   - A pointer to the [wrapper] instance, allowing for method chaining.
 //
-// If the `wrapper` is not available, it returns the original instance without modifications.
+// If the [wrapper] is not available, it returns the original instance without modifications.
 func (w *wrapper) DecompressSafe() *wrapper {
 	if !w.Available() {
 		return w
@@ -246,7 +262,7 @@ func (w *wrapper) DecompressSafe() *wrapper {
 	return w
 }
 
-// Stream retrieves a channel that streams the body data of the `wrapper` instance.
+// Stream retrieves a channel that streams the body data of the [wrapper] instance.
 //
 // This function checks if the body data is present and, if so, streams the data
 // in chunks. It creates a buffered channel to hold the streamed data, allowing
@@ -282,15 +298,15 @@ func (w *wrapper) Stream() <-chan []byte {
 	return ch
 }
 
-// Debugging retrieves the debugging information from the `wrapper` instance.
+// Debugging retrieves the debugging information from the [wrapper] instance.
 //
-// This function checks if the `wrapper` instance is available (non-nil) before returning
-// the value of the `debug` field. If the `wrapper` is not available, it returns an
+// This function checks if the [wrapper] instance is available (non-nil) before returning
+// the value of the `debug` field. If the [wrapper] is not available, it returns an
 // empty map to ensure safe usage.
 //
 // Returns:
 //   - A `map[string]interface{}` containing the debugging information.
-//   - An empty map if the `wrapper` instance is not available.
+//   - An empty map if the [wrapper] instance is not available.
 func (w *wrapper) Debugging() map[string]any {
 	if !w.Available() {
 		return nil
@@ -298,15 +314,15 @@ func (w *wrapper) Debugging() map[string]any {
 	return w.debug
 }
 
-// JSONDebugging retrieves the debugging information from the `wrapper` instance as a JSON string.
+// JSONDebugging retrieves the debugging information from the [wrapper] instance as a JSON string.
 //
-// This function checks if the `wrapper` instance is available (non-nil) before returning
-// the value of the `debug` field as a JSON string. If the `wrapper` is not available, it returns an
+// This function checks if the [wrapper] instance is available (non-nil) before returning
+// the value of the `debug` field as a JSON string. If the [wrapper] is not available, it returns an
 // empty string to ensure safe usage.
 //
 // Returns:
 //   - A `string` containing the debugging information as a JSON string.
-//   - An empty string if the `wrapper` instance is not available.
+//   - An empty string if the [wrapper] instance is not available.
 func (w *wrapper) JSONDebugging() string {
 	if !w.Available() {
 		return ""
@@ -314,9 +330,9 @@ func (w *wrapper) JSONDebugging() string {
 	return jsonpass(w.debug)
 }
 
-// OnDebugging retrieves the value of a specific debugging key from the `wrapper` instance.
+// OnDebugging retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `nil` to indicate the key is not available.
 //
@@ -325,7 +341,7 @@ func (w *wrapper) JSONDebugging() string {
 //
 // Returns:
 //   - The value associated with the specified debugging key if it exists.
-//   - `nil` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `nil` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) OnDebugging(key string) any {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return nil
@@ -333,9 +349,9 @@ func (w *wrapper) OnDebugging(key string) any {
 	return w.debug[key]
 }
 
-// DebuggingBool retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingBool retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -345,7 +361,7 @@ func (w *wrapper) OnDebugging(key string) any {
 //
 // Returns:
 //   - The boolean value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingBool(key string, defaultValue bool) bool {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -353,9 +369,9 @@ func (w *wrapper) DebuggingBool(key string, defaultValue bool) bool {
 	return conv.BoolOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingBool retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingBool retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -365,7 +381,7 @@ func (w *wrapper) DebuggingBool(key string, defaultValue bool) bool {
 //
 // Returns:
 //   - The boolean value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingBool(path string, defaultValue bool) bool {
 	if !w.Available() {
 		return defaultValue
@@ -377,9 +393,9 @@ func (w *wrapper) JSONDebuggingBool(path string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// DebuggingString retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingString retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -389,7 +405,7 @@ func (w *wrapper) JSONDebuggingBool(path string, defaultValue bool) bool {
 //
 // Returns:
 //   - The string value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingString(key string, defaultValue string) string {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -397,9 +413,9 @@ func (w *wrapper) DebuggingString(key string, defaultValue string) string {
 	return conv.StringOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingString retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingString retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -409,7 +425,7 @@ func (w *wrapper) DebuggingString(key string, defaultValue string) string {
 //
 // Returns:
 //   - The string value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingString(path string, defaultValue string) string {
 	if !w.Available() {
 		return defaultValue
@@ -421,9 +437,9 @@ func (w *wrapper) JSONDebuggingString(path string, defaultValue string) string {
 	return defaultValue
 }
 
-// DebuggingTime retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingTime retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -433,7 +449,7 @@ func (w *wrapper) JSONDebuggingString(path string, defaultValue string) string {
 //
 // Returns:
 //   - The time.Time value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingTime(key string, defaultValue time.Time) time.Time {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -441,9 +457,9 @@ func (w *wrapper) DebuggingTime(key string, defaultValue time.Time) time.Time {
 	return conv.TimeOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingTime retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingTime retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -453,7 +469,7 @@ func (w *wrapper) DebuggingTime(key string, defaultValue time.Time) time.Time {
 //
 // Returns:
 //   - The time.Time value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingTime(path string, defaultValue time.Time) time.Time {
 	if !w.Available() {
 		return defaultValue
@@ -465,9 +481,9 @@ func (w *wrapper) JSONDebuggingTime(path string, defaultValue time.Time) time.Ti
 	return defaultValue
 }
 
-// DebuggingInt retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingInt retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -477,7 +493,7 @@ func (w *wrapper) JSONDebuggingTime(path string, defaultValue time.Time) time.Ti
 //
 // Returns:
 //   - The integer value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingInt(key string, defaultValue int) int {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -485,9 +501,9 @@ func (w *wrapper) DebuggingInt(key string, defaultValue int) int {
 	return conv.IntOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingInt retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingInt retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -497,7 +513,7 @@ func (w *wrapper) DebuggingInt(key string, defaultValue int) int {
 //
 // Returns:
 //   - The integer value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingInt(path string, defaultValue int) int {
 	if !w.Available() {
 		return defaultValue
@@ -509,9 +525,9 @@ func (w *wrapper) JSONDebuggingInt(path string, defaultValue int) int {
 	return defaultValue
 }
 
-// DebuggingInt8 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingInt8 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -521,7 +537,7 @@ func (w *wrapper) JSONDebuggingInt(path string, defaultValue int) int {
 //
 // Returns:
 //   - The int8 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingInt8(key string, defaultValue int8) int8 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -529,9 +545,9 @@ func (w *wrapper) DebuggingInt8(key string, defaultValue int8) int8 {
 	return conv.Int8OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingInt8 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingInt8 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -541,7 +557,7 @@ func (w *wrapper) DebuggingInt8(key string, defaultValue int8) int8 {
 //
 // Returns:
 //   - The int8 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingInt8(path string, defaultValue int8) int8 {
 	if !w.Available() {
 		return defaultValue
@@ -553,9 +569,9 @@ func (w *wrapper) JSONDebuggingInt8(path string, defaultValue int8) int8 {
 	return defaultValue
 }
 
-// DebuggingInt16 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingInt16 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -565,7 +581,7 @@ func (w *wrapper) JSONDebuggingInt8(path string, defaultValue int8) int8 {
 //
 // Returns:
 //   - The int16 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingInt16(key string, defaultValue int16) int16 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -573,9 +589,9 @@ func (w *wrapper) DebuggingInt16(key string, defaultValue int16) int16 {
 	return conv.Int16OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingInt16 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingInt16 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -585,7 +601,7 @@ func (w *wrapper) DebuggingInt16(key string, defaultValue int16) int16 {
 //
 // Returns:
 //   - The int16 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingInt16(path string, defaultValue int16) int16 {
 	if !w.Available() {
 		return defaultValue
@@ -597,9 +613,9 @@ func (w *wrapper) JSONDebuggingInt16(path string, defaultValue int16) int16 {
 	return defaultValue
 }
 
-// DebuggingInt32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingInt32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -609,7 +625,7 @@ func (w *wrapper) JSONDebuggingInt16(path string, defaultValue int16) int16 {
 //
 // Returns:
 //   - The int32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingInt32(key string, defaultValue int32) int32 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -617,9 +633,9 @@ func (w *wrapper) DebuggingInt32(key string, defaultValue int32) int32 {
 	return conv.Int32OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingInt32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingInt32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -629,7 +645,7 @@ func (w *wrapper) DebuggingInt32(key string, defaultValue int32) int32 {
 //
 // Returns:
 //   - The int32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingInt32(path string, defaultValue int32) int32 {
 	if !w.Available() {
 		return defaultValue
@@ -641,9 +657,9 @@ func (w *wrapper) JSONDebuggingInt32(path string, defaultValue int32) int32 {
 	return defaultValue
 }
 
-// DebuggingInt64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingInt64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -653,7 +669,7 @@ func (w *wrapper) JSONDebuggingInt32(path string, defaultValue int32) int32 {
 //
 // Returns:
 //   - The int64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingInt64(key string, defaultValue int64) int64 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -661,9 +677,9 @@ func (w *wrapper) DebuggingInt64(key string, defaultValue int64) int64 {
 	return conv.Int64OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingInt64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingInt64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -673,7 +689,7 @@ func (w *wrapper) DebuggingInt64(key string, defaultValue int64) int64 {
 //
 // Returns:
 //   - The int64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingInt64(path string, defaultValue int64) int64 {
 	if !w.Available() {
 		return defaultValue
@@ -685,9 +701,9 @@ func (w *wrapper) JSONDebuggingInt64(path string, defaultValue int64) int64 {
 	return defaultValue
 }
 
-// DebuggingUint retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingUint retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -697,7 +713,7 @@ func (w *wrapper) JSONDebuggingInt64(path string, defaultValue int64) int64 {
 //
 // Returns:
 //   - The uint value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingUint(key string, defaultValue uint) uint {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -705,9 +721,9 @@ func (w *wrapper) DebuggingUint(key string, defaultValue uint) uint {
 	return conv.UintOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingUint retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingUint retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -717,7 +733,7 @@ func (w *wrapper) DebuggingUint(key string, defaultValue uint) uint {
 //
 // Returns:
 //   - The uint value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingUint(path string, defaultValue uint) uint {
 	if !w.Available() {
 		return defaultValue
@@ -729,9 +745,9 @@ func (w *wrapper) JSONDebuggingUint(path string, defaultValue uint) uint {
 	return defaultValue
 }
 
-// DebuggingUint8 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingUint8 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -741,7 +757,7 @@ func (w *wrapper) JSONDebuggingUint(path string, defaultValue uint) uint {
 //
 // Returns:
 //   - The uint8 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingUint8(key string, defaultValue uint8) uint8 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -749,9 +765,9 @@ func (w *wrapper) DebuggingUint8(key string, defaultValue uint8) uint8 {
 	return conv.Uint8OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingUint8 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingUint8 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -761,7 +777,7 @@ func (w *wrapper) DebuggingUint8(key string, defaultValue uint8) uint8 {
 //
 // Returns:
 //   - The uint8 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingUint8(path string, defaultValue uint8) uint8 {
 	if !w.Available() {
 		return defaultValue
@@ -773,9 +789,9 @@ func (w *wrapper) JSONDebuggingUint8(path string, defaultValue uint8) uint8 {
 	return defaultValue
 }
 
-// DebuggingUint16 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingUint16 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -785,7 +801,7 @@ func (w *wrapper) JSONDebuggingUint8(path string, defaultValue uint8) uint8 {
 //
 // Returns:
 //   - The uint16 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingUint16(key string, defaultValue uint16) uint16 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -793,9 +809,9 @@ func (w *wrapper) DebuggingUint16(key string, defaultValue uint16) uint16 {
 	return conv.Uint16OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingUint16 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingUint16 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -805,7 +821,7 @@ func (w *wrapper) DebuggingUint16(key string, defaultValue uint16) uint16 {
 //
 // Returns:
 //   - The uint16 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingUint16(path string, defaultValue uint16) uint16 {
 	if !w.Available() {
 		return defaultValue
@@ -817,9 +833,9 @@ func (w *wrapper) JSONDebuggingUint16(path string, defaultValue uint16) uint16 {
 	return defaultValue
 }
 
-// DebuggingUint32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingUint32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -829,7 +845,7 @@ func (w *wrapper) JSONDebuggingUint16(path string, defaultValue uint16) uint16 {
 //
 // Returns:
 //   - The uint32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingUint32(key string, defaultValue uint32) uint32 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -837,9 +853,9 @@ func (w *wrapper) DebuggingUint32(key string, defaultValue uint32) uint32 {
 	return conv.Uint32OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingUint32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingUint32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -849,7 +865,7 @@ func (w *wrapper) DebuggingUint32(key string, defaultValue uint32) uint32 {
 //
 // Returns:
 //   - The uint32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingUint32(path string, defaultValue uint32) uint32 {
 	if !w.Available() {
 		return defaultValue
@@ -861,9 +877,9 @@ func (w *wrapper) JSONDebuggingUint32(path string, defaultValue uint32) uint32 {
 	return defaultValue
 }
 
-// DebuggingUint64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingUint64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -873,7 +889,7 @@ func (w *wrapper) JSONDebuggingUint32(path string, defaultValue uint32) uint32 {
 //
 // Returns:
 //   - The uint64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingUint64(key string, defaultValue uint64) uint64 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -881,9 +897,9 @@ func (w *wrapper) DebuggingUint64(key string, defaultValue uint64) uint64 {
 	return conv.Uint64OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingUint64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingUint64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -893,7 +909,7 @@ func (w *wrapper) DebuggingUint64(key string, defaultValue uint64) uint64 {
 //
 // Returns:
 //   - The uint64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingUint64(path string, defaultValue uint64) uint64 {
 	if !w.Available() {
 		return defaultValue
@@ -905,9 +921,9 @@ func (w *wrapper) JSONDebuggingUint64(path string, defaultValue uint64) uint64 {
 	return defaultValue
 }
 
-// DebuggingFloat32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingFloat32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -917,7 +933,7 @@ func (w *wrapper) JSONDebuggingUint64(path string, defaultValue uint64) uint64 {
 //
 // Returns:
 //   - The float32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingFloat32(key string, defaultValue float32) float32 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -925,9 +941,9 @@ func (w *wrapper) DebuggingFloat32(key string, defaultValue float32) float32 {
 	return conv.Float32OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingFloat32 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingFloat32 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -937,7 +953,7 @@ func (w *wrapper) DebuggingFloat32(key string, defaultValue float32) float32 {
 //
 // Returns:
 //   - The float32 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingFloat32(path string, defaultValue float32) float32 {
 	if !w.Available() {
 		return defaultValue
@@ -949,9 +965,9 @@ func (w *wrapper) JSONDebuggingFloat32(path string, defaultValue float32) float3
 	return defaultValue
 }
 
-// DebuggingFloat64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingFloat64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -961,7 +977,7 @@ func (w *wrapper) JSONDebuggingFloat32(path string, defaultValue float32) float3
 //
 // Returns:
 //   - The float64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingFloat64(key string, defaultValue float64) float64 {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -969,9 +985,9 @@ func (w *wrapper) DebuggingFloat64(key string, defaultValue float64) float64 {
 	return conv.Float64OrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingFloat64 retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingFloat64 retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -981,7 +997,7 @@ func (w *wrapper) DebuggingFloat64(key string, defaultValue float64) float64 {
 //
 // Returns:
 //   - The float64 value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingFloat64(path string, defaultValue float64) float64 {
 	if !w.Available() {
 		return defaultValue
@@ -993,9 +1009,9 @@ func (w *wrapper) JSONDebuggingFloat64(path string, defaultValue float64) float6
 	return defaultValue
 }
 
-// DebuggingDuration retrieves the value of a specific debugging key from the `wrapper` instance.
+// DebuggingDuration retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -1005,7 +1021,7 @@ func (w *wrapper) JSONDebuggingFloat64(path string, defaultValue float64) float6
 //
 // Returns:
 //   - The time.Duration value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) DebuggingDuration(key string, defaultValue time.Duration) time.Duration {
 	if !w.Available() || !w.IsDebuggingKeyPresent(key) {
 		return defaultValue
@@ -1013,9 +1029,9 @@ func (w *wrapper) DebuggingDuration(key string, defaultValue time.Duration) time
 	return conv.DurationOrDefault(w.debug[key], defaultValue)
 }
 
-// JSONDebuggingDuration retrieves the value of a specific debugging key from the `wrapper` instance.
+// JSONDebuggingDuration retrieves the value of a specific debugging key from the [wrapper] instance.
 //
-// This function checks if the `wrapper` is available (non-nil) and if the specified debugging key
+// This function checks if the [wrapper] is available (non-nil) and if the specified debugging key
 // is present in the `debug` map. If both conditions are met, it returns the value associated with
 // the specified key. Otherwise, it returns `defaultValue` to indicate the key is not available.
 //
@@ -1025,7 +1041,7 @@ func (w *wrapper) DebuggingDuration(key string, defaultValue time.Duration) time
 //
 // Returns:
 //   - The time.Duration value associated with the specified debugging key if it exists.
-//   - `defaultValue` if the `wrapper` is unavailable or the key is not present in the `debug` map.
+//   - `defaultValue` if the [wrapper] is unavailable or the key is not present in the `debug` map.
 func (w *wrapper) JSONDebuggingDuration(path string, defaultValue time.Duration) time.Duration {
 	if !w.Available() {
 		return defaultValue
@@ -1037,48 +1053,48 @@ func (w *wrapper) JSONDebuggingDuration(path string, defaultValue time.Duration)
 	return defaultValue
 }
 
-// Pagination retrieves the `pagination` instance associated with the `wrapper`.
+// Pagination retrieves the [pagination] instance associated with the [wrapper].
 //
-// This function returns the `pagination` field of the `wrapper`, allowing access to
+// This function returns the [pagination] field of the [wrapper], allowing access to
 // pagination details such as the current page, total pages, and total items. If no
 // pagination information is available, it returns `nil`.
 //
 // Returns:
-//   - A pointer to the `pagination` instance if available.
-//   - `nil` if the `pagination` field is not set.
+//   - A pointer to the [pagination] instance if available.
+//   - `nil` if the [pagination] field is not set.
 func (w *wrapper) Pagination() *pagination {
 	return w.pagination
 }
 
-// Meta retrieves the `meta` information from the `wrapper` instance.
+// Meta retrieves the [meta] information from the [wrapper] instance.
 //
-// This function returns the `meta` field, which contains metadata related to the response or data
-// in the `wrapper` instance. If no `meta` information is set, it returns `nil`.
+// This function returns the [meta] field, which contains metadata related to the response or data
+// in the [wrapper] instance. If no [meta] information is set, it returns `nil`.
 //
 // Returns:
-//   - A pointer to the `meta` instance associated with the `wrapper`.
-//   - `nil` if no `meta` information is available.
+//   - A pointer to the [meta] instance associated with the [wrapper].
+//   - `nil` if no [meta] information is available.
 func (w *wrapper) Meta() *meta {
 	return w.meta
 }
 
-// Header retrieves the `header` associated with the `wrapper` instance.
+// Header retrieves the [header] associated with the [wrapper] instance.
 //
-// This function returns the `header` field from the `wrapper` instance, which contains
-// information about the HTTP response or any other relevant metadata. If the `wrapper`
-// instance is correctly initialized, it will return the `header`; otherwise, it may
-// return `nil` if the `header` has not been set.
+// This function returns the [header] field from the [wrapper] instance, which contains
+// information about the HTTP response or any other relevant metadata. If the [wrapper]
+// instance is correctly initialized, it will return the [header]; otherwise, it may
+// return `nil` if the [header] has not been set.
 //
 // Returns:
-//   - A pointer to the `header` instance associated with the `wrapper`.
-//   - `nil` if the `header` is not set or the `wrapper` is uninitialized.
+//   - A pointer to the [header] instance associated with the [wrapper].
+//   - `nil` if the [header] is not set or the [wrapper] is uninitialized.
 func (w *wrapper) Header() *header {
 	return w.header
 }
 
-// IsDebuggingPresent checks whether debugging information is present in the `wrapper` instance.
+// IsDebuggingPresent checks whether debugging information is present in the [wrapper] instance.
 //
-// This function verifies if the `debug` field of the `wrapper` is not nil and contains at least one entry.
+// This function verifies if the `debug` field of the [wrapper] is not nil and contains at least one entry.
 // It returns `true` if debugging information is available; otherwise, it returns `false`.
 //
 // Returns:
@@ -1105,9 +1121,9 @@ func (w *wrapper) IsDebuggingKeyPresent(key string) bool {
 	return w.IsDebuggingPresent() && coll.ContainsKeyComp(w.debug, key)
 }
 
-// IsBodyPresent checks whether the body data is present in the `wrapper` instance.
+// IsBodyPresent checks whether the body data is present in the [wrapper] instance.
 //
-// This function checks if the `data` field of the `wrapper` is not nil, indicating that the body contains data.
+// This function checks if the `data` field of the [wrapper] is not nil, indicating that the body contains data.
 //
 // Returns:
 //   - A boolean value indicating whether the body data is present:
@@ -1120,13 +1136,13 @@ func (w *wrapper) IsBodyPresent() bool {
 
 // IsJSONBody checks whether the body data is a valid JSON string.
 //
-// This function first checks if the `wrapper` is available and if the body data is present using `IsBodyPresent()`.
+// This function first checks if the [wrapper] is available and if the body data is present using `IsBodyPresent()`.
 // Then it uses the `JSON()` function to retrieve the body data as a JSON string and checks if it is valid using `fj.IsValidJSON()`.
 //
 // Returns:
 //   - A boolean value indicating whether the body data is a valid JSON string:
-//   - `true` if the `wrapper` is available, the body data is present, and the body data is a valid JSON string.
-//   - `false` if the `wrapper` is not available, the body data is not present, or the body data is not a valid JSON string.
+//   - `true` if the [wrapper] is available, the body data is present, and the body data is a valid JSON string.
+//   - `false` if the [wrapper] is not available, the body data is not present, or the body data is not a valid JSON string.
 func (w *wrapper) IsJSONBody() bool {
 	if !w.Available() || !w.IsBodyPresent() {
 		return false
@@ -1135,45 +1151,45 @@ func (w *wrapper) IsJSONBody() bool {
 	return fj.IsValidJSON(json) && encoding.IsValidJSON(json)
 }
 
-// IsHeaderPresent checks whether header information is present in the `wrapper` instance.
+// IsHeaderPresent checks whether header information is present in the [wrapper] instance.
 //
-// This function checks if the `header` field of the `wrapper` is not nil, indicating that header information is included.
+// This function checks if the [header] field of the [wrapper] is not nil, indicating that header information is included.
 //
 // Returns:
 //   - A boolean value indicating whether header information is present:
-//   - `true` if `header` is not nil.
-//   - `false` if `header` is nil.
+//   - `true` if [header] is not nil.
+//   - `false` if [header] is nil.
 func (w *wrapper) IsHeaderPresent() bool {
 	return w.Available() && w.header != nil
 }
 
-// IsMetaPresent checks whether metadata information is present in the `wrapper` instance.
+// IsMetaPresent checks whether metadata information is present in the [wrapper] instance.
 //
-// This function checks if the `meta` field of the `wrapper` is not nil, indicating that metadata is available.
+// This function checks if the [meta] field of the [wrapper] is not nil, indicating that metadata is available.
 //
 // Returns:
 //   - A boolean value indicating whether metadata is present:
-//   - `true` if `meta` is not nil.
-//   - `false` if `meta` is nil.
+//   - `true` if [meta] is not nil.
+//   - `false` if [meta] is nil.
 func (w *wrapper) IsMetaPresent() bool {
 	return w.Available() && w.meta != nil
 }
 
-// IsPagingPresent checks whether pagination information is present in the `wrapper` instance.
+// IsPagingPresent checks whether pagination information is present in the [wrapper] instance.
 //
-// This function checks if the `pagination` field of the `wrapper` is not nil, indicating that pagination details are included.
+// This function checks if the [pagination] field of the [wrapper] is not nil, indicating that pagination details are included.
 //
 // Returns:
 //   - A boolean value indicating whether pagination information is present:
-//   - `true` if `pagination` is not nil.
-//   - `false` if `pagination` is nil.
+//   - `true` if [pagination] is not nil.
+//   - `false` if [pagination] is nil.
 func (w *wrapper) IsPagingPresent() bool {
 	return w.Available() && w.pagination != nil
 }
 
-// IsErrorPresent checks whether an error is present in the `wrapper` instance.
+// IsErrorPresent checks whether an error is present in the [wrapper] instance.
 //
-// This function checks if the `errors` field of the `wrapper` is not nil, indicating that an error has occurred.
+// This function checks if the `errors` field of the [wrapper] is not nil, indicating that an error has occurred.
 //
 // Returns:
 //   - A boolean value indicating whether an error is present:
@@ -1183,9 +1199,9 @@ func (w *wrapper) IsErrorPresent() bool {
 	return w.Available() && w.errors != nil
 }
 
-// IsTotalPresent checks whether the total number of items is present in the `wrapper` instance.
+// IsTotalPresent checks whether the total number of items is present in the [wrapper] instance.
 //
-// This function checks if the `total` field of the `wrapper` is greater than or equal to 0,
+// This function checks if the `total` field of the [wrapper] is greater than or equal to 0,
 // indicating that a valid total number of items has been set.
 //
 // Returns:
@@ -1196,9 +1212,9 @@ func (w *wrapper) IsTotalPresent() bool {
 	return w.Available() && w.total >= 0
 }
 
-// IsStatusCodePresent checks whether a valid status code is present in the `wrapper` instance.
+// IsStatusCodePresent checks whether a valid status code is present in the [wrapper] instance.
 //
-// This function checks if the `statusCode` field of the `wrapper` is greater than 0,
+// This function checks if the `statusCode` field of the [wrapper] is greater than 0,
 // indicating that a valid HTTP status code has been set.
 //
 // Returns:
@@ -1209,9 +1225,9 @@ func (w *wrapper) IsStatusCodePresent() bool {
 	return w.Available() && w.statusCode > 0
 }
 
-// IsError checks whether there is an error present in the `wrapper` instance.
+// IsError checks whether there is an error present in the [wrapper] instance.
 //
-// This function returns `true` if the `wrapper` contains an error, which can be any of the following:
+// This function returns `true` if the [wrapper] contains an error, which can be any of the following:
 //   - An error present in the `errors` field.
 //   - A client error (4xx status code) or a server error (5xx status code).
 //
@@ -1297,19 +1313,19 @@ func (w *wrapper) IsLastPage() bool {
 	return w.Available() && w.IsPagingPresent() && w.pagination.IsLast()
 }
 
-// EqualHeader compares the header information of the `wrapper` instance with another `header` instance.
+// EqualHeader compares the header information of the [wrapper] instance with another [header] instance.
 //
-// This function checks if the `wrapper` is available and if the provided `header` instance is not nil.
-// It then compares the `code` and `text` fields of the `wrapper`'s header with those of the provided `header`.
+// This function checks if the [wrapper] is available and if the provided [header] instance is not nil.
+// It then compares the `code` and `text` fields of the [wrapper]'s header with those of the provided [header].
 // The comparison of the `text` field is case-insensitive.
 //
 // Parameters:
-//   - `h`: A pointer to a `header` instance to compare with the `wrapper`'s header.
+//   - `h`: A pointer to a [header] instance to compare with the [wrapper]'s header.
 //
 // Returns:
 //   - A boolean value indicating whether the headers are equal:
 //   - `true` if both headers have the same code and text (case-insensitive).
-//   - `false` if the `wrapper` is not available, the provided header is nil, or the headers do not match.
+//   - `false` if the [wrapper] is not available, the provided header is nil, or the headers do not match.
 func (w *wrapper) EqualHeader(h *header) bool {
 	if !w.Available() || h == nil {
 		return false
@@ -1320,18 +1336,18 @@ func (w *wrapper) EqualHeader(h *header) bool {
 	return w.header.Equal(h)
 }
 
-// EqualPages compares the pagination information of the `wrapper` instance with another `pagination` instance.
+// EqualPages compares the pagination information of the [wrapper] instance with another [pagination] instance.
 //
-// This function checks if the `wrapper` is available and if the provided `pagination` instance is not nil.
-// It then compares the pagination details of the `wrapper` with those of the provided `pagination` instance.
+// This function checks if the [wrapper] is available and if the provided [pagination] instance is not nil.
+// It then compares the pagination details of the [wrapper] with those of the provided [pagination] instance.
 //
 // Parameters:
-//   - `p`: A pointer to a `pagination` instance to compare with the `wrapper`'s pagination.
+//   - `p`: A pointer to a [pagination] instance to compare with the [wrapper]'s pagination.
 //
 // Returns:
 //   - A boolean value indicating whether the pagination information is equal:
 //   - `true` if both pagination instances have the same pagination details.
-//   - `false` if the `wrapper` is not available, the provided pagination is nil, or the pagination details do not match.
+//   - `false` if the [wrapper] is not available, the provided pagination is nil, or the pagination details do not match.
 func (w *wrapper) EqualPages(p *pagination) bool {
 	if !w.Available() || p == nil {
 		return false
@@ -1342,18 +1358,18 @@ func (w *wrapper) EqualPages(p *pagination) bool {
 	return w.pagination.Equal(p)
 }
 
-// EqualMeta compares the metadata information of the `wrapper` instance with another `meta` instance.
+// EqualMeta compares the metadata information of the [wrapper] instance with another [meta] instance.
 //
-// This function checks if the `wrapper` is available and if the provided `meta` instance is not nil.
-// It then compares the metadata details of the `wrapper` with those of the provided `meta` instance.
+// This function checks if the [wrapper] is available and if the provided [meta] instance is not nil.
+// It then compares the metadata details of the [wrapper] with those of the provided [meta] instance.
 //
 // Parameters:
-//   - `m`: A pointer to a `meta` instance to compare with the `wrapper`'s metadata.
+//   - `m`: A pointer to a [meta] instance to compare with the [wrapper]'s metadata.
 //
 // Returns:
 //   - A boolean value indicating whether the metadata information is equal:
 //   - `true` if both meta instances have the same metadata details.
-//   - `false` if the `wrapper` is not available, the provided meta is nil, or the metadata details do not match.
+//   - `false` if the [wrapper] is not available, the provided meta is nil, or the metadata details do not match.
 func (w *wrapper) EqualMeta(m *meta) bool {
 	if !w.Available() || m == nil {
 		return false
@@ -1364,15 +1380,15 @@ func (w *wrapper) EqualMeta(m *meta) bool {
 	return w.meta.Equal(m)
 }
 
-// Clone creates a deep copy of the `wrapper` instance.
+// Clone creates a deep copy of the [wrapper] instance.
 //
-// This function creates a new `wrapper` instance with the same fields as the original instance.
-// It creates a new `header`, `meta`, and `pagination` instances and copies the values from the original instance.
+// This function creates a new [wrapper] instance with the same fields as the original instance.
+// It creates a new [header], [meta], and [pagination] instances and copies the values from the original instance.
 // It also creates a new `debug` map and copies the values from the original instance.
 //
 // Returns:
-//   - A pointer to the cloned `wrapper` instance.
-//   - `nil` if the `wrapper` instance is not available.
+//   - A pointer to the cloned [wrapper] instance.
+//   - `nil` if the [wrapper] instance is not available.
 func (w *wrapper) Clone() *wrapper {
 	if !w.Available() {
 		return New()
@@ -1430,16 +1446,16 @@ func (w *wrapper) Clone() *wrapper {
 	return clone
 }
 
-// Reset resets the `wrapper` instance to its initial state.
+// Reset resets the [wrapper] instance to its initial state.
 //
-// This function sets the `wrapper` instance to its initial state by resetting
+// This function sets the [wrapper] instance to its initial state by resetting
 // the `statusCode`, `total`, `message`, `path`, `cacheHash`, `data`, `debug`,
-// `header`, `errors`, `pagination`, and `cachedWrap` fields to their default values.
-// It also resets the `meta` instance to its initial state.
+// [header], `errors`, [pagination], and `cachedWrap` fields to their default values.
+// It also resets the [meta] instance to its initial state.
 //
 // Returns:
-//   - A pointer to the reset `wrapper` instance.
-//   - `nil` if the `wrapper` instance is not available.
+//   - A pointer to the reset [wrapper] instance.
+//   - `nil` if the [wrapper] instance is not available.
 func (w *wrapper) Reset() *wrapper {
 	if !w.Available() {
 		return New()
@@ -1468,10 +1484,10 @@ func (w *wrapper) Reset() *wrapper {
 	return w
 }
 
-// DeltaValue retrieves the delta value from the `meta` instance.
+// DeltaValue retrieves the delta value from the [meta] instance.
 //
-// This function checks if the `meta` instance is present and returns the `deltaValue` field.
-// If the `meta` instance is not present, it returns a default value of `0`.
+// This function checks if the [meta] instance is present and returns the `deltaValue` field.
+// If the [meta] instance is not present, it returns a default value of `0`.
 //
 // Returns:
 //   - A float64 representing the delta value.
@@ -1482,10 +1498,10 @@ func (w *wrapper) DeltaValue() float64 {
 	return w.meta.deltaValue
 }
 
-// DeltaCnt retrieves the delta count from the `meta` instance.
+// DeltaCnt retrieves the delta count from the [meta] instance.
 //
-// This function checks if the `meta` instance is present and returns the `deltaCnt` field.
-// If the `meta` instance is not present, it returns a default value of `0`.
+// This function checks if the [meta] instance is present and returns the `deltaCnt` field.
+// If the [meta] instance is not present, it returns a default value of `0`.
 //
 // Returns:
 //   - An integer representing the delta count.
@@ -1496,28 +1512,28 @@ func (w *wrapper) DeltaCnt() int {
 	return w.meta.deltaCnt
 }
 
-// Available checks whether the `pagination` instance is non-nil.
+// Available checks whether the [pagination] instance is non-nil.
 //
-// This function ensures that the `pagination` object exists and is not nil.
+// This function ensures that the [pagination] object exists and is not nil.
 // It serves as a safety check to avoid null pointer dereferences when accessing the instance's fields or methods.
 //
 // Returns:
-//   - A boolean value indicating whether the `pagination` instance is non-nil:
-//   - `true` if the `pagination` instance is non-nil.
-//   - `false` if the `pagination` instance is nil.
+//   - A boolean value indicating whether the [pagination] instance is non-nil:
+//   - `true` if the [pagination] instance is non-nil.
+//   - `false` if the [pagination] instance is nil.
 func (p *pagination) Available() bool {
 	return p != nil
 }
 
-// Page retrieves the current page number from the `pagination` instance.
+// Page retrieves the current page number from the [pagination] instance.
 //
-// This function checks if the `pagination` instance is available (non-nil) before
+// This function checks if the [pagination] instance is available (non-nil) before
 // returning the value of the `page` field. If the instance is not available, it
 // returns a default value of `0`.
 //
 // Returns:
 //   - An integer representing the current page number.
-//   - `0` if the `pagination` instance is not available.
+//   - `0` if the [pagination] instance is not available.
 func (p *pagination) Page() int {
 	if !p.Available() {
 		return 0
@@ -1525,15 +1541,15 @@ func (p *pagination) Page() int {
 	return p.page
 }
 
-// PerPage retrieves the number of items per page from the `pagination` instance.
+// PerPage retrieves the number of items per page from the [pagination] instance.
 //
-// This function checks if the `pagination` instance is available (non-nil) before
+// This function checks if the [pagination] instance is available (non-nil) before
 // returning the value of the `perPage` field. If the instance is not available, it
 // returns a default value of `0`.
 //
 // Returns:
 //   - An integer representing the number of items per page.
-//   - `0` if the `pagination` instance is not available.
+//   - `0` if the [pagination] instance is not available.
 func (p *pagination) PerPage() int {
 	if !p.Available() {
 		return 0
@@ -1541,15 +1557,15 @@ func (p *pagination) PerPage() int {
 	return p.perPage
 }
 
-// TotalPages retrieves the total number of pages from the `pagination` instance.
+// TotalPages retrieves the total number of pages from the [pagination] instance.
 //
-// This function checks if the `pagination` instance is available (non-nil) before
+// This function checks if the [pagination] instance is available (non-nil) before
 // returning the value of the `totalPages` field. If the instance is not available, it
 // returns a default value of `0`.
 //
 // Returns:
 //   - An integer representing the total number of pages.
-//   - `0` if the `pagination` instance is not available.
+//   - `0` if the [pagination] instance is not available.
 func (p *pagination) TotalPages() int {
 	if !p.Available() {
 		return 0
@@ -1557,15 +1573,15 @@ func (p *pagination) TotalPages() int {
 	return p.totalPages
 }
 
-// TotalItems retrieves the total number of items from the `pagination` instance.
+// TotalItems retrieves the total number of items from the [pagination] instance.
 //
-// This function checks if the `pagination` instance is available (non-nil) before
+// This function checks if the [pagination] instance is available (non-nil) before
 // returning the value of the `totalItems` field. If the instance is not available, it
 // returns a default value of `0`.
 //
 // Returns:
 //   - An integer representing the total number of items.
-//   - `0` if the `pagination` instance is not available.
+//   - `0` if the [pagination] instance is not available.
 func (p *pagination) TotalItems() int {
 	if !p.Available() {
 		return 0
@@ -1575,7 +1591,7 @@ func (p *pagination) TotalItems() int {
 
 // IsLast checks whether the current pagination represents the last page.
 //
-// This function checks the `isLast` field of the `pagination` instance to determine if the current page is the last one.
+// This function checks the `isLast` field of the [pagination] instance to determine if the current page is the last one.
 // The `isLast` field is typically set to `true` when there are no more pages of data available.
 //
 // Returns:
@@ -1589,103 +1605,103 @@ func (p *pagination) IsLast() bool {
 	return p.isLast
 }
 
-// Available checks whether the `meta` instance is available (non-nil).
+// Available checks whether the [meta] instance is available (non-nil).
 //
-// This function ensures that the `meta` instance is valid and not nil
+// This function ensures that the [meta] instance is valid and not nil
 // to safely access its fields and methods.
 //
 // Returns:
-//   - `true` if the `meta` instance is not nil.
-//   - `false` if the `meta` instance is nil.
+//   - `true` if the [meta] instance is not nil.
+//   - `false` if the [meta] instance is nil.
 func (m *meta) Available() bool {
 	return m != nil
 }
 
-// IsApiVersionPresent checks whether the API version is present in the `meta` instance.
+// IsApiVersionPresent checks whether the API version is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `apiVersion` field contains a non-empty value.
 //
 // Returns:
 //   - `true` if `apiVersion` is non-empty.
-//   - `false` if `meta` is unavailable or `apiVersion` is empty.
+//   - `false` if [meta] is unavailable or `apiVersion` is empty.
 func (m *meta) IsApiVersionPresent() bool {
 	return m.Available() && strutil.IsNotEmpty(m.apiVersion)
 }
 
-// IsRequestIDPresent checks whether the request ID is present in the `meta` instance.
+// IsRequestIDPresent checks whether the request ID is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `requestID` field contains a non-empty value.
 //
 // Returns:
 //   - `true` if `requestID` is non-empty.
-//   - `false` if `meta` is unavailable or `requestID` is empty.
+//   - `false` if [meta] is unavailable or `requestID` is empty.
 func (m *meta) IsRequestIDPresent() bool {
 	return m.Available() && strutil.IsNotEmpty(m.requestID)
 }
 
-// IsLocalePresent checks whether the locale information is present in the `meta` instance.
+// IsLocalePresent checks whether the locale information is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `locale` field contains a non-empty value.
 //
 // Returns:
 //   - `true` if `locale` is non-empty.
-//   - `false` if `meta` is unavailable or `locale` is empty.
+//   - `false` if [meta] is unavailable or `locale` is empty.
 func (m *meta) IsLocalePresent() bool {
 	return m.Available() && strutil.IsNotEmpty(m.locale)
 }
 
-// IsRequestedTimePresent checks whether the requested time is present in the `meta` instance.
+// IsRequestedTimePresent checks whether the requested time is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `requestedTime` field is not the zero value of `time.Time`.
 //
 // Returns:
 //   - `true` if `requestedTime` is not the zero value of `time.Time`.
-//   - `false` if `meta` is unavailable or `requestedTime` is uninitialized.
+//   - `false` if [meta] is unavailable or `requestedTime` is uninitialized.
 func (m *meta) IsRequestedTimePresent() bool {
 	return m.Available() && m.requestedTime != time.Time{} && !m.requestedTime.IsZero()
 }
 
-// IsCustomPresent checks whether custom fields are present in the `meta` instance.
+// IsCustomPresent checks whether custom fields are present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `customFields` field is non-nil and contains at least one entry.
 //
 // Returns:
 //   - `true` if `customFields` is non-nil and has a non-zero length.
-//   - `false` if `meta` is unavailable, `customFields` is nil, or it is empty.
+//   - `false` if [meta] is unavailable, `customFields` is nil, or it is empty.
 func (m *meta) IsCustomPresent() bool {
 	return m.Available() && m.customFields != nil && len(m.customFields) > 0
 }
 
-// IsDeltaValuePresent checks whether the delta value is present in the `meta` instance.
+// IsDeltaValuePresent checks whether the delta value is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `deltaValue` field is greater than zero.
 //
 // Returns:
 //   - `true` if `deltaValue` is greater than zero.
-//   - `false` if `meta` is unavailable or `deltaValue` is zero or negative.
+//   - `false` if [meta] is unavailable or `deltaValue` is zero or negative.
 func (m *meta) IsDeltaValuePresent() bool {
 	return m.Available() && m.deltaValue > 0
 }
 
-// IsDeltaCntPresent checks whether the delta count is present in the `meta` instance.
+// IsDeltaCntPresent checks whether the delta count is present in the [meta] instance.
 //
-// This function verifies that the `meta` instance is available and that
+// This function verifies that the [meta] instance is available and that
 // the `deltaCnt` field is greater than zero.
 //
 // Returns:
 //   - `true` if `deltaCnt` is greater than zero.
-//   - `false` if `meta` is unavailable or `deltaCnt` is zero or negative.
+//   - `false` if [meta] is unavailable or `deltaCnt` is zero or negative.
 func (m *meta) IsDeltaCntPresent() bool {
 	return m.Available() && m.deltaCnt > 0
 }
 
-// IsCustomKeyPresent checks whether a specific key is present in the custom fields of the `meta` instance.
+// IsCustomKeyPresent checks whether a specific key is present in the custom fields of the [meta] instance.
 //
 // This function first verifies that the `customFields` field is available and contains data using
 // `IsCustomPresent`. If so, it checks if the specified key exists within the `customFields` map.
@@ -1700,14 +1716,14 @@ func (m *meta) IsCustomKeyPresent(key string) bool {
 	return m.IsCustomPresent() && coll.ContainsKeyComp(m.customFields, key)
 }
 
-// JSONCustomFields returns the custom fields of the `meta` instance as a JSON string.
+// JSONCustomFields returns the custom fields of the [meta] instance as a JSON string.
 //
-// This function first checks if the `meta` instance is available. If not, it returns an empty string.
+// This function first checks if the [meta] instance is available. If not, it returns an empty string.
 // Otherwise, it uses `jsonpass` to convert the `customFields` map into a JSON formatted string.
 //
 // Returns:
-//   - A JSON formatted string representation of the `customFields` map if `meta` is available.
-//   - An empty string if `meta` is unavailable.
+//   - A JSON formatted string representation of the `customFields` map if [meta] is available.
+//   - An empty string if [meta] is unavailable.
 func (m *meta) JSONCustomFields() string {
 	if !m.IsCustomPresent() {
 		return ""
@@ -1715,18 +1731,18 @@ func (m *meta) JSONCustomFields() string {
 	return jsonpass(m.customFields)
 }
 
-// OnCustom retrieves the value associated with a specific key in the custom fields of the `meta` instance.
+// OnCustom retrieves the value associated with a specific key in the custom fields of the [meta] instance.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key.
-// If the `meta` instance is unavailable or the key is not present, it returns `nil`.
+// If the [meta] instance is unavailable or the key is not present, it returns `nil`.
 //
 // Parameters:
 //   - `key`: A string representing the key to search for in the `customFields` map.
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map if the key is present.
-//   - `nil` if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - `nil` if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) OnCustom(key string) any {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return nil
@@ -1734,11 +1750,11 @@ func (m *meta) OnCustom(key string) any {
 	return m.customFields[key]
 }
 
-// CustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
+// CustomBool retrieves the value associated with a specific key in the custom fields of the [meta] instance as a boolean.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a boolean using `conv.BoolOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1747,7 +1763,7 @@ func (m *meta) OnCustom(key string) any {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomBool(key string, defaultValue bool) bool {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1755,11 +1771,11 @@ func (m *meta) CustomBool(key string, defaultValue bool) bool {
 	return conv.BoolOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomBool retrieves the value associated with a specific key in the custom fields of the `meta` instance as a boolean.
+// JSONCustomBool retrieves the value associated with a specific key in the custom fields of the [meta] instance as a boolean.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a boolean using `conv.BoolOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a boolean using `conv.BoolOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1768,7 +1784,7 @@ func (m *meta) CustomBool(key string, defaultValue bool) bool {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a boolean if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomBool(path string, defaultValue bool) bool {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -1780,11 +1796,11 @@ func (m *meta) JSONCustomBool(path string, defaultValue bool) bool {
 	return defaultValue
 }
 
-// CustomDuration retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Duration.
+// CustomDuration retrieves the value associated with a specific key in the custom fields of the [meta] instance as a time.Duration.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a time.Duration using `conv.DurationOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a time.Duration using `conv.DurationOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1793,7 +1809,7 @@ func (m *meta) JSONCustomBool(path string, defaultValue bool) bool {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a time.Duration if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomDuration(key string, defaultValue time.Duration) time.Duration {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1801,11 +1817,11 @@ func (m *meta) CustomDuration(key string, defaultValue time.Duration) time.Durat
 	return conv.DurationOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomDuration retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Duration.
+// JSONCustomDuration retrieves the value associated with a specific key in the custom fields of the [meta] instance as a time.Duration.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a time.Duration using `conv.DurationOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a time.Duration using `conv.DurationOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1814,7 +1830,7 @@ func (m *meta) CustomDuration(key string, defaultValue time.Duration) time.Durat
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a time.Duration if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomDuration(path string, defaultValue time.Duration) time.Duration {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -1826,11 +1842,11 @@ func (m *meta) JSONCustomDuration(path string, defaultValue time.Duration) time.
 	return defaultValue
 }
 
-// CustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
+// CustomString retrieves the value associated with a specific key in the custom fields of the [meta] instance as a string.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a string using `conv.StringOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a string using `conv.StringOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1839,7 +1855,7 @@ func (m *meta) JSONCustomDuration(path string, defaultValue time.Duration) time.
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a string if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomString(key string, defaultValue string) string {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1847,11 +1863,11 @@ func (m *meta) CustomString(key string, defaultValue string) string {
 	return conv.StringOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomString retrieves the value associated with a specific key in the custom fields of the `meta` instance as a string.
+// JSONCustomString retrieves the value associated with a specific key in the custom fields of the [meta] instance as a string.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a string using `conv.StringOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a string using `conv.StringOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1860,7 +1876,7 @@ func (m *meta) CustomString(key string, defaultValue string) string {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a string if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomString(path string, defaultValue string) string {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -1872,11 +1888,11 @@ func (m *meta) JSONCustomString(path string, defaultValue string) string {
 	return defaultValue
 }
 
-// CustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
+// CustomTime retrieves the value associated with a specific key in the custom fields of the [meta] instance as a time.Time.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a time.Time using `conv.TimeOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1885,7 +1901,7 @@ func (m *meta) JSONCustomString(path string, defaultValue string) string {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1893,11 +1909,11 @@ func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
 	return conv.TimeOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomTime retrieves the value associated with a specific key in the custom fields of the `meta` instance as a time.Time.
+// JSONCustomTime retrieves the value associated with a specific key in the custom fields of the [meta] instance as a time.Time.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a time.Time using `conv.TimeOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a time.Time using `conv.TimeOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1906,7 +1922,7 @@ func (m *meta) CustomTime(key string, defaultValue time.Time) time.Time {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a time.Time if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomTime(path string, defaultValue time.Time) time.Time {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -1918,11 +1934,11 @@ func (m *meta) JSONCustomTime(path string, defaultValue time.Time) time.Time {
 	return defaultValue
 }
 
-// CustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+// CustomInt retrieves the value associated with a specific key in the custom fields of the [meta] instance as an integer.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an integer using `conv.IntOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns 0.
 //
 // Parameters:
@@ -1931,7 +1947,7 @@ func (m *meta) JSONCustomTime(path string, defaultValue time.Time) time.Time {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt(key string, defaultValue int) int {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1939,11 +1955,11 @@ func (m *meta) CustomInt(key string, defaultValue int) int {
 	return conv.IntOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomInt retrieves the value associated with a specific key in the custom fields of the `meta` instance as an integer.
+// JSONCustomInt retrieves the value associated with a specific key in the custom fields of the [meta] instance as an integer.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an integer using `conv.IntOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an integer using `conv.IntOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1952,7 +1968,7 @@ func (m *meta) CustomInt(key string, defaultValue int) int {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an integer if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomInt(path string, defaultValue int) int {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -1964,11 +1980,11 @@ func (m *meta) JSONCustomInt(path string, defaultValue int) int {
 	return defaultValue
 }
 
-// CustomInt8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int8.
+// CustomInt8 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int8.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int8 using `conv.Int8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int8 using `conv.Int8OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1977,7 +1993,7 @@ func (m *meta) JSONCustomInt(path string, defaultValue int) int {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int8 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt8(key string, defaultValue int8) int8 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -1985,11 +2001,11 @@ func (m *meta) CustomInt8(key string, defaultValue int8) int8 {
 	return conv.Int8OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomInt8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int8.
+// JSONCustomInt8 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int8.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int8 using `conv.Int8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int8 using `conv.Int8OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -1998,7 +2014,7 @@ func (m *meta) CustomInt8(key string, defaultValue int8) int8 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int8 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomInt8(path string, defaultValue int8) int8 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2010,11 +2026,11 @@ func (m *meta) JSONCustomInt8(path string, defaultValue int8) int8 {
 	return defaultValue
 }
 
-// CustomInt16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int16.
+// CustomInt16 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int16.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int16 using `conv.Int16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int16 using `conv.Int16OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2023,7 +2039,7 @@ func (m *meta) JSONCustomInt8(path string, defaultValue int8) int8 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int16 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt16(key string, defaultValue int16) int16 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2031,11 +2047,11 @@ func (m *meta) CustomInt16(key string, defaultValue int16) int16 {
 	return conv.Int16OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomInt16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int16.
+// JSONCustomInt16 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int16.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int16 using `conv.Int16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int16 using `conv.Int16OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2044,7 +2060,7 @@ func (m *meta) CustomInt16(key string, defaultValue int16) int16 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int16 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomInt16(path string, defaultValue int16) int16 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2056,11 +2072,11 @@ func (m *meta) JSONCustomInt16(path string, defaultValue int16) int16 {
 	return defaultValue
 }
 
-// CustomInt32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int32.
+// CustomInt32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int32 using `conv.Int32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int32 using `conv.Int32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2069,7 +2085,7 @@ func (m *meta) JSONCustomInt16(path string, defaultValue int16) int16 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt32(key string, defaultValue int32) int32 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2077,11 +2093,11 @@ func (m *meta) CustomInt32(key string, defaultValue int32) int32 {
 	return conv.Int32OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomInt32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int32.
+// JSONCustomInt32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int32 using `conv.Int32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int32 using `conv.Int32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2090,7 +2106,7 @@ func (m *meta) CustomInt32(key string, defaultValue int32) int32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomInt32(path string, defaultValue int32) int32 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2102,11 +2118,11 @@ func (m *meta) JSONCustomInt32(path string, defaultValue int32) int32 {
 	return defaultValue
 }
 
-// CustomInt64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int64.
+// CustomInt64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int64 using `conv.Int64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int64 using `conv.Int64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2115,7 +2131,7 @@ func (m *meta) JSONCustomInt32(path string, defaultValue int32) int32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomInt64(key string, defaultValue int64) int64 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2123,11 +2139,11 @@ func (m *meta) CustomInt64(key string, defaultValue int64) int64 {
 	return conv.Int64OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomInt64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as an int64.
+// JSONCustomInt64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as an int64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to an int64 using `conv.Int64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to an int64 using `conv.Int64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2136,7 +2152,7 @@ func (m *meta) CustomInt64(key string, defaultValue int64) int64 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as an int64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomInt64(path string, defaultValue int64) int64 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2148,11 +2164,11 @@ func (m *meta) JSONCustomInt64(path string, defaultValue int64) int64 {
 	return defaultValue
 }
 
-// CustomUint retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint.
+// CustomUint retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint using `conv.UintOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint using `conv.UintOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2161,7 +2177,7 @@ func (m *meta) JSONCustomInt64(path string, defaultValue int64) int64 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomUint(key string, defaultValue uint) uint {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2169,11 +2185,11 @@ func (m *meta) CustomUint(key string, defaultValue uint) uint {
 	return conv.UintOrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomUint retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint.
+// JSONCustomUint retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint using `conv.UintOrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint using `conv.UintOrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2182,7 +2198,7 @@ func (m *meta) CustomUint(key string, defaultValue uint) uint {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomUint(path string, defaultValue uint) uint {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2194,11 +2210,11 @@ func (m *meta) JSONCustomUint(path string, defaultValue uint) uint {
 	return defaultValue
 }
 
-// CustomUint8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint8.
+// CustomUint8 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint8.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint8 using `conv.Uint8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint8 using `conv.Uint8OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2207,7 +2223,7 @@ func (m *meta) JSONCustomUint(path string, defaultValue uint) uint {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint8 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomUint8(key string, defaultValue uint8) uint8 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2215,11 +2231,11 @@ func (m *meta) CustomUint8(key string, defaultValue uint8) uint8 {
 	return conv.Uint8OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomUint8 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint8.
+// JSONCustomUint8 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint8.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint8 using `conv.Uint8OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint8 using `conv.Uint8OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2228,7 +2244,7 @@ func (m *meta) CustomUint8(key string, defaultValue uint8) uint8 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint8 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomUint8(path string, defaultValue uint8) uint8 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2240,11 +2256,11 @@ func (m *meta) JSONCustomUint8(path string, defaultValue uint8) uint8 {
 	return defaultValue
 }
 
-// CustomUint16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint16.
+// CustomUint16 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint16.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint16 using `conv.Uint16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint16 using `conv.Uint16OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2253,7 +2269,7 @@ func (m *meta) JSONCustomUint8(path string, defaultValue uint8) uint8 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint16 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomUint16(key string, defaultValue uint16) uint16 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2261,11 +2277,11 @@ func (m *meta) CustomUint16(key string, defaultValue uint16) uint16 {
 	return conv.Uint16OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomUint16 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint16.
+// JSONCustomUint16 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint16.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint16 using `conv.Uint16OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint16 using `conv.Uint16OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2274,7 +2290,7 @@ func (m *meta) CustomUint16(key string, defaultValue uint16) uint16 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint16 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomUint16(path string, defaultValue uint16) uint16 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2286,11 +2302,11 @@ func (m *meta) JSONCustomUint16(path string, defaultValue uint16) uint16 {
 	return defaultValue
 }
 
-// CustomUint32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint32.
+// CustomUint32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint32 using `conv.Uint32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint32 using `conv.Uint32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2299,7 +2315,7 @@ func (m *meta) JSONCustomUint16(path string, defaultValue uint16) uint16 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomUint32(key string, defaultValue uint32) uint32 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2307,11 +2323,11 @@ func (m *meta) CustomUint32(key string, defaultValue uint32) uint32 {
 	return conv.Uint32OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomUint32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint32.
+// JSONCustomUint32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint32 using `conv.Uint32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint32 using `conv.Uint32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2320,7 +2336,7 @@ func (m *meta) CustomUint32(key string, defaultValue uint32) uint32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomUint32(path string, defaultValue uint32) uint32 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2332,11 +2348,11 @@ func (m *meta) JSONCustomUint32(path string, defaultValue uint32) uint32 {
 	return defaultValue
 }
 
-// CustomUint64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint64.
+// CustomUint64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint64 using `conv.Uint64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint64 using `conv.Uint64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2345,7 +2361,7 @@ func (m *meta) JSONCustomUint32(path string, defaultValue uint32) uint32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomUint64(key string, defaultValue uint64) uint64 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2353,11 +2369,11 @@ func (m *meta) CustomUint64(key string, defaultValue uint64) uint64 {
 	return conv.Uint64OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomUint64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a uint64.
+// JSONCustomUint64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a uint64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a uint64 using `conv.Uint64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a uint64 using `conv.Uint64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2366,7 +2382,7 @@ func (m *meta) CustomUint64(key string, defaultValue uint64) uint64 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a uint64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomUint64(path string, defaultValue uint64) uint64 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2378,11 +2394,11 @@ func (m *meta) JSONCustomUint64(path string, defaultValue uint64) uint64 {
 	return defaultValue
 }
 
-// CustomFloat32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float32.
+// CustomFloat32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a float32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a float32 using `conv.Float32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a float32 using `conv.Float32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2391,7 +2407,7 @@ func (m *meta) JSONCustomUint64(path string, defaultValue uint64) uint64 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a float32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomFloat32(key string, defaultValue float32) float32 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2399,11 +2415,11 @@ func (m *meta) CustomFloat32(key string, defaultValue float32) float32 {
 	return conv.Float32OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomFloat32 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float32.
+// JSONCustomFloat32 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a float32.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a float32 using `conv.Float32OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a float32 using `conv.Float32OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2412,7 +2428,7 @@ func (m *meta) CustomFloat32(key string, defaultValue float32) float32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a float32 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomFloat32(path string, defaultValue float32) float32 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2424,11 +2440,11 @@ func (m *meta) JSONCustomFloat32(path string, defaultValue float32) float32 {
 	return defaultValue
 }
 
-// CustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
+// CustomFloat64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a float64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a float64 using `conv.Float64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a float64 using `conv.Float64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2437,7 +2453,7 @@ func (m *meta) JSONCustomFloat32(path string, defaultValue float32) float32 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a float64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 	if !m.Available() || !m.IsCustomKeyPresent(key) {
 		return defaultValue
@@ -2445,11 +2461,11 @@ func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 	return conv.Float64OrDefault(m.customFields[key], defaultValue)
 }
 
-// JSONCustomFloat64 retrieves the value associated with a specific key in the custom fields of the `meta` instance as a float64.
+// JSONCustomFloat64 retrieves the value associated with a specific key in the custom fields of the [meta] instance as a float64.
 //
-// This function checks whether the `meta` instance is available and whether the specified key exists
+// This function checks whether the [meta] instance is available and whether the specified key exists
 // in the `customFields` map. If both conditions are met, it returns the corresponding value for the key
-// converted to a float64 using `conv.Float64OrDefault`. If the `meta` instance is unavailable or the key is not present,
+// converted to a float64 using `conv.Float64OrDefault`. If the [meta] instance is unavailable or the key is not present,
 // it returns the default value.
 //
 // Parameters:
@@ -2458,7 +2474,7 @@ func (m *meta) CustomFloat64(key string, defaultValue float64) float64 {
 //
 // Returns:
 //   - The value associated with the specified key in the `customFields` map as a float64 if the key is present.
-//   - The default value if the `meta` instance is unavailable or the key does not exist in the `customFields` map.
+//   - The default value if the [meta] instance is unavailable or the key does not exist in the `customFields` map.
 func (m *meta) JSONCustomFloat64(path string, defaultValue float64) float64 {
 	if !m.IsCustomPresent() {
 		return defaultValue
@@ -2470,14 +2486,14 @@ func (m *meta) JSONCustomFloat64(path string, defaultValue float64) float64 {
 	return defaultValue
 }
 
-// ApiVersion retrieves the API version from the `meta` instance.
+// ApiVersion retrieves the API version from the [meta] instance.
 //
-// This function checks if the `meta` instance is available (non-nil) before attempting
-// to retrieve the `apiVersion`. If the `meta` instance is unavailable, it returns an empty string.
+// This function checks if the [meta] instance is available (non-nil) before attempting
+// to retrieve the `apiVersion`. If the [meta] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The API version as a string if available.
-//   - An empty string if the `meta` instance is unavailable.
+//   - An empty string if the [meta] instance is unavailable.
 func (m *meta) ApiVersion() string {
 	if !m.Available() {
 		return ""
@@ -2485,14 +2501,14 @@ func (m *meta) ApiVersion() string {
 	return m.apiVersion
 }
 
-// RequestID retrieves the request ID from the `meta` instance.
+// RequestID retrieves the request ID from the [meta] instance.
 //
-// This function checks if the `meta` instance is available (non-nil) before retrieving
-// the `requestID`. If the `meta` instance is unavailable, it returns an empty string.
+// This function checks if the [meta] instance is available (non-nil) before retrieving
+// the `requestID`. If the [meta] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The request ID as a string if available.
-//   - An empty string if the `meta` instance is unavailable.
+//   - An empty string if the [meta] instance is unavailable.
 func (m *meta) RequestID() string {
 	if !m.Available() {
 		return ""
@@ -2501,14 +2517,14 @@ func (m *meta) RequestID() string {
 	return m.requestID
 }
 
-// Locale retrieves the locale from the `meta` instance.
+// Locale retrieves the locale from the [meta] instance.
 //
-// This function checks if the `meta` instance is available (non-nil) before retrieving
-// the `locale`. If the `meta` instance is unavailable, it returns an empty string.
+// This function checks if the [meta] instance is available (non-nil) before retrieving
+// the `locale`. If the [meta] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The locale as a string if available.
-//   - An empty string if the `meta` instance is unavailable.
+//   - An empty string if the [meta] instance is unavailable.
 func (m *meta) Locale() string {
 	if !m.Available() {
 		return ""
@@ -2516,15 +2532,15 @@ func (m *meta) Locale() string {
 	return m.locale
 }
 
-// RequestedTime retrieves the requested time from the `meta` instance.
+// RequestedTime retrieves the requested time from the [meta] instance.
 //
-// This function checks if the `meta` instance is available (non-nil) before retrieving
-// the `requestedTime`. If the `meta` instance is unavailable, it returns the zero value
+// This function checks if the [meta] instance is available (non-nil) before retrieving
+// the `requestedTime`. If the [meta] instance is unavailable, it returns the zero value
 // of `time.Time` (January 1, year 1, 00:00:00 UTC).
 //
 // Returns:
 //   - The requested time as a `time.Time` object if available.
-//   - The zero value of `time.Time` if the `meta` instance is unavailable.
+//   - The zero value of `time.Time` if the [meta] instance is unavailable.
 func (m *meta) RequestedTime() time.Time {
 	if !m.Available() {
 		return time.Time{}
@@ -2532,14 +2548,14 @@ func (m *meta) RequestedTime() time.Time {
 	return m.requestedTime
 }
 
-// CustomFields retrieves the custom fields from the `meta` instance.
+// CustomFields retrieves the custom fields from the [meta] instance.
 //
-// This function checks if the `meta` instance is available (non-nil) before retrieving
-// the `customFields`. If the `meta` instance is unavailable, it returns `nil`.
+// This function checks if the [meta] instance is available (non-nil) before retrieving
+// the `customFields`. If the [meta] instance is unavailable, it returns `nil`.
 //
 // Returns:
 //   - A map of custom fields if available.
-//   - `nil` if the `meta` instance is unavailable.
+//   - `nil` if the [meta] instance is unavailable.
 func (m *meta) CustomFields() map[string]any {
 	if !m.Available() {
 		return nil
@@ -2547,21 +2563,21 @@ func (m *meta) CustomFields() map[string]any {
 	return m.customFields
 }
 
-// Available checks if the `header` instance is non-nil.
+// Available checks if the [header] instance is non-nil.
 //
-// This function ensures that the `header` instance is not nil before performing any operations.
-// It returns `true` if the `header` is non-nil, and `false` if the `header` is nil.
+// This function ensures that the [header] instance is not nil before performing any operations.
+// It returns `true` if the [header] is non-nil, and `false` if the [header] is nil.
 //
 // Returns:
-//   - `true` if the `header` instance is not nil.
-//   - `false` if the `header` instance is nil.
+//   - `true` if the [header] instance is not nil.
+//   - `false` if the [header] instance is nil.
 func (h *header) Available() bool {
 	return h != nil
 }
 
-// IsCodePresent checks if the `code` field in the `header` instance is present and greater than zero.
+// IsCodePresent checks if the `code` field in the [header] instance is present and greater than zero.
 //
-// This function first checks if the `header` is available (non-nil), and then checks if the `code`
+// This function first checks if the [header] is available (non-nil), and then checks if the `code`
 // field is greater than zero, indicating that it is present and valid.
 //
 // Returns:
@@ -2571,9 +2587,9 @@ func (h *header) IsCodePresent() bool {
 	return h.Available() && h.code > 0
 }
 
-// IsTextPresent checks if the `text` field in the `header` instance is present and not empty.
+// IsTextPresent checks if the `text` field in the [header] instance is present and not empty.
 //
-// This function verifies if the `header` is available and if the `text` field is not empty, using
+// This function verifies if the [header] is available and if the `text` field is not empty, using
 // the `strutil.IsNotEmpty` utility to ensure the presence of the `text` field.
 //
 // Returns:
@@ -2583,9 +2599,9 @@ func (h *header) IsTextPresent() bool {
 	return h.Available() && strutil.IsNotEmpty(h.text)
 }
 
-// IsTypePresent checks if the `Type` field in the `header` instance is present and not empty.
+// IsTypePresent checks if the `Type` field in the [header] instance is present and not empty.
 //
-// This function checks if the `header` instance is available and if the `Type` field is not empty,
+// This function checks if the [header] instance is available and if the `Type` field is not empty,
 // utilizing the `strutil.IsNotEmpty` utility to determine whether the `Type` field contains a value.
 //
 // Returns:
@@ -2595,9 +2611,9 @@ func (h *header) IsTypePresent() bool {
 	return h.Available() && strutil.IsNotEmpty(h.typez)
 }
 
-// IsDescriptionPresent checks if the `description` field in the `header` instance is present and not empty.
+// IsDescriptionPresent checks if the `description` field in the [header] instance is present and not empty.
 //
-// This function ensures that the `header` is available and that the `description` field is not empty,
+// This function ensures that the [header] is available and that the `description` field is not empty,
 // using `strutil.IsNotEmpty` to check for non-emptiness.
 //
 // Returns:
@@ -2607,14 +2623,14 @@ func (h *header) IsDescriptionPresent() bool {
 	return h.Available() && strutil.IsNotEmpty(h.description)
 }
 
-// Code retrieves the code value from the `header` instance.
+// Code retrieves the code value from the [header] instance.
 //
-// This function checks if the `header` instance is available (non-nil) before retrieving
-// the `code` field. If the `header` instance is unavailable, it returns 0.
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `code` field. If the [header] instance is unavailable, it returns 0.
 //
 // Returns:
 //   - The `code` as an integer if available.
-//   - 0 if the `header` instance is unavailable.
+//   - 0 if the [header] instance is unavailable.
 func (h *header) Code() int {
 	if !h.Available() {
 		return 0
@@ -2622,14 +2638,14 @@ func (h *header) Code() int {
 	return h.code
 }
 
-// Text retrieves the text value from the `header` instance.
+// Text retrieves the text value from the [header] instance.
 //
-// This function checks if the `header` instance is available (non-nil) before retrieving
-// the `text` field. If the `header` instance is unavailable, it returns an empty string.
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `text` field. If the [header] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The `text` as a string if available.
-//   - An empty string if the `header` instance is unavailable.
+//   - An empty string if the [header] instance is unavailable.
 func (h *header) Text() string {
 	if !h.Available() {
 		return ""
@@ -2637,14 +2653,14 @@ func (h *header) Text() string {
 	return h.text
 }
 
-// Type retrieves the type value from the `header` instance.
+// Type retrieves the type value from the [header] instance.
 //
-// This function checks if the `header` instance is available (non-nil) before retrieving
-// the `Type` field. If the `header` instance is unavailable, it returns an empty string.
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `Type` field. If the [header] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The `Type` as a string if available.
-//   - An empty string if the `header` instance is unavailable.
+//   - An empty string if the [header] instance is unavailable.
 func (h *header) Type() string {
 	if !h.Available() {
 		return ""
@@ -2652,14 +2668,14 @@ func (h *header) Type() string {
 	return h.typez
 }
 
-// Description retrieves the description value from the `header` instance.
+// Description retrieves the description value from the [header] instance.
 //
-// This function checks if the `header` instance is available (non-nil) before retrieving
-// the `description` field. If the `header` instance is unavailable, it returns an empty string.
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `description` field. If the [header] instance is unavailable, it returns an empty string.
 //
 // Returns:
 //   - The `description` as a string if available.
-//   - An empty string if the `header` instance is unavailable.
+//   - An empty string if the [header] instance is unavailable.
 func (h *header) Description() string {
 	if !h.Available() {
 		return ""
@@ -2667,17 +2683,17 @@ func (h *header) Description() string {
 	return h.description
 }
 
-// WithStatusCode sets the HTTP status code for the `wrapper` instance.
+// WithStatusCode sets the HTTP status code for the [wrapper] instance.
 // Ensure that code is between 100 and 599, defaults to 500 if invalid value.
 //
-// This function updates the `statusCode` field of the `wrapper` and
-// returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `statusCode` field of the [wrapper] and
+// returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
 //   - `code`: An integer representing the HTTP status code to set.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 //
 // Deprecated: This method is deprecated. Use [WithHeader] instead to set the status code and text together.
 func (w *wrapper) WithStatusCode(code int) *wrapper {
@@ -2689,62 +2705,62 @@ func (w *wrapper) WithStatusCode(code int) *wrapper {
 	return w
 }
 
-// WithTotal sets the total number of items for the `wrapper` instance.
+// WithTotal sets the total number of items for the [wrapper] instance.
 //
-// This function updates the `total` field of the `wrapper` and
-// returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `total` field of the [wrapper] and
+// returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
 //   - `total`: An integer representing the total number of items to set.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithTotal(total int) *wrapper {
 	w.total = total
 	return w
 }
 
-// WithMessage sets a message for the `wrapper` instance.
+// WithMessage sets a message for the [wrapper] instance.
 //
-// This function updates the `message` field of the `wrapper` with the provided string
-// and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `message` field of the [wrapper] with the provided string
+// and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `message`: A string message to be set in the `wrapper`.
+//   - `message`: A string message to be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithMessage(message string) *wrapper {
 	w.message = message
 	return w
 }
 
-// WithMessagef sets a formatted message for the `wrapper` instance.
+// WithMessagef sets a formatted message for the [wrapper] instance.
 //
 // This function constructs a formatted string using the provided format string and arguments,
-// assigns it to the `message` field of the `wrapper`, and returns the modified instance.
+// assigns it to the `message` field of the [wrapper], and returns the modified instance.
 //
 // Parameters:
 //   - message: A format string for constructing the message.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, enabling method chaining.
+//   - A pointer to the modified [wrapper] instance, enabling method chaining.
 func (w *wrapper) WithMessagef(message string, args ...any) *wrapper {
 	w.message = fmt.Sprintf(message, args...)
 	return w
 }
 
-// WithBody sets the body data for the `wrapper` instance.
+// WithBody sets the body data for the [wrapper] instance.
 //
-// This function updates the `data` field of the `wrapper` with the provided value
-// and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `data` field of the [wrapper] with the provided value
+// and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: The value to be set as the body data, which can be any type.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 //
 // Example:
 //
@@ -2752,8 +2768,8 @@ func (w *wrapper) WithMessagef(message string, args ...any) *wrapper {
 //
 // Notes:
 //   - This function does not validate or normalize the input value.
-//   - It simply assigns the value to the `data` field of the `wrapper`.
-//   - The value will be marshalled to JSON when the `wrapper` is converted to a string.
+//   - It simply assigns the value to the `data` field of the [wrapper].
+//   - The value will be marshalled to JSON when the [wrapper] is converted to a string.
 //   - Consider using WithJSONBody instead if you need to normalize the input value.
 func (w *wrapper) WithBody(v any) *wrapper {
 	w.data = v
@@ -2761,7 +2777,7 @@ func (w *wrapper) WithBody(v any) *wrapper {
 }
 
 // WithJSONBody normalizes the input value and sets it as the body data for
-// the `wrapper` instance.
+// the [wrapper] instance.
 //
 // The method accepts any Go value and handles it according to its dynamic type:
 //
@@ -2783,8 +2799,8 @@ func (w *wrapper) WithBody(v any) *wrapper {
 //   - v: The value to normalize and set as the body.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance and nil on success.
-//   - The unchanged `wrapper` instance and an error if normalization fails.
+//   - A pointer to the modified [wrapper] instance and nil on success.
+//   - The unchanged [wrapper] instance and an error if normalization fails.
 //
 // Example:
 //
@@ -2825,47 +2841,47 @@ func (w *wrapper) WithJSONBody(v any) (*wrapper, error) {
 	return w, nil
 }
 
-// WithPath sets the request path for the `wrapper` instance.
+// WithPath sets the request path for the [wrapper] instance.
 //
-// This function updates the `path` field of the `wrapper` with the provided string
-// and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `path` field of the [wrapper] with the provided string
+// and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
 //   - `v`: A string representing the request path.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithPath(v string) *wrapper {
 	w.path = v
 	return w
 }
 
-// WithPathf sets a formatted request path for the `wrapper` instance.
+// WithPathf sets a formatted request path for the [wrapper] instance.
 //
 // This function constructs a formatted string using the provided format string `v` and arguments `args`,
-// assigns the resulting string to the `path` field of the `wrapper`, and returns the modified instance.
+// assigns the resulting string to the `path` field of the [wrapper], and returns the modified instance.
 //
 // Parameters:
 //   - v: A format string for constructing the request path.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, enabling method chaining.
+//   - A pointer to the modified [wrapper] instance, enabling method chaining.
 func (w *wrapper) WithPathf(v string, args ...any) *wrapper {
 	w.path = fmt.Sprintf(v, args...)
 	return w
 }
 
-// WithHeader sets the header for the `wrapper` instance.
+// WithHeader sets the header for the [wrapper] instance.
 //
-// This function updates the `header` field of the `wrapper` with the provided `header`
-// instance and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the [header] field of the [wrapper] with the provided [header]
+// instance and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `v`: A pointer to a `header` struct that will be set in the `wrapper`.
+//   - `v`: A pointer to a [header] struct that will be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithHeader(v *header) *wrapper {
 	if v == nil {
 		return w
@@ -2875,132 +2891,132 @@ func (w *wrapper) WithHeader(v *header) *wrapper {
 	return w
 }
 
-// WithMeta sets the metadata for the `wrapper` instance.
+// WithMeta sets the metadata for the [wrapper] instance.
 //
-// This function updates the `meta` field of the `wrapper` with the provided `meta`
-// instance and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the [meta] field of the [wrapper] with the provided [meta]
+// instance and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `v`: A pointer to a `meta` struct that will be set in the `wrapper`.
+//   - `v`: A pointer to a [meta] struct that will be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithMeta(v *meta) *wrapper {
 	w.meta = v
 	return w
 }
 
-// WithPagination sets the pagination information for the `wrapper` instance.
+// WithPagination sets the pagination information for the [wrapper] instance.
 //
-// This function updates the `pagination` field of the `wrapper` with the provided `pagination`
-// instance and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the [pagination] field of the [wrapper] with the provided [pagination]
+// instance and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `v`: A pointer to a `pagination` struct that will be set in the `wrapper`.
+//   - `v`: A pointer to a [pagination] struct that will be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithPagination(v *pagination) *wrapper {
 	w.pagination = v
 	return w
 }
 
-// WithDebugging sets the debugging information for the `wrapper` instance.
+// WithDebugging sets the debugging information for the [wrapper] instance.
 //
-// This function updates the `debug` field of the `wrapper` with the provided map of debugging data
-// and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `debug` field of the [wrapper] with the provided map of debugging data
+// and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `v`: A map containing debugging information to be set in the `wrapper`.
+//   - `v`: A map containing debugging information to be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithDebugging(v map[string]any) *wrapper {
 	w.debug = v
 	return w
 }
 
-// WithError sets an error for the `wrapper` instance.
+// WithError sets an error for the [wrapper] instance.
 //
-// This function updates the `errors` field of the `wrapper` with the provided error
-// and returns the modified `wrapper` instance to allow method chaining.
+// This function updates the `errors` field of the [wrapper] with the provided error
+// and returns the modified [wrapper] instance to allow method chaining.
 //
 // Parameters:
-//   - `err`: An error object to be set in the `wrapper`.
+//   - `err`: An error object to be set in the [wrapper].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 // func (w *wrapper) WithError(err error) *wrapper {
 // 	w.errors = err
 // 	return w
 // }
 
-// WithError sets an error for the `wrapper` instance using a plain error message.
+// WithError sets an error for the [wrapper] instance using a plain error message.
 //
 // This function creates an error object from the provided message, assigns it to
-// the `errors` field of the `wrapper`, and returns the modified instance.
+// the `errors` field of the [wrapper], and returns the modified instance.
 //
 // Parameters:
 //   - message: A string containing the error message to be wrapped as an error object.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) WithError(message string) *wrapper {
 	w.errors = NewError(message)
 	return w
 }
 
-// WithErrorf sets a formatted error for the `wrapper` instance.
+// WithErrorf sets a formatted error for the [wrapper] instance.
 //
 // This function uses a formatted string and arguments to construct an error object,
-// assigns it to the `errors` field of the `wrapper`, and returns the modified instance.
+// assigns it to the `errors` field of the [wrapper], and returns the modified instance.
 //
 // Parameters:
 //   - format: A format string for constructing the error message.
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) WithErrorf(format string, args ...any) *wrapper {
 	w.errors = NewErrorf(format, args...)
 	return w
 }
 
-// WithErrorAck sets an error with a stack trace for the `wrapper` instance.
+// WithErrorAck sets an error with a stack trace for the [wrapper] instance.
 //
 // This function wraps the provided error with stack trace information, assigns it
-// to the `errors` field of the `wrapper`, and returns the modified instance.
+// to the `errors` field of the [wrapper], and returns the modified instance.
 //
 // Parameters:
 //   - err: The error object to be wrapped with stack trace information.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) WithErrorAck(err error) *wrapper {
 	w.errors = NewErrorAck(err)
 	return w
 }
 
-// AppendErrorAck wraps an existing error with an additional message and sets it for the `wrapper` instance.
+// AppendErrorAck wraps an existing error with an additional message and sets it for the [wrapper] instance.
 //
 // This function adds context to the provided error by wrapping it with an additional message.
-// The resulting error is assigned to the `errors` field of the `wrapper`.
+// The resulting error is assigned to the `errors` field of the [wrapper].
 //
 // Parameters:
 //   - err: The original error to be wrapped.
 //   - message: A string message to add context to the error.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) AppendErrorAck(err error, message string) *wrapper {
 	w.errors = AppendErrorAck(err, message)
 	return w
 }
 
-// WithErrorAckf wraps an existing error with a formatted message and sets it for the `wrapper` instance.
+// WithErrorAckf wraps an existing error with a formatted message and sets it for the [wrapper] instance.
 //
 // This function adds context to the provided error by wrapping it with a formatted message.
-// The resulting error is assigned to the `errors` field of the `wrapper`.
+// The resulting error is assigned to the `errors` field of the [wrapper].
 //
 // Parameters:
 //   - err: The original error to be wrapped.
@@ -3008,32 +3024,32 @@ func (w *wrapper) AppendErrorAck(err error, message string) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) WithErrorAckf(err error, format string, args ...any) *wrapper {
 	w.errors = NewErrorAckf(err, format, args...)
 	return w
 }
 
-// AppendError adds a plain contextual message to an existing error and sets it for the `wrapper` instance.
+// AppendError adds a plain contextual message to an existing error and sets it for the [wrapper] instance.
 //
 // This function wraps the provided error with an additional plain message and assigns it
-// to the `errors` field of the `wrapper`.
+// to the `errors` field of the [wrapper].
 //
 // Parameters:
 //   - err: The original error to be wrapped.
 //   - message: A plain string message to add context to the error.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) AppendError(err error, message string) *wrapper {
 	w.errors = AppendError(err, message)
 	return w
 }
 
-// AppendErrorf adds a formatted contextual message to an existing error and sets it for the `wrapper` instance.
+// AppendErrorf adds a formatted contextual message to an existing error and sets it for the [wrapper] instance.
 //
 // This function wraps the provided error with an additional formatted message and assigns it
-// to the `errors` field of the `wrapper`.
+// to the `errors` field of the [wrapper].
 //
 // Parameters:
 //   - err: The original error to be wrapped.
@@ -3041,13 +3057,13 @@ func (w *wrapper) AppendError(err error, message string) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) AppendErrorf(err error, format string, args ...any) *wrapper {
 	w.errors = AppendErrorf(err, format, args...)
 	return w
 }
 
-// AppendErrors appends multiple errors to the `wrapper` instance.
+// AppendErrors appends multiple errors to the [wrapper] instance.
 //
 // This function iterates through the provided errors slice, skips nil entries,
 // and folds each error into the wrapper's internal error chain.
@@ -3061,7 +3077,7 @@ func (w *wrapper) AppendErrorf(err error, format string, args ...any) *wrapper {
 //   - errs: A slice of errors to be appended.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance to support method chaining.
+//   - A pointer to the modified [wrapper] instance to support method chaining.
 func (w *wrapper) AppendErrors(errs []error) *wrapper {
 	if !w.Available() || len(errs) == 0 {
 		return w
@@ -3079,14 +3095,14 @@ func (w *wrapper) AppendErrors(errs []error) *wrapper {
 	return w
 }
 
-// BindCause sets the error for the `wrapper` instance using its current message.
+// BindCause sets the error for the [wrapper] instance using its current message.
 //
-// This function creates an error object from the `message` field of the `wrapper`,
+// This function creates an error object from the `message` field of the [wrapper],
 // assigns it to the `errors` field, and returns the modified instance.
 // It allows for method chaining.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) BindCause() *wrapper {
 	if strutil.IsNotEmpty(w.message) {
 		if w.errors == nil {
@@ -3098,18 +3114,18 @@ func (w *wrapper) BindCause() *wrapper {
 	return w
 }
 
-// WithDebuggingKV adds a key-value pair to the debugging information in the `wrapper` instance.
+// WithDebuggingKV adds a key-value pair to the debugging information in the [wrapper] instance.
 //
 // This function checks if debugging information is already present. If it is not, it initializes
 // an empty map. Then it adds the given key-value pair to the `debug` map and returns the modified
-// `wrapper` instance to allow method chaining.
+// [wrapper] instance to allow method chaining.
 //
 // Parameters:
 //   - `key`: The key for the debugging information to be added.
 //   - `value`: The value associated with the key to be added to the `debug` map.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithDebuggingKV(key string, value any) *wrapper {
 	if !w.IsDebuggingPresent() {
 		w.debug = make(map[string]any)
@@ -3118,11 +3134,11 @@ func (w *wrapper) WithDebuggingKV(key string, value any) *wrapper {
 	return w
 }
 
-// WithDebuggingKVf adds a formatted key-value pair to the debugging information in the `wrapper` instance.
+// WithDebuggingKVf adds a formatted key-value pair to the debugging information in the [wrapper] instance.
 //
 // This function creates a formatted string value using the provided `format` string and `args`,
 // then delegates to `WithDebuggingKV` to add the resulting key-value pair to the `debug` map.
-// It returns the modified `wrapper` instance for method chaining.
+// It returns the modified [wrapper] instance for method chaining.
 //
 // Parameters:
 //   - key: A string representing the key for the debugging information.
@@ -3130,22 +3146,22 @@ func (w *wrapper) WithDebuggingKV(key string, value any) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, enabling method chaining.
+//   - A pointer to the modified [wrapper] instance, enabling method chaining.
 func (w *wrapper) WithDebuggingKVf(key string, format string, args ...any) *wrapper {
 	return w.WithDebuggingKV(key, fmt.Sprintf(format, args...))
 }
 
-// WithApiVersion sets the API version in the `meta` field of the `wrapper` instance.
+// WithApiVersion sets the API version in the [meta] field of the [wrapper] instance.
 //
-// This function checks if the `meta` information is present in the `wrapper`. If it is not,
-// a new `meta` instance is created. Then, it calls the `WithApiVersion` method on the `meta`
+// This function checks if the [meta] information is present in the [wrapper]. If it is not,
+// a new [meta] instance is created. Then, it calls the `WithApiVersion` method on the [meta]
 // instance to set the API version.
 //
 // Parameters:
 //   - `v`: A string representing the API version to set.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithApiVersion(v string) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3154,12 +3170,12 @@ func (w *wrapper) WithApiVersion(v string) *wrapper {
 	return w
 }
 
-// WithApiVersionf sets the API version in the `meta` field of the `wrapper` instance using a formatted string.
+// WithApiVersionf sets the API version in the [meta] field of the [wrapper] instance using a formatted string.
 //
-// This function ensures that the `meta` field in the `wrapper` is initialized. If the `meta`
-// field is not present, a new `meta` instance is created using the `NewMeta` function.
-// Once the `meta` instance is ready, it updates the API version using the `WithApiVersionf` method
-// on the `meta` instance. The API version is constructed by interpolating the provided `format`
+// This function ensures that the [meta] field in the [wrapper] is initialized. If the [meta]
+// field is not present, a new [meta] instance is created using the `NewMeta` function.
+// Once the [meta] instance is ready, it updates the API version using the `WithApiVersionf` method
+// on the [meta] instance. The API version is constructed by interpolating the provided `format`
 // string with the variadic arguments (`args`).
 //
 // Parameters:
@@ -3167,7 +3183,7 @@ func (w *wrapper) WithApiVersion(v string) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, enabling method chaining.
+//   - A pointer to the modified [wrapper] instance, enabling method chaining.
 func (w *wrapper) WithApiVersionf(format string, args ...any) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3176,17 +3192,17 @@ func (w *wrapper) WithApiVersionf(format string, args ...any) *wrapper {
 	return w
 }
 
-// WithRequestID sets the request ID in the `meta` field of the `wrapper` instance.
+// WithRequestID sets the request ID in the [meta] field of the [wrapper] instance.
 //
-// This function ensures that if `meta` information is not already set in the `wrapper`, a new
-// `meta` instance is created. Then, it calls the `WithRequestID` method on the `meta` instance
+// This function ensures that if [meta] information is not already set in the [wrapper], a new
+// [meta] instance is created. Then, it calls the `WithRequestID` method on the [meta] instance
 // to set the request ID.
 //
 // Parameters:
 //   - `v`: A string representing the request ID to set.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithRequestID(v string) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3195,12 +3211,12 @@ func (w *wrapper) WithRequestID(v string) *wrapper {
 	return w
 }
 
-// WithRequestIDf sets the request ID in the `meta` field of the `wrapper` instance using a formatted string.
+// WithRequestIDf sets the request ID in the [meta] field of the [wrapper] instance using a formatted string.
 //
-// This function ensures that the `meta` field in the `wrapper` is initialized. If the `meta` field
-// is not already present, a new `meta` instance is created using the `NewMeta` function.
-// Once the `meta` instance is ready, it updates the request ID by calling the `WithRequestIDf`
-// method on the `meta` instance. The request ID is constructed using the provided `format` string
+// This function ensures that the [meta] field in the [wrapper] is initialized. If the [meta] field
+// is not already present, a new [meta] instance is created using the `NewMeta` function.
+// Once the [meta] instance is ready, it updates the request ID by calling the `WithRequestIDf`
+// method on the [meta] instance. The request ID is constructed using the provided `format` string
 // and the variadic `args`.
 //
 // Parameters:
@@ -3208,7 +3224,7 @@ func (w *wrapper) WithRequestID(v string) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, allowing for method chaining.
+//   - A pointer to the modified [wrapper] instance, allowing for method chaining.
 func (w *wrapper) WithRequestIDf(format string, args ...any) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3217,14 +3233,14 @@ func (w *wrapper) WithRequestIDf(format string, args ...any) *wrapper {
 	return w
 }
 
-// RandRequestID generates and sets a random request ID in the `meta` field of the `wrapper` instance.
+// RandRequestID generates and sets a random request ID in the [meta] field of the [wrapper] instance.
 //
-// This function checks if the `meta` field is present in the `wrapper`. If it is not,
-// a new `meta` instance is created. Then, it calls the `RandRequestID` method on the `meta`
+// This function checks if the [meta] field is present in the [wrapper]. If it is not,
+// a new [meta] instance is created. Then, it calls the `RandRequestID` method on the [meta]
 // instance to generate and set a random request ID.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) RandRequestID() *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3233,14 +3249,14 @@ func (w *wrapper) RandRequestID() *wrapper {
 	return w
 }
 
-// RandDeltaValue generates and sets a random delta value in the `meta` field of the `wrapper` instance.
+// RandDeltaValue generates and sets a random delta value in the [meta] field of the [wrapper] instance.
 //
-// This function checks if the `meta` field is present in the `wrapper`. If it is not,
-// a new `meta` instance is created. Then, it calls the `RandDeltaValue` method on the `meta`
+// This function checks if the [meta] field is present in the [wrapper]. If it is not,
+// a new [meta] instance is created. Then, it calls the `RandDeltaValue` method on the [meta]
 // instance to generate and set a random delta value.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) RandDeltaValue() *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3250,13 +3266,13 @@ func (w *wrapper) RandDeltaValue() *wrapper {
 	return w
 }
 
-// IncreaseDeltaCnt increments the delta count in the `meta` field of the `wrapper` instance.
+// IncreaseDeltaCnt increments the delta count in the [meta] field of the [wrapper] instance.
 //
-// This function ensures the `meta` field is present, creating a new instance if needed, and
-// increments the delta count in the `meta` using the `IncreaseDeltaCnt` method.
+// This function ensures the [meta] field is present, creating a new instance if needed, and
+// increments the delta count in the [meta] using the `IncreaseDeltaCnt` method.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) IncreaseDeltaCnt() *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3265,13 +3281,13 @@ func (w *wrapper) IncreaseDeltaCnt() *wrapper {
 	return w
 }
 
-// DecreaseDeltaCnt decrements the delta count in the `meta` field of the `wrapper` instance.
+// DecreaseDeltaCnt decrements the delta count in the [meta] field of the [wrapper] instance.
 //
-// This function ensures the `meta` field is present, creating a new instance if needed, and
-// decrements the delta count in the `meta` using the `DecreaseDeltaCnt` method.
+// This function ensures the [meta] field is present, creating a new instance if needed, and
+// decrements the delta count in the [meta] using the `DecreaseDeltaCnt` method.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) DecreaseDeltaCnt() *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3280,16 +3296,16 @@ func (w *wrapper) DecreaseDeltaCnt() *wrapper {
 	return w
 }
 
-// WithLocale sets the locale in the `meta` field of the `wrapper` instance.
+// WithLocale sets the locale in the [meta] field of the [wrapper] instance.
 //
-// This function ensures the `meta` field is present, creating a new instance if needed, and
-// sets the locale in the `meta` using the `WithLocale` method.
+// This function ensures the [meta] field is present, creating a new instance if needed, and
+// sets the locale in the [meta] using the `WithLocale` method.
 //
 // Parameters:
 //   - `v`: A string representing the locale to set.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithLocale(v string) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3298,16 +3314,16 @@ func (w *wrapper) WithLocale(v string) *wrapper {
 	return w
 }
 
-// WithRequestedTime sets the requested time in the `meta` field of the `wrapper` instance.
+// WithRequestedTime sets the requested time in the [meta] field of the [wrapper] instance.
 //
-// This function ensures that the `meta` field exists, and if not, creates a new one. It then
-// sets the requested time in the `meta` using the `WithRequestedTime` method.
+// This function ensures that the [meta] field exists, and if not, creates a new one. It then
+// sets the requested time in the [meta] using the `WithRequestedTime` method.
 //
 // Parameters:
 //   - `v`: A `time.Time` value representing the requested time.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithRequestedTime(v time.Time) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3316,16 +3332,16 @@ func (w *wrapper) WithRequestedTime(v time.Time) *wrapper {
 	return w
 }
 
-// WithCustomFields sets the custom fields in the `meta` field of the `wrapper` instance.
+// WithCustomFields sets the custom fields in the [meta] field of the [wrapper] instance.
 //
-// This function checks if the `meta` field is present. If not, it creates a new `meta` instance
+// This function checks if the [meta] field is present. If not, it creates a new [meta] instance
 // and sets the provided custom fields using the `WithCustomFields` method.
 //
 // Parameters:
-//   - `values`: A map representing the custom fields to set in the `meta`.
+//   - `values`: A map representing the custom fields to set in the [meta].
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithCustomFields(values map[string]any) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3334,17 +3350,17 @@ func (w *wrapper) WithCustomFields(values map[string]any) *wrapper {
 	return w
 }
 
-// WithCustomFieldKV sets a specific custom field key-value pair in the `meta` field of the `wrapper` instance.
+// WithCustomFieldKV sets a specific custom field key-value pair in the [meta] field of the [wrapper] instance.
 //
-// This function ensures that if the `meta` field is not already set, a new `meta` instance is created.
-// It then adds the provided key-value pair to the custom fields of `meta` using the `WithCustomFieldKV` method.
+// This function ensures that if the [meta] field is not already set, a new [meta] instance is created.
+// It then adds the provided key-value pair to the custom fields of [meta] using the `WithCustomFieldKV` method.
 //
 // Parameters:
 //   - `key`: A string representing the custom field key to set.
 //   - `value`: The value associated with the custom field key.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance (enabling method chaining).
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) WithCustomFieldKV(key string, value any) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3353,12 +3369,12 @@ func (w *wrapper) WithCustomFieldKV(key string, value any) *wrapper {
 	return w
 }
 
-// WithCustomFieldKVf sets a specific custom field key-value pair in the `meta` field of the `wrapper` instance
+// WithCustomFieldKVf sets a specific custom field key-value pair in the [meta] field of the [wrapper] instance
 // using a formatted value.
 //
 // This function constructs a formatted string value using the provided `format` string and arguments (`args`).
 // It then calls the `WithCustomFieldKV` method to add or update the custom field with the specified key and
-// the formatted value. If the `meta` field of the `wrapper` instance is not initialized, it is created
+// the formatted value. If the [meta] field of the [wrapper] instance is not initialized, it is created
 // before setting the custom field.
 //
 // Parameters:
@@ -3367,7 +3383,7 @@ func (w *wrapper) WithCustomFieldKV(key string, value any) *wrapper {
 //   - args: A variadic list of arguments to be interpolated into the format string.
 //
 // Returns:
-//   - A pointer to the modified `wrapper` instance, enabling method chaining.
+//   - A pointer to the modified [wrapper] instance, enabling method chaining.
 func (w *wrapper) WithCustomFieldKVf(key string, format string, args ...any) *wrapper {
 	if !w.IsMetaPresent() {
 		w.meta = Meta()
@@ -3386,7 +3402,7 @@ func (w *wrapper) WithCustomFieldKVf(key string, format string, args ...any) *wr
 //   - v: The page number to set.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) WithPage(v int) *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
@@ -3405,7 +3421,7 @@ func (w *wrapper) WithPage(v int) *wrapper {
 //   - v: The number of items per page to set.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) WithPerPage(v int) *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
@@ -3424,7 +3440,7 @@ func (w *wrapper) WithPerPage(v int) *wrapper {
 //   - v: The total number of pages to set.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) WithTotalPages(v int) *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
@@ -3443,7 +3459,7 @@ func (w *wrapper) WithTotalPages(v int) *wrapper {
 //   - v: The total number of items to set.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) WithTotalItems(v int) *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
@@ -3462,7 +3478,7 @@ func (w *wrapper) WithTotalItems(v int) *wrapper {
 //   - v: A boolean indicating whether the current page is the last.
 //
 // Returns:
-//   - A pointer to the updated `wrapper` instance.
+//   - A pointer to the updated [wrapper] instance.
 func (w *wrapper) WithIsLast(v bool) *wrapper {
 	if !w.IsPagingPresent() {
 		w.pagination = Pages()
@@ -3471,9 +3487,9 @@ func (w *wrapper) WithIsLast(v bool) *wrapper {
 	return w
 }
 
-// MustHash256 generates a hash string for the `wrapper` instance.
+// MustHash256 generates a hash string for the [wrapper] instance.
 //
-// This method concatenates the values of the `statusCode`, `message`, `data`, and `meta` fields
+// This method concatenates the values of the `statusCode`, `message`, `data`, and [meta] fields
 // into a single string and then computes a hash of that string using the `strutil.MustHash256` function.
 // The resulting hash string can be used for various purposes, such as caching or integrity checks.
 func (w *wrapper) MustHash256() (string, *wrapper) {
@@ -3492,14 +3508,14 @@ func (w *wrapper) MustHash256() (string, *wrapper) {
 		WithMessage("Successfully generated hash")
 }
 
-// Hash256 generates a hash string for the `wrapper` instance.
+// Hash256 generates a hash string for the [wrapper] instance.
 //
-// This method generates a hash string for the `wrapper` instance using the `Hash256` method.
-// If the `wrapper` instance is not available or the hash generation fails, it returns an empty string.
+// This method generates a hash string for the [wrapper] instance using the `Hash256` method.
+// If the [wrapper] instance is not available or the hash generation fails, it returns an empty string.
 //
 // Returns:
 //   - A string representing the hash value.
-//   - An empty string if the `wrapper` instance is not available or the hash generation fails.
+//   - An empty string if the [wrapper] instance is not available or the hash generation fails.
 func (w *wrapper) Hash256() string {
 	hash, _w := w.MustHash256()
 	if _w.IsError() {
@@ -3508,14 +3524,14 @@ func (w *wrapper) Hash256() string {
 	return hash
 }
 
-// MustHash generates a hash value for the `wrapper` instance.
+// MustHash generates a hash value for the [wrapper] instance.
 //
-// This method generates a hash value for the `wrapper` instance using the `MustHash` method.
-// If the `wrapper` instance is not available or the hash generation fails, it returns an error.
+// This method generates a hash value for the [wrapper] instance using the `MustHash` method.
+// If the [wrapper] instance is not available or the hash generation fails, it returns an error.
 //
 // Returns:
 //   - A uint64 representing the hash value.
-//   - An error if the `wrapper` instance is not available or the hash generation fails.
+//   - An error if the [wrapper] instance is not available or the hash generation fails.
 func (w *wrapper) MustHash() (uint64, *wrapper) {
 	if !w.Available() {
 		return 0, w
@@ -3532,14 +3548,14 @@ func (w *wrapper) MustHash() (uint64, *wrapper) {
 		WithMessage("Successfully generated hash")
 }
 
-// HashSafe generates a hash value for the `wrapper` instance.
+// HashSafe generates a hash value for the [wrapper] instance.
 
-// This method generates a hash value for the `wrapper` instance using the `Hash` method.
-// If the `wrapper` instance is not available or the hash generation fails, it returns an empty string.
+// This method generates a hash value for the [wrapper] instance using the `Hash` method.
+// If the [wrapper] instance is not available or the hash generation fails, it returns an empty string.
 //
 // Returns:
 //   - A string representing the hash value.
-//   - An empty string if the `wrapper` instance is not available or the hash generation fails.
+//   - An empty string if the [wrapper] instance is not available or the hash generation fails.
 func (w *wrapper) Hash() uint64 {
 	hash, _w := w.MustHash()
 	if _w.IsError() {
@@ -3705,17 +3721,17 @@ func (w *wrapper) hashFor() string {
 	return h
 }
 
-// Respond generates a map representation of the `wrapper` instance.
+// Respond generates a map representation of the [wrapper] instance.
 //
-// This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
+// This method collects various fields of the [wrapper] (e.g., `data`, [header], [meta], etc.)
 // and organizes them into a key-value map. Only non-nil or meaningful fields are added
 // to the resulting map to ensure a clean and concise response structure.
 //
 // Fields included in the response:
 //   - `data`: The primary data payload, if present.
 //   - `headers`: The structured header details, if present.
-//   - `meta`: Metadata about the response, if present.
-//   - `pagination`: Pagination details, if applicable.
+//   - [meta]: Metadata about the response, if present.
+//   - [pagination]: Pagination details, if applicable.
 //   - `debug`: Debugging information, if provided.
 //   - `total`: Total number of items, if set to a valid non-negative value.
 //   - `status_code`: The HTTP status code, if greater than 0.
@@ -3773,10 +3789,10 @@ func (w *wrapper) Respond() map[string]any {
 	return response
 }
 
-// R represents a wrapper around the main `wrapper` struct. It is used as a high-level
+// R represents a wrapper around the main [wrapper] struct. It is used as a high-level
 // abstraction to provide a simplified interface for handling API responses.
 // The `R` type allows for easier manipulation of the wrapped data, metadata, and other
-// response components, while maintaining the flexibility of the underlying `wrapper` structure.
+// response components, while maintaining the flexibility of the underlying [wrapper] structure.
 //
 // Example usage:
 //
@@ -3786,14 +3802,14 @@ func (w *wrapper) Reply() R {
 	return R{wrapper: w}
 }
 
-// ReplyPtr returns a pointer to a new R instance that wraps the current `wrapper`.
+// ReplyPtr returns a pointer to a new R instance that wraps the current [wrapper].
 //
-// This method creates a new `R` struct, initializing it with the current `wrapper` instance,
+// This method creates a new `R` struct, initializing it with the current [wrapper] instance,
 // and returns a pointer to this new `R` instance. This allows for easier manipulation
 // of the wrapped data and metadata through the `R` abstraction.
 //
 // Returns:
-//   - A pointer to an `R` struct that wraps the current `wrapper` instance.
+//   - A pointer to an `R` struct that wraps the current [wrapper] instance.
 //
 // Example usage:
 //
@@ -3803,43 +3819,87 @@ func (w *wrapper) ReplyPtr() *R {
 	return &R{wrapper: w}
 }
 
-// JSON serializes the `wrapper` instance into a compact JSON string.
+// JSON serializes the [wrapper] instance into a compact JSON string.
 //
 // This function uses the `encoding.JSON` utility to generate a JSON representation
-// of the `wrapper` instance. The output is a compact JSON string with no additional
+// of the [wrapper] instance. The output is a compact JSON string with no additional
 // whitespace or formatting.
 //
 // Returns:
-//   - A compact JSON string representation of the `wrapper` instance.
+//   - A compact JSON string representation of the [wrapper] instance.
 func (w *wrapper) JSON() string {
 	return jsonpass(w.Respond())
 }
 
-// JSONPretty serializes the `wrapper` instance into a prettified JSON string.
+// JSONPretty serializes the [wrapper] instance into a prettified JSON string.
 //
 // This function uses the `encoding.JSONPretty` utility to generate a JSON representation
-// of the `wrapper` instance. The output is a human-readable JSON string with
+// of the [wrapper] instance. The output is a human-readable JSON string with
 // proper indentation and formatting for better readability.
 //
 // Returns:
-//   - A prettified JSON string representation of the `wrapper` instance.
+//   - A prettified JSON string representation of the [wrapper] instance.
 func (w *wrapper) JSONPretty() string {
 	return jsonpretty(w.Respond())
 }
 
-// JSONBytes serializes the `wrapper` instance into a JSON byte slice.
+// JSONBytes serializes the [wrapper] instance into a JSON byte slice.
 //
-// This function first checks if the `wrapper` is available and if the body data is a valid JSON string using `IsJSONBody()`.
+// This function first checks if the [wrapper] is available and if the body data is a valid JSON string using `IsJSONBody()`.
 // If both conditions are met, it returns the JSON byte slice. Otherwise, it returns an empty byte slice.
 //
 // Returns:
-//   - A byte slice containing the JSON representation of the `wrapper` instance.
-//   - An empty byte slice if the `wrapper` is not available or the body data is not a valid JSON string.
+//   - A byte slice containing the JSON representation of the [wrapper] instance.
+//   - An empty byte slice if the [wrapper] is not available or the body data is not a valid JSON string.
 func (w *wrapper) JSONBytes() []byte {
 	if !w.IsJSONBody() {
 		return nil
 	}
 	return []byte(w.JSON())
+}
+
+// String returns a string representation of the [wrapper] instance.
+//
+// This method constructs a human-readable string representation of the [wrapper] instance by concatenating
+// the values of various fields (e.g., `status_code`, `message`, `data`, `headers`, etc.) into a single string.
+// Each field is included in the output only if it is present and meaningful (e.g., non-empty strings, non-nil values).
+// The resulting string provides a concise summary of the [wrapper]'s state, which can be useful for logging or debugging purposes.
+//
+// Returns:
+//   - A string representation of the [wrapper] instance, including relevant fields such as status code, message, data, headers, metadata, pagination, debugging information, total count, and path.
+func (w *wrapper) String() string {
+	sw := strchain.New()
+	if w.IsStatusCodePresent() {
+		sw.AppendF("status_code=%q", w.StatusText()).Space()
+	}
+	if strutil.IsNotEmpty(w.path) {
+		sw.AppendF("path=%q", w.path).Space()
+	}
+	if strutil.IsNotEmpty(w.message) {
+		sw.AppendF("message=%q", w.message).Space()
+	}
+	if w.IsError() {
+		sw.AppendF("error=%q", w.Error()).Space()
+	}
+	if w.IsBodyPresent() {
+		sw.AppendF("data=%q", w.BodyString()).Space()
+	}
+	if w.IsTotalPresent() {
+		sw.AppendF("total=%d", w.total).Space()
+	}
+	if w.IsPagingPresent() {
+		sw.AppendF("pagination=%q", w.pagination.String()).Space()
+	}
+	if w.IsMetaPresent() {
+		sw.AppendF("meta=%q", w.meta.String()).Space()
+	}
+	if w.IsHeaderPresent() {
+		sw.AppendF("headers=%q", w.header.String()).Space()
+	}
+	if w.IsDebuggingPresent() {
+		sw.AppendF("debug=%q", conv.StringOrEmpty(w.debug)).Space()
+	}
+	return sw.String()
 }
 
 // Logging dispatches a structured log entry for this response using [slogger].
@@ -3910,15 +3970,15 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 	return w
 }
 
-// build generates a map representation of the `wrapper` instance.
-// This method collects various fields of the `wrapper` (e.g., `data`, `header`, `meta`, etc.)
+// build generates a map representation of the [wrapper] instance.
+// This method collects various fields of the [wrapper] (e.g., `data`, [header], [meta], etc.)
 // and organizes them into a key-value map. It ensures that only non-empty or meaningful fields
 // are included in the resulting map, providing a clean and structured response.
 // The following fields are included in the response:
 //   - `data`: The primary data payload, if present.
 //   - `headers`: The structured header details, if present.
-//   - `meta`: Metadata about the response, if present.
-//   - `pagination`: Pagination details, if applicable.
+//   - [meta]: Metadata about the response, if present.
+//   - [pagination]: Pagination details, if applicable.
 //   - `debug`: Debugging information, if provided.
 //   - `total`: Total number of items, if set to a valid non-negative value.
 //   - `status_code`: The HTTP status code, if greater than 0.

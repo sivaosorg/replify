@@ -206,12 +206,12 @@ func IsValidJSONBytes(data []byte) bool {
 //
 //  1. Empty / whitespace-only input → return error.
 //  2. Already valid JSON → return unchanged (fast path, no allocation).
-//  3. Pass 1 – strip a leading UTF-8 BOM (U+FEFF / 0xEF 0xBB 0xBF).
-//  4. Pass 2 – remove embedded null bytes (0x00) which are invalid inside JSON text.
-//  5. Pass 3 – unescape literal `\"` sequences to `"`.  This is the most common
+//  3. Pass 1 - strip a leading UTF-8 BOM (U+FEFF / 0xEF 0xBB 0xBF).
+//  4. Pass 2 - remove embedded null bytes (0x00) which are invalid inside JSON text.
+//  5. Pass 3 - unescape literal `\"` sequences to `"`.  This is the most common
 //     artifact produced when JSON is stored in Go raw string literals or travels
 //     through systems that double-escape structural quote characters.
-//  6. Pass 4 – remove trailing commas before `}` or `]`.  These are produced by
+//  6. Pass 4 - remove trailing commas before `}` or `]`.  These are produced by
 //     some serializers and are not permitted by the JSON grammar.
 //
 // Passes are cumulative: each pass operates on the output of the previous one.

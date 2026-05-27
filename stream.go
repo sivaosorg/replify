@@ -541,7 +541,7 @@ func (s *StreamProgress) JSON() string {
 //   - false: Set to sending mode (writing to writer).
 //
 // Returns:
-//   - A pointer to the `wrapper` instance, allowing for method chaining.
+//   - A pointer to the [wrapper] instance, allowing for method chaining.
 func (sw *StreamingWrapper) WithReceiveMode(isReceiving bool) *wrapper {
 	if sw == nil {
 		return respondStreamBadRequestDefault()
@@ -559,7 +559,7 @@ func (sw *StreamingWrapper) WithReceiveMode(isReceiving bool) *wrapper {
 //   - writer: An io.Writer implementation (e.g., *os.File, *bytes.Buffer, http.ResponseWriter).
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //
 // Example:
@@ -589,7 +589,7 @@ func (sw *StreamingWrapper) WithWriter(writer io.Writer) *wrapper {
 //   - err: Non-nil if an error occurred during chunk processing; otherwise nil.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //
 // Example:
@@ -651,7 +651,7 @@ func (sw *StreamingWrapper) WithHook(callback StreamingHook) *wrapper {
 //     Must be greater than 0 for meaningful progress calculations.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - The function automatically records totalBytes in wrapper debugging information.
 //
@@ -720,7 +720,7 @@ func (sw *StreamingWrapper) WithTotalBytes(totalBytes int64) *wrapper {
 //   - Use case: Large files (>10GB), specialized processing
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the strategy is empty, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the selected strategy in wrapper debugging information
@@ -820,7 +820,7 @@ func (sw *StreamingWrapper) WithStreamingStrategy(strategy StreamingStrategy) *w
 //     Cannot be empty; empty string will return an error.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the compression type is empty, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the selected compression type in wrapper debugging information
@@ -977,7 +977,7 @@ func (sw *StreamingWrapper) WithCompressionType(comp CompressionType) *wrapper {
 //     Invalid values: Must be > 0; zero or negative values will return an error.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the chunk size is ≤ 0, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the chunk size in wrapper debugging information
@@ -1158,7 +1158,7 @@ func (sw *StreamingWrapper) WithChunkSize(size int64) *wrapper {
 // Invalid values: Negative values will return an error; zero is treated as unlimited.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the throttle rate is negative, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the throttle rate in wrapper debugging information:
@@ -1391,7 +1391,7 @@ func (sw *StreamingWrapper) WithThrottleRate(bytesPerSecond int64) *wrapper {
 // Invalid values: Must be > 0; zero or negative values will return an error.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the concurrent chunk count is ≤ 0, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the max concurrent chunks in wrapper debugging information
@@ -1634,7 +1634,7 @@ func (sw *StreamingWrapper) WithMaxConcurrentChunks(count int) *wrapper {
 //     Default: true (pooling enabled, recommended).
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - The function automatically records the buffer pooling state in wrapper debugging information
 //     under the key "buffer_pooling_enabled" for audit, performance profiling, and configuration tracking.
@@ -1864,7 +1864,7 @@ func (sw *StreamingWrapper) WithBufferPooling(enabled bool) *wrapper {
 // application-level heartbeats instead for better reliability.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the read timeout is ≤ 0, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the read timeout in wrapper debugging information
@@ -2157,7 +2157,7 @@ func (sw *StreamingWrapper) WithReadTimeout(timeout int64) *wrapper {
 // application-level heartbeats or keep-alive mechanisms for better reliability.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - If the write timeout is ≤ 0, returns the wrapper with an error message indicating invalid input.
 //   - The function automatically records the write timeout in wrapper debugging information
@@ -2429,7 +2429,7 @@ func (sw *StreamingWrapper) WithWriteTimeout(timeout int64) *wrapper {
 // is required. Cancel returns the wrapper with updated status for chainable response building.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - The function automatically updates the wrapper with:
 //   - Message: "Streaming cancelled"
@@ -2732,7 +2732,7 @@ func (sw *StreamingWrapper) Cancel() *wrapper {
 // called from any goroutine and is thread-safe with respect to the streaming context cancellation.
 //
 // Returns:
-//   - A pointer to the underlying `wrapper` instance, allowing for method chaining.
+//   - A pointer to the underlying [wrapper] instance, allowing for method chaining.
 //   - If the streaming wrapper is nil, returns a new wrapper with an error message.
 //   - The function attempts to close all closeable resources and accumulates all errors encountered.
 //   - If reader.Close() fails, the error is recorded in the wrapper; writer.Close() is still attempted.

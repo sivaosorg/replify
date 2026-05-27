@@ -3551,13 +3551,13 @@ func isTruthy(t Context) bool {
 	}
 }
 
-// matchesQueryCondition determines whether a given `Context` value matches the conditions specified in the `meta` query.
+// matchesQueryCondition determines whether a given `Context` value matches the conditions specified in the [meta] query.
 //
 // This function evaluates a JSON path query against a specific `Context` value, checking for matching conditions such as
 // existence, equality, inequality, and other relational operations. It supports operations on strings, numbers, and booleans.
 //
 // Parameters:
-//   - dp: A pointer to the `meta` structure containing query details, such as the value to match (`Value`) and
+//   - dp: A pointer to the [meta] structure containing query details, such as the value to match (`Value`) and
 //     the comparison option (`Option`).
 //   - value: A `Context` structure representing the JSON value to be evaluated against the query.
 //

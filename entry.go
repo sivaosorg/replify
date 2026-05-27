@@ -184,21 +184,21 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	return w, nil
 }
 
-// WrapFrom converts a map containing API response data into a `wrapper` struct
+// WrapFrom converts a map containing API response data into a [wrapper] struct
 // by serializing the map into JSON format and then parsing it.
 //
 // The function is a helper that bridges between raw map data (e.g., deserialized JSON
-// or other dynamic input) and the strongly-typed `wrapper` struct used in the codebase.
+// or other dynamic input) and the strongly-typed [wrapper] struct used in the codebase.
 // It first converts the input map into a JSON string using `encoding.Json`, then calls
-// the `Parse` function to handle the deserialization and field mapping to the `wrapper`.
+// the `Parse` function to handle the deserialization and field mapping to the [wrapper].
 //
 // Parameters:
 //   - data: A map[string]interface{} containing the API response data.
 //     The map should include keys like "status_code", "message", "meta", etc.,
-//     that conform to the expected structure of a `wrapper`.
+//     that conform to the expected structure of a [wrapper].
 //
 // Returns:
-//   - A pointer to a `wrapper` struct populated with data from the map.
+//   - A pointer to a [wrapper] struct populated with data from the map.
 //   - An error if the map is empty or if the JSON serialization/parsing fails.
 //
 // Error Handling:
@@ -209,7 +209,7 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 //
 // Usage:
 // This function is particularly useful when working with raw data maps (e.g., from
-// dynamic inputs or unmarshaled data) that need to be converted into the `wrapper`
+// dynamic inputs or unmarshaled data) that need to be converted into the [wrapper]
 // struct for further processing.
 //
 // Example:
@@ -243,7 +243,7 @@ func WrapFrom(data map[string]any) (w *wrapper, err error) {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapOk(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusOK).
@@ -263,7 +263,7 @@ func WrapOk(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapCreated(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusCreated).
@@ -283,7 +283,7 @@ func WrapCreated(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapBadRequest(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusBadRequest).
@@ -303,7 +303,7 @@ func WrapBadRequest(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapNotFound(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusNotFound).
@@ -323,7 +323,7 @@ func WrapNotFound(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapNotImplemented(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusNotImplemented).
@@ -343,7 +343,7 @@ func WrapNotImplemented(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapTooManyRequest(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusTooManyRequests).
@@ -363,7 +363,7 @@ func WrapTooManyRequest(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapLocked(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusLocked).
@@ -383,7 +383,7 @@ func WrapLocked(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapNoContent(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusNoContent).
@@ -403,7 +403,7 @@ func WrapNoContent(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapProcessing(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusProcessing).
@@ -423,7 +423,7 @@ func WrapProcessing(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapUpgradeRequired(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusUpgradeRequired).
@@ -444,7 +444,7 @@ func WrapUpgradeRequired(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapServiceUnavailable(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusServiceUnavailable).
@@ -465,7 +465,7 @@ func WrapServiceUnavailable(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapInternalServerError(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusInternalServerError).
@@ -485,7 +485,7 @@ func WrapInternalServerError(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapGatewayTimeout(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusGatewayTimeout).
@@ -505,7 +505,7 @@ func WrapGatewayTimeout(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapMethodNotAllowed(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusMethodNotAllowed).
@@ -526,7 +526,7 @@ func WrapMethodNotAllowed(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapUnauthorized(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusUnauthorized).
@@ -546,7 +546,7 @@ func WrapUnauthorized(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapForbidden(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusForbidden).
@@ -566,7 +566,7 @@ func WrapForbidden(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapAccepted(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusAccepted).
@@ -586,7 +586,7 @@ func WrapAccepted(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapRequestTimeout(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusRequestTimeout).
@@ -606,7 +606,7 @@ func WrapRequestTimeout(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapRequestEntityTooLarge(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusRequestEntityTooLarge).
@@ -626,7 +626,7 @@ func WrapRequestEntityTooLarge(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapUnsupportedMediaType(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusUnsupportedMediaType).
@@ -646,7 +646,7 @@ func WrapUnsupportedMediaType(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapHTTPVersionNotSupported(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusHTTPVersionNotSupported).
@@ -666,7 +666,7 @@ func WrapHTTPVersionNotSupported(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapPaymentRequired(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusPaymentRequired).
@@ -686,7 +686,7 @@ func WrapPaymentRequired(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapConflict(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusConflict).
@@ -706,7 +706,7 @@ func WrapConflict(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapGone(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusGone).
@@ -727,7 +727,7 @@ func WrapGone(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapUnprocessableEntity(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusUnprocessableEntity).
@@ -747,7 +747,7 @@ func WrapUnprocessableEntity(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapPreconditionFailed(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusPreconditionFailed).
@@ -768,7 +768,7 @@ func WrapPreconditionFailed(message string, data any) *wrapper {
 //   - data: The data payload to include in the response.
 //
 // Returns:
-//   - A pointer to a `wrapper` instance representing the response.
+//   - A pointer to a [wrapper] instance representing the response.
 func WrapBadGateway(message string, data any) *wrapper {
 	w := New().
 		WithStatusCode(http.StatusBadGateway).

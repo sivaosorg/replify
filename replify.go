@@ -3099,11 +3099,15 @@ func (w *wrapper) AppendErrors(errs []error) *wrapper {
 //
 // This function creates an error object from the `message` field of the [wrapper],
 // assigns it to the `errors` field, and returns the modified instance.
+// If an error is already present, the message is appended as an additional cause.
 // It allows for method chaining.
 //
 // Returns:
 //   - A pointer to the modified [wrapper] instance (enabling method chaining).
 func (w *wrapper) BindCause() *wrapper {
+	if !w.Available() {
+		return w
+	}
 	if strutil.IsNotEmpty(w.message) {
 		if w.errors == nil {
 			w.errors = NewError(w.message)
@@ -3799,6 +3803,7 @@ func (w *wrapper) Respond() map[string]any {
 //	var response replify.R = replify.New().Reply()
 //	fmt.Println(response.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) Reply() R {
+	w.autoCause()
 	return R{wrapper: w}
 }
 
@@ -3816,6 +3821,7 @@ func (w *wrapper) Reply() R {
 //	var responsePtr *replify.R = replify.New().ReplyPtr()
 //	fmt.Println(responsePtr.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) ReplyPtr() *R {
+	w.autoCause()
 	return &R{wrapper: w}
 }
 
@@ -3868,6 +3874,7 @@ func (w *wrapper) JSONBytes() []byte {
 // Returns:
 //   - A string representation of the [wrapper] instance, including relevant fields such as status code, message, data, headers, metadata, pagination, debugging information, total count, and path.
 func (w *wrapper) String() string {
+	w.autoCause()
 	sw := strchain.New()
 	if w.IsStatusCodePresent() {
 		sw.AppendF("status_code=%q", w.StatusText()).Space()
@@ -3951,6 +3958,7 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 	if !w.Available() {
 		return w
 	}
+	w.autoCause()
 	l := slogger.GlobalLogger()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
@@ -3968,6 +3976,31 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 
 	logAtLevel(child, httpStatusLevel(code), msg, slogger.JSON("REPLY", w.Respond()))
 	return w
+}
+
+// autoCause automatically synchronizes the [wrapper]'s error field with its message
+// when the HTTP status code indicates a client (4xx) or server (5xx) error and no
+// explicit error has been set yet.
+//
+// This method is called internally by [Reply] and [ReplyPtr] to ensure that error
+// responses always carry a cause derived from the message, mirroring the behavior
+// of [BindCause] but triggered automatically rather than explicitly by the caller.
+// It is a no-op when:
+//   - the [wrapper] is nil.
+//   - the status code is not an error code (i.e. not 4xx or 5xx).
+//   - an error is already present (w.errors != nil).
+//   - the message field is empty.
+func (w *wrapper) autoCause() {
+	if !w.Available() || w.errors != nil {
+		return
+	}
+	if w.IsClientError() || w.IsServerError() {
+		if strutil.IsNotEmpty(w.message) {
+			w.errors = NewError(w.message)
+		} else {
+			w.errors = NewErrorf("HTTP %d error with no message", w.StatusCode())
+		}
+	}
 }
 
 // build generates a map representation of the [wrapper] instance.

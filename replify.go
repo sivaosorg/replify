@@ -3882,7 +3882,7 @@ func (w *wrapper) String() string {
 		sw.AppendF("error=%q", w.Error()).Space()
 	}
 	if w.IsBodyPresent() {
-		sw.AppendF("data=%q", w.BodyString()).Space()
+		sw.AppendF("data=%+v", w.BodyString()).Space()
 	}
 	if w.IsTotalPresent() {
 		sw.AppendF("total=%d", w.total).Space()
@@ -3989,32 +3989,32 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 //   - A `map[string]interface{}` containing the structured response data.
 func (w *wrapper) build() map[string]any {
 	m := make(map[string]any)
-	if w.IsBodyPresent() {
-		m["data"] = safeBody(w.data)
-	}
-	if w.IsHeaderPresent() {
-		m["headers"] = w.header.Respond()
-	}
-	if w.IsMetaPresent() {
-		m["meta"] = w.meta.Respond()
-	}
-	if w.IsPagingPresent() {
-		m["pagination"] = w.pagination.Respond()
-	}
-	if w.IsDebuggingPresent() {
-		m["debug"] = w.debug
-	}
-	if w.IsTotalPresent() {
-		m["total"] = w.total
-	}
 	if w.IsStatusCodePresent() {
 		m["status_code"] = w.statusCode
+	}
+	if strutil.IsNotEmpty(w.path) {
+		m["path"] = w.path
 	}
 	if strutil.IsNotEmpty(w.message) {
 		m["message"] = w.message
 	}
-	if strutil.IsNotEmpty(w.path) {
-		m["path"] = w.path
+	if w.IsBodyPresent() {
+		m["data"] = safeBody(w.data)
+	}
+	if w.IsTotalPresent() {
+		m["total"] = w.total
+	}
+	if w.IsPagingPresent() {
+		m["pagination"] = w.pagination.Respond()
+	}
+	if w.IsMetaPresent() {
+		m["meta"] = w.meta.Respond()
+	}
+	if w.IsHeaderPresent() {
+		m["headers"] = w.header.Respond()
+	}
+	if w.IsDebuggingPresent() {
+		m["debug"] = w.debug
 	}
 	return m
 }

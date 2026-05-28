@@ -3989,7 +3989,7 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 //   - other → Trace (no status code set)
 //
 // The log field key is "REPLY" and its value is the structured map returned
-// by [wrapper.Respond], serialized as JSON by the active formatter.
+// by [wrapper.Respond], serialized as Text by the active formatter.
 //
 // # Thread-safety
 //

@@ -305,3 +305,26 @@ func WithAppendErrors(errs ...error) ROption {
 		w.AppendErrors(errs)
 	}
 }
+
+// WithStackTrace returns an [ROption] that captures the call stack at the
+// point [Wrap] is called and stores the frames in the debug map under the
+// key "stack_trace". Each frame is serialized using [Frame.MarshalText].
+//
+// This is the functional-option equivalent of [wrapper.WithStackTrace].
+func WithStackTrace() ROption {
+	return func(w *wrapper) {
+		w.WithStackTrace()
+	}
+}
+
+// WithInjectStackTrace returns an [ROption] that extracts the [StackTrace]
+// from the wrapper's stored error and writes the formatted frames into the
+// debug map under the key "error_stack_trace". It is a no-op when no error
+// is set.
+//
+// This is the functional-option equivalent of [wrapper.InjectStackTrace].
+func WithInjectStackTrace() ROption {
+	return func(w *wrapper) {
+		w.InjectStackTrace()
+	}
+}

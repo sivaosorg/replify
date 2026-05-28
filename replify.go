@@ -3118,6 +3118,89 @@ func (w *wrapper) BindCause() *wrapper {
 	return w
 }
 
+// StackTrace returns the [StackTrace] embedded in the error held by this [wrapper].
+//
+// When the error was created with a stack-capturing constructor ([NewError],
+// [NewErrorf], [NewErrorAck], [NewErrorAckf], [AppendErrorAck], [AppendErrorAckf])
+// the embedded [StackTrace] is returned directly via the internal stackTracer
+// interface. For errors without an embedded trace (e.g. bare [AppendError] /
+// [AppendErrorf]) or when no error is set, [Callers] is invoked at the call
+// site so that a non-empty [StackTrace] is always returned.
+//
+// Returns:
+//   - The [StackTrace] from the stored error, or the current call-site trace
+//     when the stored error carries no stack.
+func (w *wrapper) StackTrace() StackTrace {
+	if w.Available() && w.errors != nil {
+		type stackTracer interface {
+			StackTrace() StackTrace
+		}
+		if st, ok := w.errors.(stackTracer); ok {
+			return st.StackTrace()
+		}
+	}
+	return Callers().StackTrace()
+}
+
+// StackTraceString returns a formatted, human-readable representation of the
+// [StackTrace] associated with this [wrapper].
+//
+// The output is equivalent to fmt.Sprintf("%+v", w.StackTrace()), producing
+// one line per frame with the function name, source-file path, and line number.
+//
+// Returns:
+//   - A multi-line string with one formatted frame per line.
+func (w *wrapper) StackTraceString() string {
+	return fmt.Sprintf("%+v", w.StackTrace())
+}
+
+// WithStackTrace captures the call stack at the point this method is invoked
+// and stores the formatted frames in the [wrapper]'s debug map under the
+// key "stack_trace". Each frame is serialized using [Frame.MarshalText].
+//
+// This records the code location where a response was built—independently of
+// where any error was created—making it complementary to [InjectStackTrace].
+//
+// Returns:
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
+func (w *wrapper) WithStackTrace() *wrapper {
+	if !w.Available() {
+		return w
+	}
+	trace := Callers().StackTrace()
+	frames := make([]string, 0, len(trace))
+	for _, f := range trace {
+		if text, err := f.MarshalText(); err == nil && len(text) > 0 {
+			frames = append(frames, string(text))
+		}
+	}
+	return w.WithDebuggingKV("stack_trace", frames)
+}
+
+// InjectStackTrace extracts the [StackTrace] from the [wrapper]'s stored error
+// and writes the formatted frames into the debug map under the key
+// "error_stack_trace". Each frame is serialized using [Frame.MarshalText].
+//
+// This is a no-op when no error is set ([IsError] returns false). It is
+// particularly useful for surfacing the exact origin of an error in
+// diagnostic or development responses without altering the error itself.
+//
+// Returns:
+//   - A pointer to the modified [wrapper] instance (enabling method chaining).
+func (w *wrapper) InjectStackTrace() *wrapper {
+	if !w.Available() || !w.IsError() {
+		return w
+	}
+	trace := w.StackTrace()
+	frames := make([]string, 0, len(trace))
+	for _, f := range trace {
+		if text, err := f.MarshalText(); err == nil && len(text) > 0 {
+			frames = append(frames, string(text))
+		}
+	}
+	return w.WithDebuggingKV("error_stack_trace", frames)
+}
+
 // WithDebuggingKV adds a key-value pair to the debugging information in the [wrapper] instance.
 //
 // This function checks if debugging information is already present. If it is not, it initializes

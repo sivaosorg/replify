@@ -182,6 +182,31 @@ func logAtLevel(l *slogger.Logger, lvl slogger.Level, msg string, f slogger.Fiel
 	}
 }
 
+// slogAtLevel dispatches a single log entry to l at the given level without any structured fields.
+// It uses the appropriate method of the slogger.Logger based on the provided slogger.Level.
+//
+// Parameters:
+//   - `l`: The slogger.Logger instance to which the log entry will be dispatched.
+//   - `lvl`: The slogger.Level indicating the severity of the log entry (e.g., ErrorLevel, WarnLevel, InfoLevel, DebugLevel).
+//   - `msg`: The message string to be logged.
+//
+// The function uses a switch statement to determine which logging method to call on the logger based on the provided level.
+// If the level does not match any of the defined levels (ErrorLevel, WarnLevel, InfoLevel, DebugLevel), it defaults to using Trace.
+func slogAtLevel(l *slogger.Logger, lvl slogger.Level, msg string) {
+	switch lvl {
+	case slogger.ErrorLevel:
+		l.Error(msg)
+	case slogger.WarnLevel:
+		l.Warn(msg)
+	case slogger.InfoLevel:
+		l.Info(msg)
+	case slogger.DebugLevel:
+		l.Debug(msg)
+	default:
+		l.Trace(msg)
+	}
+}
+
 // safeBody checks if the provided value is a valid JSON string or byte slice and returns a safe representation.
 //
 // This function takes an input value and determines if it is a valid JSON string or byte slice.

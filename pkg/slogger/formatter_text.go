@@ -196,12 +196,12 @@ func (f *TextFormatter) shouldUseColor() bool {
 	case ColorNever:
 		return false
 	default: // ColorAuto
-		// Legacy behaviour: check disableColors flag and TTY detection
+		// Legacy behavior: check disableColors flag and TTY detection
 		return !f.disableColors && istty(f.output)
 	}
 }
 
-// Format serialises e to a human-readable key=value byte slice.
+// Format serializes e to a human-readable key=value byte slice.
 //
 // Parameters:
 //   - `e`: the log entry to format
@@ -260,7 +260,12 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 
 	if includeCaller {
 		if c := e.Caller(); c != nil {
-			b.WriteString(" caller=")
+			// if the previous has end with whitespace,
+			// we can directly append caller info without an extra space
+			if !strings.HasSuffix(b.String(), " ") {
+				b.WriteByte(' ')
+			}
+			b.WriteString("caller=")
 			b.WriteString(c.File())
 			b.WriteByte(':')
 			b.WriteString(strconv.Itoa(c.Line()))

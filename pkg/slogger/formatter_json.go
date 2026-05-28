@@ -243,7 +243,7 @@ func (f *JSONFormatter) Color() *encoding.Style {
 	return f.color
 }
 
-// Format serialises e to a single-line JSON byte slice.
+// Format serializes e to a single-line JSON byte slice.
 // When colour is enabled and the logger's output writer is a TTY terminal,
 // ANSI colour escape sequences are applied to keys, values, and level fields
 // using encoding.Color with encoding.TerminalStyle. When the output is not a

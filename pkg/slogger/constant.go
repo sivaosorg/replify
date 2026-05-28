@@ -97,18 +97,18 @@ const (
 // ColorMode constants
 // ///////////////////////////////////////////////////////////////////////////
 
-// ColorMode values control when ANSI colour codes are emitted by TextFormatter.
+// ColorMode values control when ANSI color codes are emitted by TextFormatter.
 const (
-	// ColorAuto enables colours only when the output writer is a TTY.
+	// ColorAuto enables colors only when the output writer is a TTY.
 	// This is the default and recommended mode for most applications.
 	ColorAuto ColorMode = iota
 
-	// ColorAlways forces colour output regardless of output destination.
-	// Useful when piping to colour-aware tools (e.g. less -R) or when the
+	// ColorAlways forces color output regardless of output destination.
+	// Useful when piping to color-aware tools (e.g. less -R) or when the
 	// TTY detection gives a false negative.
 	ColorAlways
 
-	// ColorNever disables colour output unconditionally.
+	// ColorNever disables color output unconditionally.
 	// Use this for file output, CI pipelines, or log aggregators that do not
 	// interpret ANSI escape sequences.
 	ColorNever
@@ -161,7 +161,7 @@ const (
 // Default formatting and timestamp patterns
 // ///////////////////////////////////////////////////////////////////////////
 
-// Timestamp layout constants used by formatters and the rotation archiver.
+// Timestamp layout constants used by formatters and the rotation archive.
 const (
 	// defaultTimeFormat is the default timestamp layout for both
 	// TextFormatter and JSONFormatter. It is equivalent to time.RFC3339.

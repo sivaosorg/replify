@@ -1,6 +1,7 @@
 package replify
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/sivaosorg/replify/pkg/strchain"
@@ -127,6 +128,21 @@ func (h *header) JSON() string {
 //   - A prettified JSON string representation of the [header] instance, formatted for improved readability.
 func (h *header) JSONPretty() string {
 	return jsonpretty(h.Respond())
+}
+
+// StatusText returns the standard HTTP status text corresponding to the `code` field of the [header] instance.
+//
+// This function checks if the [header] instance is non-nil and has a valid `code` field (greater than 0).
+// If these conditions are met, it uses the `http.StatusText` function to retrieve the standard status text
+// associated with the HTTP status code. If the [header] instance is nil or does not have a valid code, it returns an empty string.
+//
+// Returns:
+//   - A string containing the standard HTTP status text corresponding to the `code` field of the [header] instance, or an empty string if the instance is nil or does not have a valid code.
+func (h *header) StatusText() string {
+	if h == nil || !h.IsCodePresent() {
+		return ""
+	}
+	return fmt.Sprintf("%d (%s)", h.code, http.StatusText(h.code))
 }
 
 // Equal compares the current [header] instance with another [header] instance for equality.

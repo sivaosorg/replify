@@ -4154,12 +4154,22 @@ func (w *wrapper) autoAdjust() {
 
 	// If the status code indicates a client or server error and no explicit error is set,
 	// create an error from the message or a default message if the message is empty.
-	if (w.IsClientError() || w.IsServerError()) && w.errors == nil {
+	if (w.IsClientError() || w.IsServerError()) && !w.IsErrorPresent() {
 		if strutil.IsNotEmpty(w.message) {
 			w.errors = NewError(w.message)
 		} else {
 			w.errors = NewErrorf("HTTP %d error with no message", w.StatusCode())
 		}
+	}
+
+	// If an error is present but the status code indicates success, override the status code to 500 Internal Server Error
+	// to maintain consistency between the presence of an error and the status code.
+	if w.IsErrorPresent() && w.IsSuccess() {
+		base := InternalServerError
+		w.
+			WithDebuggingKVf("status_code_override", "status code indicates %s but error is present; auto-corrected to %s",
+				w.StatusText(), base.StatusText()).
+			WithHeader(base)
 	}
 }
 

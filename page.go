@@ -95,6 +95,99 @@ func (p *pagination) WithIsLast(v bool) *pagination {
 	return p
 }
 
+// Available checks whether the [pagination] instance is non-nil.
+//
+// This function ensures that the [pagination] object exists and is not nil.
+// It serves as a safety check to avoid null pointer dereferences when accessing the instance's fields or methods.
+//
+// Returns:
+//   - A boolean value indicating whether the [pagination] instance is non-nil:
+//   - `true` if the [pagination] instance is non-nil.
+//   - `false` if the [pagination] instance is nil.
+func (p *pagination) Available() bool {
+	return p != nil
+}
+
+// Page retrieves the current page number from the [pagination] instance.
+//
+// This function checks if the [pagination] instance is available (non-nil) before
+// returning the value of the `page` field. If the instance is not available, it
+// returns a default value of `0`.
+//
+// Returns:
+//   - An integer representing the current page number.
+//   - `0` if the [pagination] instance is not available.
+func (p *pagination) Page() int {
+	if !p.Available() {
+		return 0
+	}
+	return p.page
+}
+
+// PerPage retrieves the number of items per page from the [pagination] instance.
+//
+// This function checks if the [pagination] instance is available (non-nil) before
+// returning the value of the `perPage` field. If the instance is not available, it
+// returns a default value of `0`.
+//
+// Returns:
+//   - An integer representing the number of items per page.
+//   - `0` if the [pagination] instance is not available.
+func (p *pagination) PerPage() int {
+	if !p.Available() {
+		return 0
+	}
+	return p.perPage
+}
+
+// TotalPages retrieves the total number of pages from the [pagination] instance.
+//
+// This function checks if the [pagination] instance is available (non-nil) before
+// returning the value of the `totalPages` field. If the instance is not available, it
+// returns a default value of `0`.
+//
+// Returns:
+//   - An integer representing the total number of pages.
+//   - `0` if the [pagination] instance is not available.
+func (p *pagination) TotalPages() int {
+	if !p.Available() {
+		return 0
+	}
+	return p.totalPages
+}
+
+// TotalItems retrieves the total number of items from the [pagination] instance.
+//
+// This function checks if the [pagination] instance is available (non-nil) before
+// returning the value of the `totalItems` field. If the instance is not available, it
+// returns a default value of `0`.
+//
+// Returns:
+//   - An integer representing the total number of items.
+//   - `0` if the [pagination] instance is not available.
+func (p *pagination) TotalItems() int {
+	if !p.Available() {
+		return 0
+	}
+	return p.totalItems
+}
+
+// IsLast checks whether the current pagination represents the last page.
+//
+// This function checks the `isLast` field of the [pagination] instance to determine if the current page is the last one.
+// The `isLast` field is typically set to `true` when there are no more pages of data available.
+//
+// Returns:
+//   - A boolean value indicating whether the current page is the last:
+//   - `true` if `isLast` is `true`, indicating this is the last page of results.
+//   - `false` if `isLast` is `false`, indicating more pages are available.
+func (p *pagination) IsLast() bool {
+	if !p.Available() {
+		return true
+	}
+	return p.isLast
+}
+
 // Norm adjusts the pagination fields to ensure consistency.
 //
 // This method recalculates the `totalPages` based on `totalItems` and `perPage`,

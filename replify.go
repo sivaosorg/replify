@@ -3138,7 +3138,7 @@ func (w *wrapper) StackTrace() StackTrace {
 	if !w.Available() || !w.IsError() {
 		return nil
 	}
-	w.autoCause() // ensure the error chain is fully initialized before checking for stack traces
+	w.autoAdjust() // ensure the error chain is fully initialized before checking for stack traces
 	type stackTracer interface {
 		StackTrace() StackTrace
 	}
@@ -3896,7 +3896,7 @@ func (w *wrapper) Respond() map[string]any {
 //	var response replify.R = replify.New().Reply()
 //	fmt.Println(response.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) Reply() R {
-	w.autoCause()
+	w.autoAdjust()
 	return R{wrapper: w}
 }
 
@@ -3914,7 +3914,7 @@ func (w *wrapper) Reply() R {
 //	var responsePtr *replify.R = replify.New().ReplyPtr()
 //	fmt.Println(responsePtr.JSON())  // Prints the wrapped response details, including data, headers, and metadata.
 func (w *wrapper) ReplyPtr() *R {
-	w.autoCause()
+	w.autoAdjust()
 	return &R{wrapper: w}
 }
 
@@ -3967,7 +3967,7 @@ func (w *wrapper) JSONBytes() []byte {
 // Returns:
 //   - A string representation of the [wrapper] instance, including relevant fields such as status code, message, data, headers, metadata, pagination, debugging information, total count, and path.
 func (w *wrapper) String() string {
-	w.autoCause()
+	w.autoAdjust()
 	sw := strchain.New()
 	if w.IsStatusCodePresent() {
 		sw.AppendF("status_code=%q", w.StatusText()).Space()
@@ -4051,7 +4051,7 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 	if !w.Available() {
 		return w
 	}
-	w.autoCause()
+	w.autoAdjust()
 	l := slogger.GlobalLogger()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
@@ -4116,7 +4116,7 @@ func (w *wrapper) Slogging(logger ...*slogger.Logger) *wrapper {
 	if !w.Available() {
 		return w
 	}
-	w.autoCause()
+	w.autoAdjust()
 	l := slogger.GlobalLogger()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
@@ -4135,7 +4135,7 @@ func (w *wrapper) Slogging(logger ...*slogger.Logger) *wrapper {
 	return w
 }
 
-// autoCause automatically synchronizes the [wrapper]'s error field with its message
+// autoAdjust automatically synchronizes the [wrapper]'s error field with its message
 // when the HTTP status code indicates a client (4xx) or server (5xx) error and no
 // explicit error has been set yet.
 //
@@ -4147,11 +4147,14 @@ func (w *wrapper) Slogging(logger ...*slogger.Logger) *wrapper {
 //   - the status code is not an error code (i.e. not 4xx or 5xx).
 //   - an error is already present (w.errors != nil).
 //   - the message field is empty.
-func (w *wrapper) autoCause() {
-	if !w.Available() || w.errors != nil {
+func (w *wrapper) autoAdjust() {
+	if !w.Available() {
 		return
 	}
-	if w.IsClientError() || w.IsServerError() {
+
+	// If the status code indicates a client or server error and no explicit error is set,
+	// create an error from the message or a default message if the message is empty.
+	if (w.IsClientError() || w.IsServerError()) && w.errors == nil {
 		if strutil.IsNotEmpty(w.message) {
 			w.errors = NewError(w.message)
 		} else {

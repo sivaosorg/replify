@@ -71,6 +71,126 @@ func (h *header) WithDescription(v string) *header {
 	return h
 }
 
+// Available checks if the [header] instance is non-nil.
+//
+// This function ensures that the [header] instance is not nil before performing any operations.
+// It returns `true` if the [header] is non-nil, and `false` if the [header] is nil.
+//
+// Returns:
+//   - `true` if the [header] instance is not nil.
+//   - `false` if the [header] instance is nil.
+func (h *header) Available() bool {
+	return h != nil
+}
+
+// IsCodePresent checks if the `code` field in the [header] instance is present and greater than zero.
+//
+// This function first checks if the [header] is available (non-nil), and then checks if the `code`
+// field is greater than zero, indicating that it is present and valid.
+//
+// Returns:
+//   - `true` if the `code` field is greater than zero.
+//   - `false` if the `code` field is either not present (nil) or zero.
+func (h *header) IsCodePresent() bool {
+	return h.Available() && h.code > 0
+}
+
+// IsTextPresent checks if the `text` field in the [header] instance is present and not empty.
+//
+// This function verifies if the [header] is available and if the `text` field is not empty, using
+// the `strutil.IsNotEmpty` utility to ensure the presence of the `text` field.
+//
+// Returns:
+//   - `true` if the `text` field is non-empty.
+//   - `false` if the `text` field is either not present (nil) or empty.
+func (h *header) IsTextPresent() bool {
+	return h.Available() && strutil.IsNotEmpty(h.text)
+}
+
+// IsTypePresent checks if the `Type` field in the [header] instance is present and not empty.
+//
+// This function checks if the [header] instance is available and if the `Type` field is not empty,
+// utilizing the `strutil.IsNotEmpty` utility to determine whether the `Type` field contains a value.
+//
+// Returns:
+//   - `true` if the `Type` field is non-empty.
+//   - `false` if the `Type` field is either not present (nil) or empty.
+func (h *header) IsTypePresent() bool {
+	return h.Available() && strutil.IsNotEmpty(h.typez)
+}
+
+// IsDescriptionPresent checks if the `description` field in the [header] instance is present and not empty.
+//
+// This function ensures that the [header] is available and that the `description` field is not empty,
+// using `strutil.IsNotEmpty` to check for non-emptiness.
+//
+// Returns:
+//   - `true` if the `description` field is non-empty.
+//   - `false` if the `description` field is either not present (nil) or empty.
+func (h *header) IsDescriptionPresent() bool {
+	return h.Available() && strutil.IsNotEmpty(h.description)
+}
+
+// Code retrieves the code value from the [header] instance.
+//
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `code` field. If the [header] instance is unavailable, it returns 0.
+//
+// Returns:
+//   - The `code` as an integer if available.
+//   - 0 if the [header] instance is unavailable.
+func (h *header) Code() int {
+	if !h.Available() {
+		return 0
+	}
+	return h.code
+}
+
+// Text retrieves the text value from the [header] instance.
+//
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `text` field. If the [header] instance is unavailable, it returns an empty string.
+//
+// Returns:
+//   - The `text` as a string if available.
+//   - An empty string if the [header] instance is unavailable.
+func (h *header) Text() string {
+	if !h.Available() {
+		return ""
+	}
+	return h.text
+}
+
+// Type retrieves the type value from the [header] instance.
+//
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `Type` field. If the [header] instance is unavailable, it returns an empty string.
+//
+// Returns:
+//   - The `Type` as a string if available.
+//   - An empty string if the [header] instance is unavailable.
+func (h *header) Type() string {
+	if !h.Available() {
+		return ""
+	}
+	return h.typez
+}
+
+// Description retrieves the description value from the [header] instance.
+//
+// This function checks if the [header] instance is available (non-nil) before retrieving
+// the `description` field. If the [header] instance is unavailable, it returns an empty string.
+//
+// Returns:
+//   - The `description` as a string if available.
+//   - An empty string if the [header] instance is unavailable.
+func (h *header) Description() string {
+	if !h.Available() {
+		return ""
+	}
+	return h.description
+}
+
 // Respond generates a map representation of the [header] instance.
 //
 // This function checks if the [header] instance is available (non-nil) and includes the

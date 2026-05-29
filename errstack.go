@@ -21,7 +21,7 @@ import (
 //	fmt.Printf("%+v", trace)
 func (s *stack) StackTrace() StackTrace {
 	f := make([]Frame, len(*s))
-	for i := 0; i < len(f); i++ {
+	for i := range f {
 		f[i] = Frame((*s)[i])
 	}
 	return f
@@ -45,7 +45,7 @@ func (f Frame) MarshalText() ([]byte, error) {
 	if name == ErrUnknown {
 		return []byte(name), nil
 	}
-	return []byte(fmt.Sprintf("%s %s:%d", name, f.file(), f.line())), nil
+	return fmt.Appendf(nil, "%s %s:%d", name, f.file(), f.line()), nil
 }
 
 // Frame represents a program counter inside a stack frame.

@@ -3120,38 +3120,48 @@ func (w *wrapper) BindCause() *wrapper {
 
 // StackTrace returns the [StackTrace] embedded in the error held by this [wrapper].
 //
-// When the error was created with a stack-capturing constructor ([NewError],
-// [NewErrorf], [NewErrorAck], [NewErrorAckf], [AppendErrorAck], [AppendErrorAckf])
-// the embedded [StackTrace] is returned directly via the internal stackTracer
-// interface. For errors without an embedded trace (e.g. bare [AppendError] /
-// [AppendErrorf]) or when no error is set, [Callers] is invoked at the call
-// site so that a non-empty [StackTrace] is always returned.
+// The method is strictly error-focused: it only returns a non-nil [StackTrace]
+// when an error is actually present ([IsError] returns true) and the stored
+// error was created with a stack-capturing constructor ([NewError], [NewErrorf],
+// [NewErrorAck], [NewErrorAckf], [AppendErrorAck], [AppendErrorAckf]).
+//
+// Returns nil in all other cases:
+//   - The [wrapper] is nil or unavailable.
+//   - No error is set (w.errors == nil / [IsError] returns false).
+//   - The stored error carries no embedded stack (e.g. bare [AppendError] /
+//     [AppendErrorf]).
 //
 // Returns:
-//   - The [StackTrace] from the stored error, or the current call-site trace
-//     when the stored error carries no stack.
+//   - The [StackTrace] from the stored error, or nil when no stack-aware error
+//     is present.
 func (w *wrapper) StackTrace() StackTrace {
-	if w.Available() && w.errors != nil {
-		type stackTracer interface {
-			StackTrace() StackTrace
-		}
-		if st, ok := w.errors.(stackTracer); ok {
-			return st.StackTrace()
-		}
+	if !w.Available() || !w.IsError() {
+		return nil
 	}
-	return Callers().StackTrace()
+	w.autoCause() // ensure the error chain is fully initialized before checking for stack traces
+	type stackTracer interface {
+		StackTrace() StackTrace
+	}
+	if st, ok := w.errors.(stackTracer); ok {
+		return st.StackTrace()
+	}
+	return nil
 }
 
 // StackTraceString returns a formatted, human-readable representation of the
 // [StackTrace] associated with this [wrapper].
 //
-// The output is equivalent to fmt.Sprintf("%+v", w.StackTrace()), producing
-// one line per frame with the function name, source-file path, and line number.
+// Returns an empty string when [StackTrace] returns nil (i.e. no error is set
+// or the error carries no embedded stack trace).
 //
 // Returns:
-//   - A multi-line string with one formatted frame per line.
+//   - A multi-line string with one formatted frame per line, or an empty string.
 func (w *wrapper) StackTraceString() string {
-	return fmt.Sprintf("%+v", w.StackTrace())
+	trace := w.StackTrace()
+	if len(trace) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%+v", trace)
 }
 
 // WithStackTrace captures the call stack at the point this method is invoked

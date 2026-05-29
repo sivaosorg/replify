@@ -341,6 +341,7 @@ type wrapper struct {
 	pagination *pagination    // Pagination details, if applicable.
 	debug      map[string]any // Debugging information (useful for development).
 	errors     error          // Internal errors (not exposed in JSON responses).
+	skipBody   bool           // When true, the body payload is omitted from String(), build(), and Slogging() output.
 	cachedWrap map[string]any // Cached response data for performance optimization.
 	cacheHash  string         // Hash of the cached response, used for cache validation.
 	cacheMutex sync.RWMutex   // Mutex for synchronizing access to the cached response data.

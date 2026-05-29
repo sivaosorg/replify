@@ -72,6 +72,16 @@ func WithBody(v any) ROption {
 	}
 }
 
+// WithSkipBody returns an [ROption] that controls whether the body payload
+// is omitted from [String], [build], and [Slogging] output.
+// Pass true to suppress the body (useful when the payload is too large or
+// sensitive to include in logs); false restores default behavior.
+func WithSkipBody(skip bool) ROption {
+	return func(w *wrapper) {
+		w.WithSkipBody(skip)
+	}
+}
+
 // WithPath returns an [ROption] that sets the request path.
 func WithPath(v string) ROption {
 	return func(w *wrapper) {

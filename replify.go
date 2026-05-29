@@ -1993,6 +1993,38 @@ func (w *wrapper) StackTraceString() string {
 	return fmt.Sprintf("%+v", trace)
 }
 
+// WithSkipBody controls whether the body payload is omitted from output.
+//
+// When skip is true the body is excluded from [String], [build], and
+// [Slogging] — useful when the payload is too large or sensitive to
+// include in logs. The body data itself is still stored on the wrapper
+// and can be retrieved via [Body] or [BodyString] at any time.
+//
+// The default value is false (body is always rendered).
+//
+// Parameters:
+//   - skip: Pass true to suppress the body; false to restore default behavior.
+//
+// Returns:
+//   - A pointer to the [wrapper] instance, enabling method chaining.
+func (w *wrapper) WithSkipBody(skip bool) *wrapper {
+	if !w.Available() {
+		return w
+	}
+	w.skipBody = skip
+	return w
+}
+
+// IsBodySkipped reports whether the body payload is currently suppressed
+// from output by [String], [build], and [Slogging].
+//
+// Returns:
+//   - true if [WithSkipBody](true) has been called on this instance.
+//   - false otherwise (default).
+func (w *wrapper) IsBodySkipped() bool {
+	return w.Available() && w.skipBody
+}
+
 // WithStackTrace captures the call stack at the point this method is invoked
 // and stores the formatted frames in the [wrapper]'s debug map under the
 // key "stack_trace". Each frame is serialized using [Frame.MarshalText].
@@ -2810,7 +2842,7 @@ func (w *wrapper) String() string {
 	if w.IsError() {
 		sw.AppendF("error=%q", w.Error()).Space()
 	}
-	if w.IsBodyPresent() {
+	if w.IsBodyPresent() && !w.skipBody {
 		sw.AppendF("data=%+v", w.BodyString()).Space()
 	}
 	if w.IsTotalPresent() {
@@ -3030,7 +3062,7 @@ func (w *wrapper) build() map[string]any {
 	if strutil.IsNotEmpty(w.message) {
 		m["message"] = w.message
 	}
-	if w.IsBodyPresent() {
+	if w.IsBodyPresent() && !w.skipBody {
 		m["data"] = safeBody(w.data)
 	}
 	if w.IsTotalPresent() {

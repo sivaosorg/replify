@@ -8,6 +8,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/fj"
 	"github.com/sivaosorg/replify/pkg/randn"
+	"github.com/sivaosorg/replify/pkg/slogger"
 	"github.com/sivaosorg/replify/pkg/strchain"
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
@@ -1379,6 +1380,120 @@ func (m *meta) String() string {
 		sw.AppendF("delta_value=%f", m.deltaValue)
 	}
 	return sw.String()
+}
+
+// Logging dispatches a structured log entry for this response using [slogger] with the log message set to a default or custom message.
+// The log level is automatically selected based on the HTTP status code range:
+//
+//   - 1xx → Debug  (informational)
+//   - 2xx → Info   (success)
+//   - 3xx → Warn   (redirection)
+//   - 4xx → Error  (client error)
+//   - 5xx → Error  (server error; [slogger.Logger.Fatal] is intentionally avoided because it calls os.Exit(1))
+//   - other → Trace (no status code set)
+//
+// The log field key is "META" and its value is the structured map returned
+// by [meta.Respond], serialized as JSON by the active formatter.
+//
+// # Thread-safety
+//
+// Logging is safe for concurrent use. The supplied logger is never mutated: a
+// goroutine-local child is derived via [slogger.Logger.With] on every call so
+// that the caller-skip adjustment and caller-enable flag stay local to the
+// current goroutine. Concurrent callers sharing the same *[slogger.Logger]
+// will not race. The meta field (locale) is read exactly once per call to give a consistent snapshot; meta fields are expected to be immutable after construction via [Meta] / [With*] options.
+//
+// # Caller reporting
+//
+// Caller information is always enabled for this call. callerSkip is set to 3
+// to skip Logging, the slogger trampoline (Trace/Debug/Info/Warn/Error), and the caller of Logging, so the reported file and line resolve to the actual call site of Logging.
+//
+// Parameters:
+//   - `logger`: optional *[slogger.Logger] to use. When omitted or nil, the
+//     package-level global logger ([slogger.GlobalLogger]) is used.
+//
+// Returns:
+//
+// the receiver *meta unchanged, enabling method chaining.
+//
+// Example:
+//
+//	replify.Meta().
+//	    WithLocale("en-US").
+//	    WithCustomFieldKV("request_id", reqID).
+//	    Logging()
+func (m *meta) Logging(logger ...*slogger.Logger) *meta {
+	if m == nil {
+		return m
+	}
+	l := slogger.GlobalLogger()
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	}
+
+	msg := strutil.DefaultIfEmpty(m.locale, "replify::meta::logging")
+
+	child := l.With()
+	child.WithCaller(true).WithCallerSkip(3)
+
+	logAtLevel(child, slogger.InfoLevel, msg, slogger.JSON("META", m.Respond()))
+	return m
+}
+
+// Slogging dispatches a structured log entry for this response using [slogger] with the log message set to the meta's string representation.
+// The log level is automatically selected based on the HTTP status code range:
+//
+//   - 1xx → Debug  (informational)
+//   - 2xx → Info   (success)
+//   - 3xx → Warn   (redirection)
+//   - 4xx → Error  (client error)
+//   - 5xx → Error  (server error; [slogger.Logger.Fatal] is intentionally avoided because it calls os.Exit(1))
+//   - other → Trace (no status code set)
+//
+// The log field key is "META" and its value is the structured map returned
+// by [meta.Respond], serialized as Text by the active formatter.
+//
+// # Thread-safety
+//
+// Slogging is safe for concurrent use. The supplied logger is never mutated: a
+// goroutine-local child is derived via [slogger.Logger.With] on every call so
+// that the caller-skip adjustment and caller-enable flag stay local to the
+// current goroutine. Concurrent callers sharing the same *[slogger.Logger]
+// will not race. The meta field (locale) is read exactly once per call to give a consistent snapshot; meta fields are expected to be immutable after construction via [Meta] / [With*] options.
+//
+// # Caller reporting
+//
+// Caller information is always enabled for this call. callerSkip is set to 3
+// to skip Slogging, the slogger trampoline (Trace/Debug/Info/Warn/Error), and the caller of Slogging, so the reported file and line resolve to the actual call site of Slogging.
+//
+// Parameters:
+//   - `logger`: optional *[slogger.Logger] to use. When omitted or nil, the
+//     package-level global logger ([slogger.GlobalLogger]) is used.
+//
+// Returns:
+//
+// the receiver *meta unchanged, enabling method chaining.
+//
+// Example:
+//
+//	replify.Meta().
+//	    WithLocale("en-US").
+//	    WithCustomFieldKV("request_id", reqID).
+//	    Slogging()
+func (m *meta) Slogging(logger ...*slogger.Logger) *meta {
+	if m == nil {
+		return m
+	}
+	l := slogger.GlobalLogger()
+	if len(logger) > 0 && logger[0] != nil {
+		l = logger[0]
+	}
+
+	child := l.With()
+	child.WithCaller(true).WithCallerSkip(3)
+
+	slogAtLevel(child, slogger.InfoLevel, m.String())
+	return m
 }
 
 // autoRequestID generates and sets a random request ID for the [meta] instance if it is not already present.

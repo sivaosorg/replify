@@ -3093,3 +3093,14 @@ func (w *wrapper) build() map[string]any {
 func (s StatusCode) Value() int {
 	return int(s)
 }
+
+// StatusText returns a string representation of the StatusCode, combining its integer value with the standard HTTP status text.
+//
+// This method formats the StatusCode as a string in the format "code (text)", where "code" is the integer value of the status code
+// and "text" is the standard HTTP status text corresponding to that code (e.g., "200 (OK)", "404 (Not Found)").
+//
+// Returns:
+//   - A string representing the StatusCode in a human-readable format.
+func (s StatusCode) StatusText() string {
+	return fmt.Sprintf("%d (%s)", s.Value(), http.StatusText(s.Value()))
+}

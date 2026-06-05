@@ -26,19 +26,24 @@ The `sysx` package eliminates the boilerplate of writing low-level system querie
 
 ## Package Architecture
 
-| File | Responsibility |
-|------|----------------|
-| `type.go` | Struct definitions (`Command`, `CommandResult`, `SafeFileWriter`) with unexported fields; getter/accessor methods; package-level globals |
-| `doc.go` | Package-level godoc documentation |
-| `os.go` | OS and architecture detection (`IsLinux`, `IsDarwin`, `IsWindows`, `OSVersion`, …) |
-| `runtime.go` | Runtime information (`Hostname`, `PID`, `UID`, `GoVersion`, `MemStats`, …) |
-| `env.go` | Environment variable helpers (`Getenv`, `MustGetenv`, `Hasenv`, typed getters, `EnvMap`) |
-| `process.go` | Process utilities (`ProcessExists`, `KillProcess`, `FindProcessByPID`, …) |
-| `command.go` | Command builder (`NewCommand`, `With*` methods, `Execute`, `Run`, `Output`) and all convenience functions |
-| `file.go` | File system helpers — existence/type/permission checks, read/write functions, atomic and concurrency-safe writers |
-| `net.go` | Network utilities — IP classification, port probing, address resolution, connectivity helpers |
-| `utilities.go` | Internal helpers (`parseBoolString`, `splitLines`) and exported `UserInfo()` |
-| `entry.go` | Top-level convenience (`SystemInfo`, `IsPrivileged`) |
+| File           | Responsibility                                                                                                                           |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `type.go`      | Struct definitions (`Command`, `CommandResult`, `SafeFileWriter`) with unexported fields; getter/accessor methods; package-level globals |
+| `doc.go`       | Package-level godoc documentation                                                                                                        |
+| `os.go`        | OS and architecture detection (`IsLinux`, `IsDarwin`, `IsWindows`, `OSVersion`, …)                                                       |
+| `runtime.go`   | Runtime information (`Hostname`, `PID`, `UID`, `GoVersion`, `MemStats`, …)                                                               |
+| `env.go`       | Environment variable helpers (`Getenv`, `MustGetenv`, `Hasenv`, typed getters, `EnvMap`)                                                 |
+| `process.go`   | Process utilities (`ProcessExists`, `KillProcess`, `FindProcessByPID`, …)                                                                |
+| `command.go`   | Command builder (`NewCommand`, `With*` methods, `Execute`, `Run`, `Output`) and all convenience functions                                |
+| `file.go`      | File system helpers — existence/type/permission checks, read/write functions, atomic and concurrency-safe writers                        |
+| `net.go`       | Network utilities — IP classification, port probing, address resolution, connectivity helpers                                            |
+| `utilities.go` | Internal helpers (`parseBoolString`, `splitLines`) and exported `UserInfo()`                                                             |
+| `entry.go`     | Top-level convenience (`SystemInfo`, `IsPrivileged`)                                                                                     |
+| `resource.go`  | `Resource` builder with chainable `With*` setters and `From*` loaders, plus lifecycle methods (`Close`, `Rewind`, `CopyTo`, `Drain`)     |
+| `memblob.go`   | `MemBlob`: in-memory `ReadSeekCloser` backing for small payloads                                                                         |
+| `tempfile.go`  | `TempFile`: on-disk temporary file backing with idempotent `Close` and configurable auto-removal                                         |
+| `spillbuf.go`  | Private hybrid memory → spill-file backing used by `FromReader`                                                                          |
+| `mime.go`      | `MimeFromName` helper, MIME constants, and `ErrNilResource`                                                                              |
 
 ## Installation
 
@@ -73,12 +78,12 @@ sysx.OSVersion() string // best-effort OS version string
 
 **OSVersion resolution:**
 
-| Platform | Source |
-|----------|--------|
-| Linux | `PRETTY_NAME` field from `/etc/os-release` |
-| macOS | Output of `sw_vers -productVersion` |
-| Windows | `runtime.GOOS + "/" + runtime.GOARCH` |
-| Other | `runtime.GOOS` |
+| Platform | Source                                     |
+| -------- | ------------------------------------------ |
+| Linux    | `PRETTY_NAME` field from `/etc/os-release` |
+| macOS    | Output of `sw_vers -productVersion`        |
+| Windows  | `runtime.GOOS + "/" + runtime.GOARCH`      |
+| Other    | `runtime.GOOS`                             |
 
 ### Runtime Information (`runtime.go`)
 
@@ -114,8 +119,8 @@ sysx.EnvMap() map[string]string                   // all env vars as map
 
 **Bool string recognition (case-insensitive):**
 
-| Truthy | Falsy |
-|--------|-------|
+| Truthy                   | Falsy                     |
+| ------------------------ | ------------------------- |
 | `1`, `true`, `yes`, `on` | `0`, `false`, `no`, `off` |
 
 ### Process Utilities (`process.go`)
@@ -284,7 +289,7 @@ sysx.IsIPv6("::1")          bool  // true for valid IPv6 (non-IPv4)
 sysx.IsLocalIP("10.0.0.1")  bool  // true for loopback, link-local, RFC 1918
 ```
 
-Recognised local ranges: `127.0.0.0/8`, `169.254.0.0/16`, `10.0.0.0/8`,
+Recognized local ranges: `127.0.0.0/8`, `169.254.0.0/16`, `10.0.0.0/8`,
 `172.16.0.0/12`, `192.168.0.0/16`, `::1`, `fe80::/10`, `fc00::/7`.
 
 #### Port Probing
@@ -331,6 +336,155 @@ sysx.IsPrivileged() bool  // true when UID() == 0 (root on Unix)
 ```go
 sysx.UserInfo() string  // "uid=1000 gid=1000"
 ```
+
+### Resource — Storage-Agnostic Exports (`resource.go`, `memblob.go`, `tempfile.go`, `spillbuf.go`, `mime.go`)
+
+`Resource` is the storage-agnostic envelope every data-exporting workflow returns instead of a raw `*os.File` — reports, dumps, archives, attachments, backups, media generation, document rendering, etc. Consumers (Telegram, S3, email, HTTP download, Discord, storage, backup workers) depend only on `Resource` and the standard `io` interfaces; they never know whether the bytes live in memory, on disk, or in a streaming pipe.
+
+#### Contract
+
+```go
+type ReadSeekCloser interface {
+    io.Reader
+    io.Seeker
+    io.Closer
+}
+
+// All fields are unexported; access via getters / chainable setters.
+type Resource struct{ /* name, size, contentType, content, ... */ }
+```
+
+Accessors:
+
+```go
+res.Name()           string
+res.Size()           int64
+res.ContentType()    string
+res.Content()        sysx.ReadSeekCloser
+res.SpillThreshold() int64
+res.TempPattern()    string
+res.TempDir()        string
+res.RemoveOnClose()  bool
+```
+
+Chainable setters (configure-then-load builder):
+
+```go
+res.WithName(name)              *Resource
+res.WithContentType(mime)       *Resource
+res.WithSize(n)                 *Resource
+res.WithContent(rsc)            *Resource
+res.WithSpillThreshold(bytes)   *Resource
+res.WithTempPattern(pattern)    *Resource
+res.WithTempDir(dir)            *Resource
+res.WithRemoveOnClose(bool)     *Resource
+```
+
+Loaders (each takes a single source):
+
+```go
+res.FromBytes([]byte)                          *Resource
+res.FromString(string)                         *Resource
+res.FromFile(*os.File)                         (*Resource, error)
+res.FromTempFile(func(io.Writer) error)        (*Resource, error)
+res.FromReader(io.Reader)                      (*Resource, error)
+```
+
+Lifecycle / consumption:
+
+```go
+res.Close()                  // release backing (idempotent, nil-safe)
+res.Rewind()                 // seek to offset 0
+res.CopyTo(io.Writer)        // stream payload into a sink
+res.Drain()                  // consume and discard
+```
+
+Backings:
+
+| Type             | Storage                                   | `Close()`                       |
+| ---------------- | ----------------------------------------- | ------------------------------- |
+| `*sysx.MemBlob`  | byte slice                                | no-op                           |
+| `*sysx.TempFile` | on-disk temporary file                    | closes + unlinks (configurable) |
+| _(private)_      | hybrid memory → spill file (`FromReader`) | closes spill file when present  |
+
+MIME helpers (in `mime.go`):
+
+```go
+sysx.MimeFromName("dump.tar.gz")  // → "application/gzip"
+sysx.MimeFromName("report.csv")   // → "text/csv; charset=utf-8"
+// Constants: MimeOctetStream, MimeText, MimeCSV, MimeJSON, MimeXML,
+//            MimeHTML, MimePDF, MimeZIP, MimeGZIP, MimeSQL
+```
+
+#### Producer examples
+
+```go
+// 1) In-memory CSV
+res := sysx.NewResource().
+    WithName("hello.csv").
+    FromString("a,b\n1,2\n")
+defer res.Close()
+
+// 2) Large export spilled to a temp file (auto-removed on Close)
+res, err := sysx.NewResource().
+    WithName("audit.csv").
+    WithTempPattern("audit-*.csv").
+    FromTempFile(func(w io.Writer) error {
+        _, err := w.Write(payload)
+        return err
+    })
+
+// 3) Streaming pg_dump | gzip — seekable for S3 multipart
+cmd := exec.CommandContext(ctx, "pg_dump", "my_db")
+stdout, _ := cmd.StdoutPipe()
+_ = cmd.Start()
+res, err := sysx.NewResource().
+    WithName("dump.sql.gz").
+    WithSpillThreshold(16 << 20).      // 16 MiB
+    FromReader(stdout)
+
+// 4) Adopt an existing on-disk file without copying
+f, _ := os.Open("/tmp/snapshot.bin")
+res, err := sysx.NewResource().
+    WithRemoveOnClose(false).          // do not unlink the file on Close
+    FromFile(f)
+```
+
+#### Consumer examples
+
+Every consumer looks identical regardless of how the bytes were produced.
+
+```go
+// HTTP download
+func DownloadHandler(w http.ResponseWriter, r *http.Request, res *sysx.Resource) error {
+    defer res.Close()
+    w.Header().Set("Content-Disposition", "attachment; filename="+res.Name())
+    w.Header().Set("Content-Type", res.ContentType())
+    _, err := res.CopyTo(w)
+    return err
+}
+
+// S3 upload
+func UploadToS3(ctx context.Context, c S3Client, res *sysx.Resource) error {
+    defer res.Close()
+    _, err := c.PutObject(ctx, res.Name(), res.Content(), res.Size())
+    return err
+}
+
+// Telegram upload
+func SendToTelegram(ctx context.Context, bot TelegramBot, res *sysx.Resource) error {
+    defer res.Close()
+    return bot.SendDocument(ctx, res.Name(), res.Content())
+}
+```
+
+#### Architectural principles
+
+1. Business code returns `*sysx.Resource`, never `*os.File`.
+2. Consumers depend on `Resource` and on the standard `io` interfaces.
+3. Implementations are interchangeable: memory, temp file, hybrid stream.
+4. Cleanup is explicit and lives behind `Resource.Close` (idempotent, nil-safe).
+5. New backings (object storage stream, encrypted pipe, database blob, …) plug in through `WithContent` without changes to existing consumers.
 
 ## Usage Examples
 
@@ -539,7 +693,7 @@ if err := sysx.AtomicWriteFile("/etc/app/config.json", newJSON); err != nil {
 
 ### Per-path in-process locking
 
-`WriteFileLocked` serialises concurrent writes to the same path using a
+`WriteFileLocked` serialize concurrent writes to the same path using a
 package-level `sync.Map` of mutexes. No goroutine observes a half-written file
 within the same process.
 
@@ -552,7 +706,7 @@ go sysx.WriteFileLocked("/tmp/shared.dat", payload2)
 ### `SafeFileWriter` — reusable concurrent writer
 
 Share a single `SafeFileWriter` instance across goroutines for safe append
-operations. The internal mutex serialises every `Write`, `WriteString`, and
+operations. The internal mutex serialize every `Write`, `WriteString`, and
 `Overwrite` call.
 
 ```go
@@ -574,16 +728,17 @@ w.Overwrite(updatedConfig) // temp-file + rename under the mutex
 
 ## Performance Considerations
 
-| Operation | Implementation detail |
-|-----------|----------------------|
-| `ReadLines` / `StreamLines` | `bufio.Scanner` — one line in memory, large files handled efficiently |
-| `WriteLines` | `bufio.Writer` — batches small writes into a single syscall |
-| `commandBuffer` (internal) | `strings.Builder` — avoids `bytes.Buffer` allocations for command output |
-| `AtomicWriteFile` | single `os.Rename` syscall; no extra read pass |
-| `WriteFileLocked` | `sync.Map` + per-path `sync.Mutex` — O(1) contention lookup |
-| `SafeFileWriter` | single mutex per instance — lowest overhead for repeated appends to one file |
+| Operation                   | Implementation detail                                                        |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| `ReadLines` / `StreamLines` | `bufio.Scanner` — one line in memory, large files handled efficiently        |
+| `WriteLines`                | `bufio.Writer` — batches small writes into a single syscall                  |
+| `commandBuffer` (internal)  | `strings.Builder` — avoids `bytes.Buffer` allocations for command output     |
+| `AtomicWriteFile`           | single `os.Rename` syscall; no extra read pass                               |
+| `WriteFileLocked`           | `sync.Map` + per-path `sync.Mutex` — O(1) contention lookup                  |
+| `SafeFileWriter`            | single mutex per instance — lowest overhead for repeated appends to one file |
 
 **Guidelines:**
+
 - For large files, always prefer `StreamLines` over `ReadLines` to avoid loading the whole file into memory.
 - Re-use a `SafeFileWriter` instance across goroutines rather than calling `AppendFile` concurrently (which uses no lock).
 - Use `AtomicWriteFile` when readers and writers run concurrently; it prevents any reader from seeing partial data.
@@ -600,37 +755,37 @@ w.Overwrite(updatedConfig) // temp-file + rename under the mutex
 
 ## Platform Caveats
 
-| Feature | Linux | macOS | Windows |
-|---------|-------|-------|---------|
-| `UID()` / `GID()` | numeric | numeric | always -1 |
-| `PPID()` | supported | supported | always 0 |
-| `ProcessExists` | signal(0) | signal(0) | FindProcess (unreliable for dead PIDs) |
-| `KillProcess` | SIGTERM | SIGTERM | limited |
-| `KillProcessForcefully` | SIGKILL | SIGKILL | limited |
-| `IsExecutable` / `IsReadable` | mode bits | mode bits | approximation |
-| `IsWritable` | open test | open test | open test |
-| `OSVersion` | `/etc/os-release` | `sw_vers` | GOOS/GOARCH string |
-| `IsPrivileged` | UID==0 | UID==0 | always false |
-| `AtomicWriteFile` rename | atomic (same fs) | atomic (same fs) | not guaranteed atomic |
-| `ExecStreaming` / `ExecPipeline` | full support | full support | partial support |
+| Feature                          | Linux             | macOS            | Windows                                |
+| -------------------------------- | ----------------- | ---------------- | -------------------------------------- |
+| `UID()` / `GID()`                | numeric           | numeric          | always -1                              |
+| `PPID()`                         | supported         | supported        | always 0                               |
+| `ProcessExists`                  | signal(0)         | signal(0)        | FindProcess (unreliable for dead PIDs) |
+| `KillProcess`                    | SIGTERM           | SIGTERM          | limited                                |
+| `KillProcessForcefully`          | SIGKILL           | SIGKILL          | limited                                |
+| `IsExecutable` / `IsReadable`    | mode bits         | mode bits        | approximation                          |
+| `IsWritable`                     | open test         | open test        | open test                              |
+| `OSVersion`                      | `/etc/os-release` | `sw_vers`        | GOOS/GOARCH string                     |
+| `IsPrivileged`                   | UID==0            | UID==0           | always false                           |
+| `AtomicWriteFile` rename         | atomic (same fs)  | atomic (same fs) | not guaranteed atomic                  |
+| `ExecStreaming` / `ExecPipeline` | full support      | full support     | partial support                        |
 
 ## When to Use `sysx` vs stdlib
 
-| Task | Prefer |
-|------|--------|
-| Quick OS check | `sysx.IsLinux()` vs `runtime.GOOS == "linux"` — both work; sysx adds readability |
-| Env var with fallback | `sysx.Getenv` — stdlib requires a conditional around `os.LookupEnv` |
-| Typed env vars | `sysx.GetenvInt` / `sysx.GetenvBool` — no stdlib equivalent |
-| Run command and capture output | `sysx.ExecOutput` — saves wiring `cmd.Stdout`, `cmd.Stderr` |
-| Command with timeout | `sysx.ExecCommandWithTimeout` — saves `context.WithTimeout` boilerplate |
-| Stream command output | `sysx.ExecStreaming` — pass any `io.Writer` |
-| Check if a file exists | `sysx.FileExists` — stdlib `os.Stat` + error check |
-| Read file as lines | `sysx.ReadLines` / `sysx.StreamLines` — stdlib requires `bufio.Scanner` setup |
-| Write file atomically | `sysx.AtomicWriteFile` — stdlib has no atomic helper |
-| Concurrent file writes | `sysx.SafeFileWriter` / `WriteFileLocked` — stdlib requires manual mutex |
-| Check if a process is alive | `sysx.ProcessExists` — stdlib requires `syscall.Kill(pid, 0)` and type assertion |
-| Complex I/O piping | `os/exec` directly — `sysx.ExecPipeline` covers linear chains only |
-| Watching the file system | `fsnotify` or stdlib — outside `sysx` scope |
+| Task                           | Prefer                                                                           |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| Quick OS check                 | `sysx.IsLinux()` vs `runtime.GOOS == "linux"` — both work; sysx adds readability |
+| Env var with fallback          | `sysx.Getenv` — stdlib requires a conditional around `os.LookupEnv`              |
+| Typed env vars                 | `sysx.GetenvInt` / `sysx.GetenvBool` — no stdlib equivalent                      |
+| Run command and capture output | `sysx.ExecOutput` — saves wiring `cmd.Stdout`, `cmd.Stderr`                      |
+| Command with timeout           | `sysx.ExecCommandWithTimeout` — saves `context.WithTimeout` boilerplate          |
+| Stream command output          | `sysx.ExecStreaming` — pass any `io.Writer`                                      |
+| Check if a file exists         | `sysx.FileExists` — stdlib `os.Stat` + error check                               |
+| Read file as lines             | `sysx.ReadLines` / `sysx.StreamLines` — stdlib requires `bufio.Scanner` setup    |
+| Write file atomically          | `sysx.AtomicWriteFile` — stdlib has no atomic helper                             |
+| Concurrent file writes         | `sysx.SafeFileWriter` / `WriteFileLocked` — stdlib requires manual mutex         |
+| Check if a process is alive    | `sysx.ProcessExists` — stdlib requires `syscall.Kill(pid, 0)` and type assertion |
+| Complex I/O piping             | `os/exec` directly — `sysx.ExecPipeline` covers linear chains only               |
+| Watching the file system       | `fsnotify` or stdlib — outside `sysx` scope                                      |
 
 ## Real-World Integration Examples
 
@@ -828,13 +983,13 @@ func findFreePort(start, end int) (int, error) {
 
 ### Platform Notes for Network Utilities
 
-| Feature | Linux | macOS | Windows |
-|---------|-------|-------|---------|
-| `GetLocalIP` | supported | supported | supported |
-| `GetPublicIP` | needs internet | needs internet | needs internet |
-| `IsPortAvailable` | TCP listen | TCP listen | TCP listen |
-| `PingHost` | TCP port 80 | TCP port 80 | TCP port 80 |
-| `CheckTCPConn` | full support | full support | full support |
+| Feature           | Linux          | macOS          | Windows        |
+| ----------------- | -------------- | -------------- | -------------- |
+| `GetLocalIP`      | supported      | supported      | supported      |
+| `GetPublicIP`     | needs internet | needs internet | needs internet |
+| `IsPortAvailable` | TCP listen     | TCP listen     | TCP listen     |
+| `PingHost`        | TCP port 80    | TCP port 80    | TCP port 80    |
+| `CheckTCPConn`    | full support   | full support   | full support   |
 
 > **Note:** `GetPublicIP` requires outbound internet access. It will fail in
 > air-gapped environments. Always handle its error gracefully in production code.

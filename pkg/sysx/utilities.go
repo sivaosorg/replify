@@ -131,10 +131,10 @@ func getFileMutex(path string) *sync.Mutex {
 
 // parseBool parses a lowercase, trimmed string as a boolean.
 //
-// Recognised true  values: "1", "true", "yes", "on"
-// Recognised false values: "0", "false", "no", "off"
+// Recognized true  values: "1", "true", "yes", "on"
+// Recognized false values: "0", "false", "no", "off"
 //
-// Returns (value, true) when the string is recognised, or (false, false) when
+// Returns (value, true) when the string is recognized, or (false, false) when
 // it is not.
 func parseBool(s string) (bool, bool) {
 	if strutil.IsEmpty(s) {

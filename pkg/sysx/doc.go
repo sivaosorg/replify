@@ -23,6 +23,11 @@
 //   - runtime.go   — hostname, PID, UID, CPU count, memory stats
 //   - utilities.go — internal helpers and UserInfo()
 //   - entry.go     — SystemInfo(), IsPrivileged()
+//   - resource.go  — Resource builder (NewResource + With*/From*) and lifecycle
+//   - memblob.go   — MemBlob: in-memory ReadSeekCloser backing
+//   - tempfile.go  — TempFile: on-disk temporary file backing with auto-cleanup
+//   - spillbuf.go  — private hybrid memory→disk buffer for streaming producers
+//   - mime.go      — MimeFromName helper and ErrNilResource
 //
 // # OS Detection
 //
@@ -132,7 +137,7 @@
 // Concurrency-safe and atomic writes:
 //
 //	sysx.AtomicWriteFile(path, data)        // temp-file + rename, prevents partial reads
-//	sysx.WriteFileLocked(path, data)        // per-path in-process mutex, serialises writers
+//	sysx.WriteFileLocked(path, data)        // per-path in-process mutex, serialize writers
 //	sysx.NewSafeFileWriter(path)            // reusable mutex-protected writer for one path
 //
 // # Directory Utilities
@@ -190,17 +195,71 @@
 //	sysx.PingHost(host)                              // TCP probe to port 80, 5s timeout
 //	sysx.CheckTCPConn(host, port, timeout)     // TCP connect with explicit timeout
 //
+// # Resource: storage-agnostic exports
+//
+// Resource is the envelope every data-exporting workflow (reports, dumps,
+// archives, attachments, backups, media generation, document rendering)
+// returns instead of a raw *os.File. Consumers — Telegram bots, S3
+// uploader, email services, HTTP download handlers, Discord bots,
+// generic storage services, backup workers — depend exclusively on
+// Resource and on the standard io interfaces.
+//
+// Builder API:
+//
+//	res := sysx.NewResource().
+//	    WithName("user-report.csv").
+//	    WithContentType(sysx.MimeCSV).      // optional; auto-derived from name
+//	    FromBytes(payload)                   // or FromString / FromReader / FromTempFile / FromFile
+//	defer res.Close()
+//
+// Configuration setters (all chainable):
+//
+//	res.WithName(string)                 // suggested filename
+//	res.WithContentType(string)          // IANA media type
+//	res.WithSize(int64)                  // explicit size for custom backings
+//	res.WithContent(ReadSeekCloser)      // attach a custom backing
+//	res.WithSpillThreshold(int64)        // FromReader memory ceiling
+//	res.WithTempPattern(string)          // os.CreateTemp pattern
+//	res.WithTempDir(string)              // parent dir for temp files
+//	res.WithRemoveOnClose(bool)          // arm/disarm temp-file cleanup
+//
+// Loaders (single-input "From*" methods):
+//
+//	res.FromBytes([]byte)                          *Resource
+//	res.FromString(string)                         *Resource
+//	res.FromFile(*os.File)                         (*Resource, error)
+//	res.FromTempFile(func(io.Writer) error)        (*Resource, error)
+//	res.FromReader(io.Reader)                      (*Resource, error)
+//
+// Lifecycle and consumption:
+//
+//	res.Close()                          // release backing (idempotent)
+//	res.Rewind()                         // seek to offset 0
+//	res.CopyTo(io.Writer)                // stream payload into a sink
+//	res.Drain()                          // consume and discard
+//
+// Built-in backings:
+//
+//	*sysx.MemBlob   — bytes-only, no I/O; Close is a no-op
+//	*sysx.TempFile  — on-disk temporary file with auto-removal on Close
+//	(private)       — hybrid memory→spill buffer used by FromReader
+//
+// MIME constants and helpers:
+//
+//	sysx.MimeCSV, MimeJSON, MimePDF, MimeGZIP, MimeOctetStream, …
+//	sysx.MimeFromName("dump.tar.gz")     // returns MimeGZIP
+//
 // # Concurrency and Safety Notes
 //
 // All exported functions in this package are safe for concurrent use.
-// WriteFileLocked and SafeFileWriter provide in-process serialisation via
+// WriteFileLocked and SafeFileWriter provide in-process serialization via
 // sync.Mutex. For cross-process atomicity, use AtomicWriteFile which relies on
 // the atomic rename(2) syscall on POSIX systems.
 //
 // # Cross-Platform Notes
 //
 // Path separator: use JoinPath and CleanPath instead of manual string
-// concatenation to ensure correct behaviour on all platforms.
+// concatenation to ensure correct behavior on all platforms.
 //
 // File permissions: mode bits set by CreateDir (0755) and write functions
 // (0644) are subject to the process umask on Unix. On Windows, mode bits are

@@ -1,6 +1,9 @@
 package sysx
 
-import "os"
+import (
+	"errors"
+	"os"
+)
 
 const (
 	// os.O_CREATE | os.O_WRONLY | os.O_APPEND
@@ -55,3 +58,36 @@ const (
 	// Flag for opening a file for reading and writing with append mode and creating it if it doesn't exist.
 	CRWA FileOpenFlags = FileOpenFlags(os.O_RDWR | os.O_CREATE | os.O_APPEND)
 )
+
+// IANA media-type constants used by Resource producers and consumers. They
+// are declared as untyped string constants so callers may pass them in any
+// string context without conversion.
+const (
+	MimeOctetStream = "application/octet-stream"
+	MimeText        = "text/plain; charset=utf-8"
+	MimeCSV         = "text/csv; charset=utf-8"
+	MimeJSON        = "application/json"
+	MimeXML         = "application/xml"
+	MimeHTML        = "text/html; charset=utf-8"
+	MimePDF         = "application/pdf"
+	MimeZIP         = "application/zip"
+	MimeGZIP        = "application/gzip"
+	MimeSQL         = "application/sql"
+)
+
+var (
+	// ErrNilResource is returned by Resource helpers when the receiver, its
+	// Content, or a required argument is nil.
+	ErrNilResource = errors.New("sysx: nil resource or nil content")
+)
+
+// DefaultSpillThreshold is the default in-memory ceiling used by Resource
+// builders before spilling the remainder of a stream onto a temporary
+// file. It balances avoidance of disk I/O for typical exports against
+// protection from runaway memory usage when streaming arbitrary
+// producers.
+const DefaultSpillThreshold int64 = 8 << 20 // 8 MiB
+
+// defaultTempPattern is the fall-back name pattern handed to os.CreateTemp
+// when a Resource builder is asked to create a temp file without one.
+const defaultTempPattern = "sysx-resource-*"

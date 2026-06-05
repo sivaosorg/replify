@@ -13,7 +13,7 @@ The `sysx` package eliminates the boilerplate of writing low-level system querie
 - **Command execution** – a builder API plus convenience functions supporting timeout, working-directory override, environment injection, real-time streaming, async launch, and shell-style pipelines
 - **File system helpers** – existence checks, type checks, permission checks, size queries, directory lookups, read/write helpers, atomic writes, and concurrency-safe writers
 
-**Problem Solved:** Querying the operating system involves a patchwork of `os`, `os/exec`, `runtime`, `syscall`, and `os/user` calls scattered across many packages. `sysx` unifies these into a single, coherent API with uniform error handling and well-documented behaviour.
+**Problem Solved:** Querying the operating system involves a patchwork of `os`, `os/exec`, `runtime`, `syscall`, and `os/user` calls scattered across many packages. `sysx` unifies these into a single, coherent API with uniform error handling and well-documented behavior.
 
 ## Design Philosophy
 

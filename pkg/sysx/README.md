@@ -486,6 +486,670 @@ func SendToTelegram(ctx context.Context, bot TelegramBot, res *sysx.Resource) er
 4. Cleanup is explicit and lives behind `Resource.Close` (idempotent, nil-safe).
 5. New backings (object storage stream, encrypted pipe, database blob, …) plug in through `WithContent` without changes to existing consumers.
 
+## Resource Cookbook — Complete `main` Programs
+
+This section walks through every backing (`MemBlob`, `TempFile`, the private
+hybrid spill buffer, and the high-level `Resource`) with self-contained
+`main` programs that compile as-is. Examples progress from the most basic
+shape to advanced production patterns.
+
+> All snippets assume the import block:
+
+```go
+import (
+     "bytes"
+     "context"
+     "encoding/csv"
+     "fmt"
+     "io"
+     "log"
+     "net/http"
+     "os"
+     "os/exec"
+     "strings"
+     "time"
+
+     "github.com/sivaosorg/replify/pkg/sysx"
+ )
+```
+
+### `MemBlob` — In-Memory Backing
+
+`MemBlob` wraps a `[]byte` in a `ReadSeekCloser`. It is the cheapest backing,
+allocates nothing beyond the byte slice itself, and `Close()` is a no-op.
+
+#### MB1. Basic: read a byte slice as a stream
+
+```go
+package main
+
+func main() {
+    blob := sysx.NewMemBlob([]byte("hello, world\n"))
+    defer blob.Close() // no-op, but kept for symmetry
+
+    data, err := io.ReadAll(blob)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("len=%d bytes=%q\n", blob.Len(), data)
+}
+```
+
+#### MB2. Seek, partial reads, and rewind
+
+```go
+package main
+
+func main() {
+    blob := sysx.NewMemBlob([]byte("0123456789"))
+    defer blob.Close()
+
+    // Skip the first 4 bytes.
+    if _, err := blob.Seek(4, io.SeekStart); err != nil {
+        log.Fatal(err)
+    }
+    chunk := make([]byte, 3)
+    if _, err := io.ReadFull(blob, chunk); err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("middle chunk: %q\n", chunk) // "456"
+
+    // Rewind and read everything.
+    if _, err := blob.Seek(0, io.SeekStart); err != nil {
+        log.Fatal(err)
+    }
+    all, _ := io.ReadAll(blob)
+    fmt.Printf("full payload: %q\n", all)
+}
+```
+
+#### MB3. Inspect the underlying slice without copying
+
+```go
+package main
+
+func main() {
+    payload := []byte("retain-not-copy")
+    blob := sysx.NewMemBlob(payload)
+
+    // Bytes() returns the same slice that was passed to NewMemBlob.
+    // Callers must not mutate it for the lifetime of the MemBlob.
+    same := blob.Bytes()
+    fmt.Println("aliased:", &payload[0] == &same[0]) // true
+    fmt.Println("len:    ", blob.Len())
+}
+```
+
+#### MB4. Promote a `MemBlob` into a `Resource`
+
+```go
+package main
+
+func main() {
+    res := sysx.NewResource().
+        WithName("greeting.txt").
+        FromBytes([]byte("hello\n")) // installs a *MemBlob internally
+    defer res.Close()
+
+    fmt.Println("name:        ", res.Name())
+    fmt.Println("size:        ", res.Size())
+    fmt.Println("content-type:", res.ContentType()) // text/plain; charset=utf-8
+
+    n, err := res.CopyTo(os.Stdout)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("\ncopied %d bytes\n", n)
+}
+```
+
+### `TempFile` — On-Disk Backing
+
+`TempFile` is the on-disk counterpart of `MemBlob`. It owns an `*os.File`
+created by `os.CreateTemp`, exposes idempotent `Close`, and can auto-remove
+the file when closed (default) or hand off ownership when disarmed.
+
+#### TF1. Basic: write, rewind, read, auto-remove
+
+```go
+package main
+
+func main() {
+    tf, err := sysx.NewTempFile()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer tf.Close() // closes + removes from disk
+
+    if _, err := tf.Write([]byte("temporary payload")); err != nil {
+        log.Fatal(err)
+    }
+    if _, err := tf.Seek(0, io.SeekStart); err != nil {
+        log.Fatal(err)
+    }
+
+    out, _ := io.ReadAll(tf)
+    fmt.Println("path:    ", tf.Path())
+    fmt.Printf("payload: %q\n", out)
+    fmt.Println("removeOnClose:", tf.RemoveOnClose()) // true
+}
+```
+
+#### TF2. Custom pattern + custom directory
+
+```go
+package main
+
+func main() {
+    // System temp dir, "audit-*.csv" pattern.
+    tf1, err := sysx.NewTempFilename("audit-*.csv")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer tf1.Close()
+    fmt.Println("tf1:", tf1.Path())
+
+    // Explicit directory + pattern.
+    tf2, err := sysx.NewTempFileAt(os.TempDir(), "session-*.bin")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer tf2.Close()
+    fmt.Println("tf2:", tf2.Path())
+}
+```
+
+#### TF3. Promote a `TempFile` into a permanent file
+
+`WithRemoveOnClose(false)` disarms auto-removal so a downstream consumer
+can rename the file to its final destination without losing the bytes.
+
+```go
+package main
+
+func main() {
+    tf, err := sysx.NewTempFilename("report-*.csv")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    if _, err := tf.Write([]byte("col1,col2\n1,2\n")); err != nil {
+        _ = tf.Close()
+        log.Fatal(err)
+    }
+
+    // Hand ownership to the filesystem; do NOT unlink on Close.
+    tf.WithRemoveOnClose(false)
+    if err := tf.Close(); err != nil {
+        log.Fatal(err)
+    }
+
+    final := "/tmp/report-final.csv"
+    if err := os.Rename(tf.Path(), final); err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("kept at:", final)
+}
+```
+
+#### TF4. Idempotent `Close` (safe to defer twice)
+
+```go
+package main
+
+func main() {
+    tf, err := sysx.NewTempFile()
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer tf.Close() // safety net
+
+    _, _ = tf.Write([]byte("once"))
+
+    // First Close performs the work.
+    if err := tf.Close(); err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("closed?", tf.Closed()) // true
+
+    // Subsequent calls (including the deferred one) are no-ops.
+}
+```
+
+#### TF5. Stat the underlying file before consumption
+
+```go
+package main
+
+func main() {
+    tf, err := sysx.NewTempFilename("size-*.bin")
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer tf.Close()
+
+    _, _ = tf.Write(bytes.Repeat([]byte{0xAB}, 4096))
+
+    info, err := tf.Stat()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("name=%s size=%d mode=%s\n", info.Name(), info.Size(), info.Mode())
+}
+```
+
+### `spillBuffer` — Hybrid Memory → Disk Backing (via `Resource.FromReader`)
+
+The spill buffer is private; consumers reach it through `Resource.FromReader`.
+It keeps the first `SpillThreshold` bytes in memory and transparently
+overflows the rest to a temporary file, producing a `ReadSeekCloser` even
+when the source reader is one-shot (a process pipe, an HTTP body, …).
+
+#### SB1. Small payload — stays in memory
+
+```go
+package main
+
+func main() {
+    src := strings.NewReader("compact payload that fits in RAM")
+
+    res, err := sysx.NewResource().
+        WithName("note.txt").
+        WithSpillThreshold(1 << 20). // 1 MiB ceiling
+        FromReader(src)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer res.Close()
+
+    fmt.Println("size:", res.Size())
+    _, _ = res.CopyTo(os.Stdout)
+}
+```
+
+#### SB2. Large payload — spills to disk transparently
+
+```go
+package main
+
+func main() {
+    // 4 MiB of repeating data — well above the 64 KiB threshold below.
+    src := bytes.NewReader(bytes.Repeat([]byte("X"), 4<<20))
+
+    res, err := sysx.NewResource().
+        WithName("dump.bin").
+        WithSpillThreshold(64 << 10). // 64 KiB → triggers spill
+        FromReader(src)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer res.Close() // unlinks the spill file (RemoveOnClose default = true)
+
+    fmt.Println("size:", res.Size()) // 4 MiB
+    n, _ := res.Drain()              // read & discard
+    fmt.Println("drained:", n)
+}
+```
+
+#### SB3. Custom temp dir and pattern for the spill file
+
+```go
+package main
+
+func main() {
+    // Pretend pg_dump produces 50 MiB of SQL.
+    src := bytes.NewReader(bytes.Repeat([]byte("INSERT ...;\n"), 4_000_000))
+
+    res, err := sysx.NewResource().
+        WithName("dump.sql").
+        WithContentType(sysx.MimeSQL).
+        WithSpillThreshold(8 << 20).      // 8 MiB
+        WithTempDir("/var/tmp").          // dedicated spill volume
+        WithTempPattern("pgdump-*.sql").  // human-readable name
+        FromReader(src)
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer res.Close()
+
+    fmt.Println("name:", res.Name(), "size:", res.Size())
+}
+```
+
+#### SB4. Streaming a subprocess into a seekable `Resource`
+
+This is the canonical use case: a one-shot pipe becomes seekable so it can
+be uploaded by an S3 multipart client (which retries chunks).
+
+```go
+package main
+
+func main() {
+    ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+    defer cancel()
+
+    cmd := exec.CommandContext(ctx, "pg_dump", "my_db")
+    stdout, err := cmd.StdoutPipe()
+    if err != nil {
+        log.Fatal(err)
+    }
+    if err := cmd.Start(); err != nil {
+        log.Fatal(err)
+    }
+
+    res, err := sysx.NewResource().
+        WithName("my_db.sql").
+        WithContentType(sysx.MimeSQL).
+        WithSpillThreshold(16 << 20). // 16 MiB
+        FromReader(stdout)
+    if err != nil {
+        _ = cmd.Wait()
+        log.Fatal(err)
+    }
+    defer res.Close()
+
+    if err := cmd.Wait(); err != nil {
+        log.Fatal(err)
+    }
+
+    // Re-readable: the spill backing is seekable.
+    _ = res.Rewind()
+    fmt.Println("dump bytes:", res.Size())
+}
+```
+
+### `Resource` — End-to-End Programs
+
+`Resource` is the public envelope. Producers configure a backing through one
+of the `From*` loaders; consumers depend only on `Resource` plus standard
+`io` interfaces.
+
+#### R1. Basic: in-memory CSV produced and copied to stdout
+
+```go
+package main
+
+func main() {
+    res := sysx.NewResource().
+        WithName("hello.csv").
+        FromString("a,b\n1,2\n")
+    defer res.Close()
+
+    if _, err := res.CopyTo(os.Stdout); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+#### R2. Producer that writes through `FromTempFile`
+
+`FromTempFile` is the right choice when the payload is large or expensive to
+re-compute and you want it on disk from the start. The producer never sees
+the underlying `*os.File` — only an `io.Writer` view.
+
+```go
+package main
+
+func main() {
+    res, err := sysx.NewResource().
+        WithName("users.csv").
+        WithContentType(sysx.MimeCSV).
+        WithTempPattern("users-*.csv").
+        FromTempFile(func(w io.Writer) error {
+            cw := csv.NewWriter(w)
+            _ = cw.Write([]string{"id", "email"})
+            _ = cw.Write([]string{"1", "alice@example.com"})
+            _ = cw.Write([]string{"2", "bob@example.com"})
+            cw.Flush()
+            return cw.Error()
+        })
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer res.Close() // closes + unlinks the temp file
+
+    fmt.Println("name:", res.Name(), "size:", res.Size())
+    _, _ = res.CopyTo(os.Stdout)
+}
+```
+
+#### R3. Adopt an existing `*os.File` with `FromFile`
+
+`FromFile` is the only loader that accepts a raw `*os.File`. Use it when a
+file already exists on disk (snapshot, cached export, …) and you want to
+hand it to a consumer through the `Resource` contract.
+
+```go
+package main
+
+func main() {
+    f, err := os.Open("/tmp/snapshot.bin")
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    res, err := sysx.NewResource().
+        WithRemoveOnClose(false). // keep the file after Close()
+        FromFile(f)
+    if err != nil {
+        _ = f.Close()
+        log.Fatal(err)
+    }
+    defer res.Close()
+
+    fmt.Println("name:", res.Name(), "size:", res.Size(),
+        "ct:", res.ContentType())
+}
+```
+
+#### R4. Multi-consumer dispatch with `Rewind`
+
+A single `Resource` can feed several consumers (S3, local archive,
+checksum) by rewinding between consumers.
+
+```go
+package main
+
+func main() {
+    res := sysx.NewResource().
+        WithName("payload.bin").
+        FromBytes(bytes.Repeat([]byte{0x42}, 1024))
+    defer res.Close()
+
+    // Consumer 1: write to disk.
+    out, err := os.Create("/tmp/payload.bin")
+    if err != nil {
+        log.Fatal(err)
+    }
+    if _, err := res.CopyTo(out); err != nil {
+        _ = out.Close()
+        log.Fatal(err)
+    }
+    _ = out.Close()
+
+    // Consumer 2: compute size by draining (rewinding first).
+    if err := res.Rewind(); err != nil {
+        log.Fatal(err)
+    }
+    n, err := res.Drain()
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Println("drained:", n)
+}
+```
+
+#### R5. HTTP download handler — uniform consumer
+
+The handler depends only on `*sysx.Resource`; it does not care whether the
+backing is memory, a temp file, or a spill buffer.
+
+```go
+package main
+
+func downloadHandler(produce func() (*sysx.Resource, error)) http.HandlerFunc {
+    return func(w http.ResponseWriter, r *http.Request) {
+        res, err := produce()
+        if err != nil {
+            http.Error(w, err.Error(), http.StatusInternalServerError)
+            return
+        }
+        defer res.Close()
+
+        w.Header().Set("Content-Type", res.ContentType())
+        w.Header().Set("Content-Disposition",
+            fmt.Sprintf("attachment; filename=%q", res.Name()))
+        if res.Size() >= 0 {
+            w.Header().Set("Content-Length", fmt.Sprint(res.Size()))
+        }
+        if _, err := res.CopyTo(w); err != nil {
+            log.Printf("copy failed: %v", err)
+        }
+    }
+}
+
+func main() {
+    produce := func() (*sysx.Resource, error) {
+        return sysx.NewResource().
+            WithName("hello.txt").
+            FromString("hello from sysx\n"), nil
+    }
+    http.HandleFunc("/download", downloadHandler(produce))
+    log.Fatal(http.ListenAndServe(":8080", nil))
+}
+```
+
+#### R6. Pick the right backing at runtime
+
+The same producer chooses memory, on-disk, or hybrid streaming based on the
+size hint reported by the data source.
+
+```go
+package main
+
+// fetchPayload returns a Resource backed by the cheapest viable storage.
+func fetchPayload(name string, sizeHint int64, src io.Reader) (*sysx.Resource, error) {
+    base := sysx.NewResource().WithName(name)
+
+    switch {
+    case sizeHint >= 0 && sizeHint <= 64<<10:
+        // Tiny — keep in memory.
+        data, err := io.ReadAll(src)
+        if err != nil {
+            return nil, err
+        }
+        return base.FromBytes(data), nil
+
+    case sizeHint >= 0 && sizeHint <= 8<<20:
+        // Medium — buffer to a temp file in one shot.
+        return base.WithTempPattern("payload-*.bin").
+            FromTempFile(func(w io.Writer) error {
+                _, err := io.Copy(w, src)
+                return err
+            })
+
+    default:
+        // Unknown or large — hybrid spill.
+        return base.WithSpillThreshold(8 << 20).
+            FromReader(src)
+    }
+}
+
+func main() {
+    res, err := fetchPayload("data.bin", -1, strings.NewReader("streamed payload"))
+    if err != nil {
+        log.Fatal(err)
+    }
+    defer res.Close()
+
+    fmt.Println("size:", res.Size())
+    _, _ = res.CopyTo(os.Stdout)
+}
+```
+
+#### R7. Custom `ReadSeekCloser` via `WithContent`
+
+Plug in any backing that satisfies `sysx.ReadSeekCloser` — encrypted pipes,
+object-storage streams, database blobs — without touching consumer code.
+
+```go
+package main
+
+// readSeekNopCloser wraps a *bytes.Reader and adds a no-op Close.
+type readSeekNopCloser struct{ *bytes.Reader }
+
+func (readSeekNopCloser) Close() error { return nil }
+
+func main() {
+    payload := []byte("custom-backed payload")
+    rsc := readSeekNopCloser{bytes.NewReader(payload)}
+
+    res := sysx.NewResource().
+        WithName("custom.bin").
+        WithContentType(sysx.MimeOctetStream).
+        WithSize(int64(len(payload))).
+        WithContent(rsc)
+    defer res.Close()
+
+    _, _ = res.CopyTo(os.Stdout)
+    fmt.Println()
+}
+```
+
+#### R8. MIME inference from the filename
+
+`MimeFromName` powers the auto-detection performed by every `From*` loader
+when `ContentType` is left empty.
+
+```go
+package main
+
+func main() {
+    cases := []string{
+        "report.csv",
+        "dump.tar.gz",
+        "page.HTML",
+        "schema.sql",
+        "no-extension",
+    }
+    for _, name := range cases {
+        fmt.Printf("%-15s → %s\n", name, sysx.MimeFromName(name))
+    }
+    // report.csv      → text/csv; charset=utf-8
+    // dump.tar.gz     → application/gzip
+    // page.HTML       → text/html; charset=utf-8
+    // schema.sql      → application/sql
+    // no-extension    → application/octet-stream
+}
+```
+
+#### R9. Defensive consumer — nil-safe `Close` and `Rewind`
+
+Every accessor and lifecycle method tolerates a nil receiver, so callers can
+defer `Close` even on the error path.
+
+```go
+package main
+
+func produce(fail bool) (*sysx.Resource, error) {
+    if fail {
+        return nil, fmt.Errorf("upstream failure")
+    }
+    return sysx.NewResource().FromString("ok"), nil
+}
+
+func main() {
+    res, err := produce(true)
+    defer res.Close() // safe even when res == nil
+
+    if err != nil {
+        fmt.Println("error path handled cleanly:", err)
+        return
+    }
+    _, _ = res.CopyTo(os.Stdout)
+}
+```
+
 ## Usage Examples
 
 ### Basic OS / Architecture Check

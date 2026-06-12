@@ -2,10 +2,12 @@ package sysx
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
@@ -271,6 +273,18 @@ func CopyDir(src, dst string) error {
 				target := link
 				if !filepath.IsAbs(target) {
 					target = filepath.Join(filepath.Dir(srcPath), link)
+				}
+				// Security fix (CWE-22): Ensure the resolved symlink target
+				// stays within the source directory tree. Without this check
+				// an attacker-controlled symlink (e.g. ../../../etc/passwd)
+				// would cause CopyDir to read arbitrary files on the host.
+				cleanTarget := filepath.Clean(target)
+				cleanSrc := filepath.Clean(src)
+				prefix := cleanSrc + string(filepath.Separator)
+				if cleanTarget != cleanSrc &&
+					!strings.HasPrefix(cleanTarget, prefix) {
+					return fmt.Errorf("sysx: CopyDir: symlink %q target %q escapes source directory %q",
+						srcPath, cleanTarget, cleanSrc)
 				}
 				if err := CopyFile(target, dstPath); err != nil {
 					return err

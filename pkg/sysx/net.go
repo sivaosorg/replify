@@ -26,7 +26,7 @@ var (
 //
 // The check uses net.ParseIP: the string must be a dotted-decimal notation
 // such as "192.168.1.1". IPv4-in-IPv6 forms (e.g. "::ffff:192.168.1.1") are
-// NOT recognised as IPv4 by this function.
+// NOT recognized as IPv4 by this function.
 //
 // Parameters:
 //   - `ip`: the IP address string to validate.
@@ -74,7 +74,7 @@ func IsIPv6(ip string) bool {
 // IsLocalIP reports whether the given IP address is a loopback or
 // private (RFC 1918 / RFC 4193) address.
 //
-// Recognised local ranges:
+// Recognized local ranges:
 //   - IPv4 loopback:   127.0.0.0/8
 //   - IPv4 link-local: 169.254.0.0/16
 //   - IPv4 private:    10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
@@ -126,7 +126,7 @@ func IsLocalIP(ip string) bool {
 //
 // Parameters:
 //   - `host`: the host name or IP address to connect to.
-//   - `port`: the TCP port number (1–65535).
+//   - `port`: the TCP port number (1-65535).
 //
 // Returns:
 //
@@ -150,13 +150,14 @@ func IsPortOpen(host string, port int) bool {
 // succeeds the port is free and the listener is immediately closed.
 //
 // Parameters:
-//   - `port`: the TCP port number to test (1–65535).
+//   - `port`: the TCP port number to test (1-65535).
 //
 // Returns:
 //
 //	A boolean value:
 //	 - true  when the port is not in use and can be bound;
-//	 - false when the port is already in use or the OS rejects the bind.
+//	 - false when the port is already in use, the OS rejects the bind, or
+//	         the port number is outside the valid range 1-65535.
 //
 // Example:
 //
@@ -164,6 +165,12 @@ func IsPortOpen(host string, port int) bool {
 //	    fmt.Println("port 8080 is free")
 //	}
 func IsPortAvailable(port int) bool {
+	// Security fix (CWE-20): validate port range before syscall.
+	// port=0 triggers OS ephemeral-port assignment (always succeeds, misleading);
+	// negative values produce a syscall error that could mask the real intent.
+	if port < 1 || port > 65535 {
+		return false
+	}
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return false
@@ -432,7 +439,7 @@ func PingHost(host string) error {
 //
 // Parameters:
 //   - `host`:    the host name or IP address to connect to.
-//   - `port`:    the TCP port number (1–65535).
+//   - `port`:    the TCP port number (1-65535).
 //   - `timeout`: the maximum duration to wait for the connection.
 //
 // Returns:
@@ -459,7 +466,7 @@ func CheckTCPConn(host string, port int, timeout time.Duration) error {
 }
 
 // getLocalCIDRs returns the package-level private/unique-local CIDR list,
-// initialising it on first call via sync.Once. The returned slice must not be
+// initializing it on first call via sync.Once. The returned slice must not be
 // modified by callers.
 // Panics if any hardcoded CIDR block fails to parse, which would indicate a
 // programming error.

@@ -217,8 +217,12 @@ func WriteLines(path string, lines []string) error {
 // On POSIX systems, os.Rename is atomic when the source and destination share
 // the same filesystem, so readers will never observe a partial write.
 //
-// The temporary file is created with permission 0644. If the rename fails,
-// the temporary file is cleaned up automatically.
+// Security note (CWE-732): os.CreateTemp creates the staging file with mode
+// 0600 (owner-only). After the atomic rename the final file is explicitly
+// chmod'd to 0644 so that group/other read access is predictable and
+// consistent with the documented behavior. Callers writing sensitive data
+// (credentials, private keys) should set restrictive permissions afterward
+// via os.Chmod.
 //
 // Parameters:
 //   - `path`: the destination file path.
@@ -226,8 +230,8 @@ func WriteLines(path string, lines []string) error {
 //
 // Returns:
 //
-//	An error if the temporary file could not be created, written, or renamed;
-//	nil on success.
+//	An error if the temporary file could not be created, written, renamed,
+//	or permission-adjusted; nil on success.
 //
 // Example:
 //
@@ -258,6 +262,13 @@ func AtomicWriteBytes(path string, data []byte) error {
 		return err
 	}
 	renamed = true
+	// Security fix (CWE-732): os.CreateTemp creates with 0600; explicitly
+	// set the intended 0644 permission after rename so the final file is
+	// predictably world-readable. Callers with stricter requirements
+	// (e.g. secrets) must call os.Chmod on the returned path themselves.
+	if err := os.Chmod(path, 0o644); err != nil {
+		return err
+	}
 	return nil
 }
 

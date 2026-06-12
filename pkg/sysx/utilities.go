@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -72,15 +73,17 @@ func linuxOSVersion() string {
 // darwinOSVersion retrieves the macOS product version using the system's
 // sw_vers utility.
 //
-// It executes "sw_vers -productVersion" and returns the resulting string
-// after trimming whitespace. If the command execution fails or returns no
-// content, it returns runtime.GOOS as a fallback.
+// Security fix (CWE-426): The binary is invoked via its absolute path
+// /usr/bin/sw_vers to prevent PATH-hijacking attacks. No shell is used;
+// exec.Command passes arguments directly to the kernel without shell
+// interpretation.
 //
 // Returns:
 //
 //	A string identifying the macOS product version (e.g. "14.2.1"), or "darwin".
 func darwinOSVersion() string {
-	out, err := exec.Command("sw_vers", "-productVersion").Output()
+	// Use absolute path to prevent PATH-based search hijacking (CWE-426).
+	out, err := exec.Command("/usr/bin/sw_vers", "-productVersion").Output()
 	if err != nil {
 		return runtime.GOOS
 	}
@@ -94,11 +97,22 @@ func darwinOSVersion() string {
 // windowsOSVersion retrieves the Windows product version using the system's
 // cmd.exe and ver utility.
 //
+// Security fix (CWE-426): cmd.exe is referenced by its canonical absolute
+// path %SystemRoot%\System32\cmd.exe (resolved via the SYSTEMROOT environment
+// variable with a safe fallback) to prevent PATH-hijacking attacks.
+//
 // Returns:
 //
 //	A string identifying the Windows version, or "windows" on fallback.
 func windowsOSVersion() string {
-	out, err := exec.Command("cmd", "/c", "ver").Output()
+	// Security fix (CWE-426): Resolve cmd.exe from %SYSTEMROOT% (not PATH)
+	// to prevent substitution of a malicious binary via PATH manipulation.
+	systemRoot := os.Getenv("SYSTEMROOT")
+	if strutil.IsEmpty(systemRoot) {
+		systemRoot = `C:\Windows`
+	}
+	cmdExe := filepath.Join(systemRoot, "System32", "cmd.exe")
+	out, err := exec.Command(cmdExe, "/c", "ver").Output()
 	if err != nil {
 		return runtime.GOOS
 	}

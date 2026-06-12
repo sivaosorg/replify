@@ -38,7 +38,7 @@ build:
 # Module support and testing
 # Runs tests across all packages in the project, showing code coverage
 test:
-	go test -cover ./...
+	go test -count=1 -cover ./...
 
 # Cleaning and maintaining dependencies
 # Cleans up the module by removing unused dependencies

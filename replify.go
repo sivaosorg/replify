@@ -7,6 +7,7 @@ import (
 	"io"
 	"maps"
 	"net/http"
+	"path/filepath"
 	"reflect"
 	"time"
 
@@ -3111,10 +3112,183 @@ func (w *wrapper) DumpTo(dst string) (*Dump, *wrapper) {
 			WithErrorAck(err).
 			WithMessage("DumpTo: failed to create in-process temp copy")
 	}
+	d.WithName(filepath.Base(dst)) // set the name for better error messages and debugging; the full path is in the wrapper message
 	return &Dump{syr: d, filepath: dst},
 		New().
 			WithHeader(OK).
 			WithMessagef("DumpTo: succeeded, written to %q", dst)
+}
+
+// DumpBody serializes the [wrapper]'s body payload as JSON and writes it
+// into a self-cleaning temporary file, returning a [Dump] that owns the file.
+//
+// Unlike [Dump] — which dumps the complete response envelope (status, headers,
+// body, meta, pagination, debug) — DumpBody captures the raw body value only.
+// The serialized content matches the JSON representation of the value passed
+// to [WithBody] or [WithJSONBody].
+//
+// # Thread-safety
+//
+// DumpBody is safe for concurrent use. Each call creates an independent
+// [io.Pipe] and goroutine pair; no shared mutable state is accessed after
+// the body reference is read from the wrapper.
+//
+// # Large-body handling
+//
+// Serialization is streaming: the body is JSON-encoded via [json.Encoder]
+// into a spill buffer ([sysx.DefaultSpillThreshold] = 8 MiB in memory,
+// spilling automatically to a temp file beyond that). The full payload is
+// never allocated as a single []byte.
+//
+// The temporary file lives in the OS default temp directory with the pattern
+// "replify-dump-body-*.json" and is removed automatically when Close is called.
+//
+// Both return values are always non-nil:
+//   - (*Dump, *wrapper) — Dump holds the seekable resource; wrapper carries
+//     the outcome for fluent chaining.
+//   - On error: Dump is nil, wrapper has the appropriate status + error detail.
+//
+// Example:
+//
+//	dump, w := response.DumpBody()
+//	if w.IsError() {
+//	    log.Fatal(w.Error())
+//	}
+//	defer dump.Close()
+//
+//	// pipe the raw body JSON into an HTTP response writer:
+//	io.Copy(rw, dump.Resource().Content())
+func (w *wrapper) DumpBody() (*Dump, *wrapper) {
+	if !w.Available() {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithMessage("DumpBody: wrapper is required")
+	}
+	if !w.IsBodyPresent() {
+		return nil, New().
+			WithHeader(NotFound).
+			WithMessage("DumpBody: body is not present")
+	}
+	w.cacheMutex.RLock()
+	body := w.data
+	w.cacheMutex.RUnlock()
+	d, err := dumpBodyStream(body)
+	if err != nil {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessage("DumpBody: failed to create temp file")
+	}
+	return &Dump{syr: d}, New().
+		WithHeader(OK).
+		WithMessagef("DumpBody: succeeded and written to temp file %s", d.Name())
+}
+
+// DumpBodyTo serializes the [wrapper]'s body payload as JSON to dst and
+// simultaneously returns a [Dump] holding an in-process seekable copy for
+// streaming or re-reading.
+//
+// Unlike [DumpTo] — which dumps the complete response envelope — DumpBodyTo
+// captures the raw body value only.
+//
+// # Write strategy (append-or-create)
+//
+//   - If dst does not exist or is empty, the JSON-encoded body is written
+//     atomically via the temp-file-and-rename pattern so readers never observe
+//     a partial write.
+//   - If dst already exists and contains data, a newline separator followed
+//     by the new JSON body is appended, producing a JSON-Lines / NDJSON file
+//     that grows with each call.
+//
+// Parent directories are created automatically.
+//
+// # Thread-safety
+//
+// DumpBodyTo is safe for concurrent use. Each call creates an independent
+// [io.Pipe], goroutine, and spill buffer. File-level atomicity for new files
+// is guaranteed by temp-file-and-rename; concurrent appenders are serialized
+// by the OS-level O_APPEND guarantee.
+//
+// # Large-body handling
+//
+// The body is JSON-encoded via [json.Encoder] into a spill buffer
+// ([sysx.DefaultSpillThreshold] = 8 MiB in memory, then a temp file). The
+// on-disk copy at dst is written by streaming from the spill buffer — no
+// intermediate []byte allocation of the full payload.
+//
+// Close on the returned Dump removes the in-process temp copy only. The
+// permanent file at dst is the caller's responsibility and is never removed
+// by this package.
+//
+// Parameters:
+//   - dst: destination file path; must not be empty.
+//
+// Both return values are always non-nil:
+//   - (*Dump, *wrapper) — Dump holds the seekable copy and the dst path;
+//     wrapper carries the outcome for fluent chaining.
+//   - On error: Dump is nil, wrapper has the appropriate status + error detail.
+//
+// Example:
+//
+//	// Each call appends one JSON body entry to the same file:
+//	dump, w := response.DumpBodyTo("/var/log/app/bodies-20260613.jsonl")
+//	if w.IsError() {
+//	    log.Fatal(w.Error())
+//	}
+//	defer dump.Close() // removes temp copy only; file at dst is kept
+//
+//	// re-read from the in-process temp copy:
+//	io.Copy(os.Stdout, dump.Resource().Content())
+func (w *wrapper) DumpBodyTo(dst string) (*Dump, *wrapper) {
+	if !w.Available() {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithMessage("DumpBodyTo: wrapper is required")
+	}
+	if strutil.IsEmpty(dst) {
+		return nil, New().
+			WithHeader(BadRequest).
+			WithMessage("DumpBodyTo: destination path must not be empty")
+	}
+	if !w.IsBodyPresent() {
+		return nil, New().
+			WithHeader(NotFound).
+			WithMessage("DumpBodyTo: body is not present")
+	}
+	w.cacheMutex.RLock()
+	body := w.data
+	w.cacheMutex.RUnlock()
+
+	// Serialize body into a spill-buffered Resource (≤8 MiB in memory,
+	// >8 MiB on a self-removing temp file).
+	d, err := dumpBodyStream(body)
+	if err != nil {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessage("DumpBodyTo: failed to serialize body")
+	}
+	// Stream from spill buffer to dst (append-or-create, no intermediate []byte alloc).
+	if err := sysx.AppendOrCopyFrom(dst, d.Content(), []byte("\n")); err != nil {
+		d.Close()
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessagef("DumpBodyTo: write to %q failed", dst)
+	}
+	// Rewind the in-process copy so the caller can read from offset 0.
+	if err := d.Rewind(); err != nil {
+		d.Close()
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessage("DumpBodyTo: failed to rewind in-process copy")
+	}
+	d.WithName(filepath.Base(dst)) // set the name for better error messages and debugging; the file itself is still the temp copy, not dst
+	return &Dump{syr: d, filepath: dst},
+		New().
+			WithHeader(OK).
+			WithMessagef("DumpBodyTo: succeeded, written to %q", dst)
 }
 
 // autoAdjust automatically synchronizes the [wrapper]'s error field with its message

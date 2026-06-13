@@ -3,6 +3,7 @@ package sysx
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -388,4 +389,88 @@ func AppendOrWriteBytes(path string, data, sep []byte) error {
 //	}
 func AppendString(path string, content string) error {
 	return AppendBytes(path, []byte(content))
+}
+
+// AppendOrCopyFrom writes data from src to path using the same
+// append-or-create strategy as [AppendOrWriteBytes], but accepts an
+// [io.Reader] so arbitrarily large payloads are never fully buffered in
+// memory.
+//
+//   - If the file does not exist or is empty, src is written atomically via
+//     the temp-file-and-rename pattern so readers never observe a partial
+//     write.
+//   - If the file already exists and contains data, sep followed by the bytes
+//     from src is appended. The OS-level O_APPEND flag ensures concurrent
+//     appenders from separate processes do not interleave partial writes.
+//
+// Parent directories are created automatically (idempotent).
+//
+// Parameters:
+//   - `path`: the destination file path.
+//   - `src`:  an [io.Reader] providing the payload; consumed exactly once.
+//   - `sep`:  separator prepended to src only when appending to a non-empty
+//     file; pass nil or an empty slice to append without a separator.
+//
+// Returns:
+//
+//	An error if any step fails; nil on success.
+//
+// Example:
+//
+//	// Stream-append JSON objects separated by a newline (NDJSON / JSON-Lines):
+//	if err := sysx.AppendOrCopyFrom("/var/log/app/bodies.jsonl", src, []byte("\n")); err != nil {
+//	    log.Fatal(err)
+//	}
+func AppendOrCopyFrom(path string, src io.Reader, sep []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("sysx: AppendOrCopyFrom: mkdir %q: %w", dir, err)
+	}
+	info, err := os.Stat(path)
+	if err == nil && info.Size() > 0 {
+		// File exists and is non-empty — open for append.
+		f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			return fmt.Errorf("sysx: AppendOrCopyFrom: open %q: %w", path, err)
+		}
+		defer f.Close()
+		if len(sep) > 0 {
+			if _, err := f.Write(sep); err != nil {
+				return fmt.Errorf("sysx: AppendOrCopyFrom: write sep to %q: %w", path, err)
+			}
+		}
+		if _, err := io.Copy(f, src); err != nil {
+			return fmt.Errorf("sysx: AppendOrCopyFrom: copy to %q: %w", path, err)
+		}
+		return nil
+	}
+	// File does not exist or is empty — write atomically via temp-rename.
+	tmp, err := os.CreateTemp(dir, ".tmp_atomic_*")
+	if err != nil {
+		return fmt.Errorf("sysx: AppendOrCopyFrom: create temp in %q: %w", dir, err)
+	}
+	tmpPath := tmp.Name()
+	_, copyErr := io.Copy(tmp, src)
+	closeErr := tmp.Close()
+	if copyErr != nil || closeErr != nil {
+		os.Remove(tmpPath)
+		if copyErr != nil {
+			return fmt.Errorf("sysx: AppendOrCopyFrom: write temp: %w", copyErr)
+		}
+		return fmt.Errorf("sysx: AppendOrCopyFrom: close temp: %w", closeErr)
+	}
+	if err := renameReplace(tmpPath, path); err != nil {
+		if os.IsExist(err) {
+			os.Remove(path)
+			if err2 := os.Rename(tmpPath, path); err2 != nil {
+				os.Remove(tmpPath)
+				return fmt.Errorf("sysx: AppendOrCopyFrom: rename %q→%q: %w", tmpPath, path, err2)
+			}
+		} else {
+			os.Remove(tmpPath)
+			return fmt.Errorf("sysx: AppendOrCopyFrom: rename %q→%q: %w", tmpPath, path, err)
+		}
+	}
+	_ = os.Chmod(path, 0o644)
+	return nil
 }

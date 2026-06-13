@@ -244,11 +244,11 @@ func safeBody(value any) any {
 	return result
 }
 
-// dumpResource creates a seekable in-process [sysx.Resource] backed by a
+// dumpJSON creates a seekable in-process [sysx.Resource] backed by a
 // temporary file from an already-serialized JSON payload. It is the shared
 // core used by both [wrapper.Dump] and [wrapper.DumpTo], so the
 // [sysx.NewResource] call site exists in exactly one place.
-func dumpResource(payload []byte) (*sysx.Resource, error) {
+func dumpJSON(payload []byte) (*sysx.Resource, error) {
 	return sysx.NewResource().
 		WithName("replify-dump-*.json").
 		WithContentType(sysx.MimeJSON).

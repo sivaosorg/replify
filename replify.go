@@ -3029,7 +3029,7 @@ func (w *wrapper) Dump() (*Dump, *wrapper) {
 			WithHeader(InternalServerError).
 			WithMessage("Dump: wrapper is required")
 	}
-	d, err := dumpResource(w.JSONBytes())
+	d, err := dumpJSON(w.JSONBytes())
 	if err != nil {
 		return nil, New().
 			WithHeader(InternalServerError).
@@ -3092,7 +3092,7 @@ func (w *wrapper) DumpTo(dst string) (*Dump, *wrapper) {
 			WithMessagef("DumpTo: write to %q failed", dst)
 	}
 	// 2. Create an in-process seekable temp copy for streaming / re-reading.
-	d, err := dumpResource(payload)
+	d, err := dumpJSON(payload)
 	if err != nil {
 		// Permanent file already written; surface only the temp-copy failure.
 		return nil, New().

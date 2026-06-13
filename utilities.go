@@ -257,3 +257,82 @@ func dumpJSON(payload []byte) (*sysx.Resource, error) {
 			return err
 		})
 }
+
+// dumpBodyStream serializes body into a seekable [sysx.Resource] backed by a
+// spill buffer and writes output to a plain-text (.txt) file because the body
+// can carry any Go value — not only valid JSON.
+//
+// Serialization strategy (type-switch):
+//   - string       → written as raw UTF-8, no quoting.
+//   - []byte       → written as raw bytes, no encoding.
+//   - json.RawMessage → written as-is (already serialized JSON).
+//   - anything else → JSON-encoded via [json.Encoder]; output is valid JSON
+//     followed by a single newline, which is idiomatic for line-delimited logs.
+//
+// # Memory / large-body handling
+//
+// The body is streamed through an [io.Pipe] into [sysx.Resource.FromReader]
+// which manages a spill buffer: payloads up to [sysx.DefaultSpillThreshold]
+// (8 MiB) are held in memory; beyond that, the overflow is transparently
+// spilled to a self-removing temp file. The full body is never allocated as
+// a single []byte.
+//
+// # Thread-safety
+//
+// dumpBodyStream is safe for concurrent invocation:
+//   - Each call creates an independent [io.Pipe] pair, goroutine, and
+//     [sysx.Resource] instance. No package-level or wrapper state is mutated
+//     after the function returns.
+//   - The producer goroutine only reads the body value that was passed in.
+//     Callers must not mutate the body (or any data it references) while the
+//     returned Resource is open; this is the same contract as [json.Marshal].
+//   - Error propagation between the goroutine and the consumer is done
+//     entirely through [io.PipeWriter.CloseWithError], which is the
+//     synchronization primitive [io.Pipe] is designed for. A dedicated
+//     channel carries the goroutine's final error so the consumer can
+//     distinguish a write failure from an EOF.
+//
+// The caller owns the returned Resource and must call Close exactly once to
+// release the underlying buffer or temp file.
+func dumpBodyStream(body any) (*sysx.Resource, error) {
+	pr, pw := io.Pipe()
+	// errCh carries the producer's terminal error (nil on success) so that
+	// FromReader can propagate it to the caller without a data race.
+	errCh := make(chan error, 1)
+	go func() {
+		var err error
+		switch v := body.(type) {
+		case string:
+			_, err = io.WriteString(pw, v)
+		case []byte:
+			_, err = pw.Write(v)
+		case json.RawMessage:
+			_, err = pw.Write(v)
+		default:
+			// json.Encoder.Encode appends a trailing '\n', which is
+			// intentional: it acts as a record separator when multiple
+			// entries are appended to the same file later.
+			err = json.NewEncoder(pw).Encode(body)
+		}
+		errCh <- err
+		pw.CloseWithError(err)
+	}()
+
+	res, err := sysx.NewResource().
+		WithName("replify-dump-body-*.txt").
+		WithContentType(sysx.MimeText).
+		FromReader(pr)
+	if err != nil {
+		// Unblock the goroutine so it does not leak.
+		pr.CloseWithError(err)
+		<-errCh
+		return nil, err
+	}
+
+	// Drain the channel so the goroutine is fully released before we return.
+	if gErr := <-errCh; gErr != nil {
+		res.Close()
+		return nil, gErr
+	}
+	return res, nil
+}

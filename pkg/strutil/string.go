@@ -953,10 +953,10 @@ func ReplaceAllStrings(ss []string, old string, new string) []string {
 // between elems are trimmed before they are joined together. Non-trailing leading slashes in the
 // first element as well as non-leading trailing slashes in the last element are kept.
 func Slash(elems ...string) string {
-	return JoinUnary(elems, "/")
+	return Join(elems, "/")
 }
 
-// JoinUnary concatenates a slice of strings into a single string, separating each element
+// Join concatenates a slice of strings into a single string, separating each element
 // with a specified separator. The function handles various cases of input size and optimizes
 // memory allocation based on expected lengths.
 //
@@ -982,8 +982,8 @@ func Slash(elems ...string) string {
 //
 //	elems := []string{"apple", "banana", "cherry"}
 //	separator := ", "
-//	result := JoinUnary(elems, separator) // result will be "apple, banana, cherry"
-func JoinUnary(elems []string, separator string) string {
+//	result := Join(elems, separator) // result will be "apple, banana, cherry"
+func Join(elems []string, separator string) string {
 	if len(elems) == 0 {
 		return ""
 	}
@@ -2114,7 +2114,7 @@ func JoinBool(a []bool, sep string) string {
 	for idx, i := range a {
 		strs[idx] = strconv.FormatBool(i)
 	}
-	return JoinUnary(strs, sep)
+	return Join(strs, sep)
 }
 
 // JoinFloat64 concatenates a slice of float64 values into a single string,
@@ -2164,7 +2164,7 @@ func JoinFloat64WithFormatAndPrecision(a []float64, fmt byte, precision int, sep
 	for idx, i := range a {
 		list[idx] = strconv.FormatFloat(i, fmt, -1, precision)
 	}
-	return JoinUnary(list, sep)
+	return Join(list, sep)
 }
 
 // JoinInt concatenates a slice of integers into a single string,
@@ -2189,7 +2189,7 @@ func JoinInt(a []int, sep string) string {
 	for idx, i := range a {
 		list[idx] = strconv.Itoa(i)
 	}
-	return JoinUnary(list, sep)
+	return Join(list, sep)
 }
 
 // JoinInt64 concatenates a slice of int64 values into a single string,
@@ -2214,7 +2214,7 @@ func JoinInt64(a []int64, sep string) string {
 	for idx, i := range a {
 		list[idx] = strconv.FormatInt(i, 10)
 	}
-	return JoinUnary(list, sep)
+	return Join(list, sep)
 }
 
 // JoinUint64 concatenates a slice of uint64 values into a single string,
@@ -2239,7 +2239,7 @@ func JoinUint64(ints []uint64, sep string) string {
 	for idx, i := range ints {
 		list[idx] = strconv.FormatUint(i, 10)
 	}
-	return JoinUnary(list, sep)
+	return Join(list, sep)
 }
 
 // Mid extracts a substring of a specified size from the middle of a given string, starting at a specified position.
@@ -2659,7 +2659,7 @@ func ReverseDelimited(str string, del string) string {
 	for i, j := 0, len(s)-1; i < j; i, j = i+1, j-1 {
 		s[i], s[j] = s[j], s[i]
 	}
-	return JoinUnary(s, del)
+	return Join(s, del)
 }
 
 // Strip removes whitespace from both the start and end of a string.

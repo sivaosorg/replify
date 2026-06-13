@@ -35,8 +35,7 @@
 // # Splitting and Joining
 //
 // Split, SplitN, and their trimming variants complement the standard library.
-// JoinNonEmpty filters blank strings before joining, and Repeat wraps
-// strings.Repeat with a rune-count guard.
+// Repeat wraps strings.Repeat with a rune-count guard.
 //
 // # Hashing
 //

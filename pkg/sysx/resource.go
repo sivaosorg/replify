@@ -468,6 +468,40 @@ func (r *Resource) Drain() (int64, error) {
 	return r.CopyTo(io.Discard)
 }
 
+// ActualPath returns the on-disk path of the file backing this Resource.
+//
+// The returned path is non-empty only when the Resource is backed by a
+// concrete file:
+//
+//   - [FromTempFile] — always returns the actual temp file path.
+//   - [FromReader] with spill — returns the spill temp file path once the
+//     in-memory threshold has been exceeded.
+//   - [FromReader] without spill / [FromBytes] / [FromString] — returns ""
+//     because the payload is held entirely in memory.
+//   - [FromFile] — returns the path of the adopted file.
+//
+// The returned string is valid as long as the Resource has not been closed.
+// Callers must not use the path after Close, as the underlying file may have
+// been deleted.
+//
+// Returns:
+//
+// The absolute on-disk path, or an empty string for memory-backed Resources.
+func (r *Resource) ActualPath() string {
+	if r == nil {
+		return ""
+	}
+	switch c := r.content.(type) {
+	case *TempFile:
+		return c.Path()
+	case *spillBuffer:
+		if c.file != nil {
+			return c.file.Path()
+		}
+	}
+	return ""
+}
+
 // fillMime populates ContentType from Name when ContentType is empty. It
 // is invoked by every From* loader after Name and Content are settled.
 func (r *Resource) fillMime() {

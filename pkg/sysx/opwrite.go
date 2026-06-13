@@ -317,6 +317,59 @@ func AppendBytes(path string, data []byte) error {
 	return err
 }
 
+// AppendOrWriteBytes writes data to path using the following strategy:
+//
+//   - If the file does not exist or is empty, data is written atomically via
+//     the temp-file-and-rename pattern (same as [AtomicWriteBytes]).
+//   - If the file already exists and contains data, sep followed by data is
+//     appended, so the caller can choose a suitable record separator (e.g. "\n"
+//     for JSON-Lines / NDJSON, "\n---\n" for human-readable multi-entry logs).
+//
+// Parent directories are created automatically (idempotent).
+//
+// Parameters:
+//   - `path`: the destination file path.
+//   - `data`: the bytes to write or append.
+//   - `sep`:  separator prepended to data only when appending to a non-empty
+//     file; pass nil or an empty slice to append without a separator.
+//
+// Returns:
+//
+//	An error if any step fails; nil on success.
+//
+// Example:
+//
+//	// Append JSON objects separated by a newline (NDJSON / JSON-Lines):
+//	if err := sysx.AppendOrWriteBytes("/var/log/app/responses.jsonl", entry, []byte("\n")); err != nil {
+//	    log.Fatal(err)
+//	}
+func AppendOrWriteBytes(path string, data, sep []byte) error {
+	dir := filepath.Dir(path)
+	if err := CreateDir(dir); err != nil {
+		return fmt.Errorf("sysx: AppendOrWriteBytes: mkdir %q: %w", dir, err)
+	}
+	info, err := os.Stat(path)
+	if err == nil && info.Size() > 0 {
+		// File exists and is non-empty — open for append.
+		f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0o644)
+		if err != nil {
+			return fmt.Errorf("sysx: AppendOrWriteBytes: open %q: %w", path, err)
+		}
+		defer f.Close()
+		if len(sep) > 0 {
+			if _, err := f.Write(sep); err != nil {
+				return fmt.Errorf("sysx: AppendOrWriteBytes: write sep to %q: %w", path, err)
+			}
+		}
+		if _, err := f.Write(data); err != nil {
+			return fmt.Errorf("sysx: AppendOrWriteBytes: write data to %q: %w", path, err)
+		}
+		return nil
+	}
+	// File does not exist or is empty — write atomically.
+	return AtomicWriteBytes(path, data)
+}
+
 // AppendString appends content to the file at path, creating it with
 // permission 0644 if it does not exist.
 //

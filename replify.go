@@ -3041,10 +3041,19 @@ func (w *wrapper) Dump() (*Dump, *wrapper) {
 		WithMessagef("Dump: succeeded and written to temp file %s", d.Name())
 }
 
-// DumpTo atomically writes the full [wrapper] response as pretty-printed JSON
-// to dst (via [sysx.AtomicWriteBytes] — temp-file-then-rename, so readers
-// never observe a partial write) and simultaneously returns a [Dump] holding
-// an in-process seekable copy for streaming or re-reading.
+// DumpTo writes the full [wrapper] response as pretty-printed JSON to dst and
+// simultaneously returns a [Dump] holding an in-process seekable copy for
+// streaming or re-reading.
+//
+// Write strategy (append-or-create):
+//   - If dst does not exist or is empty, data is written atomically via the
+//     temp-file-and-rename pattern so readers never observe a partial write.
+//   - If dst already exists and contains data, the new JSON entry is appended
+//     separated by a single newline, producing a JSON-Lines / NDJSON file that
+//     grows with each call. This makes DumpTo safe to call repeatedly for the
+//     same destination (e.g. one file per day that accumulates all responses).
+//
+// Parent directories are created automatically.
 //
 // Close on the returned Dump removes the in-process temp copy only. The
 // permanent file at dst is the caller's responsibility and is never removed
@@ -3063,7 +3072,8 @@ func (w *wrapper) Dump() (*Dump, *wrapper) {
 //
 // Example:
 //
-//	dump, w := w.DumpTo("/var/log/app/response-20260613.json")
+//	// Each call appends a new JSON entry to the same daily log file:
+//	dump, w := w.DumpTo("/var/log/app/responses-20260613.jsonl")
 //	if w.IsError() {
 //	    log.Fatal(w.Error())
 //	}
@@ -3084,8 +3094,9 @@ func (w *wrapper) DumpTo(dst string) (*Dump, *wrapper) {
 	}
 	payload := w.JSONBytes()
 
-	// 1. Atomically write the permanent on-disk copy.
-	if err := sysx.AtomicWriteBytes(dst, payload); err != nil {
+	// Write to dst: append (with newline separator) when the file already has
+	// content, write atomically when the file is new or empty.
+	if err := sysx.AppendOrWriteBytes(dst, payload, []byte("\n")); err != nil {
 		return nil, New().
 			WithHeader(InternalServerError).
 			WithErrorAck(err).

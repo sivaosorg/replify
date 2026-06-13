@@ -17,6 +17,7 @@ var (
 	modkernel32      = syscall.NewLazyDLL("kernel32.dll")
 	procLockFileEx   = modkernel32.NewProc("LockFileEx")
 	procUnlockFileEx = modkernel32.NewProc("UnlockFileEx")
+	procMoveFileExW  = modkernel32.NewProc("MoveFileExW")
 )
 
 // lockFile applies an advisory lock to the given file handle.

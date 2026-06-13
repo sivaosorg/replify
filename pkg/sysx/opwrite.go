@@ -211,27 +211,29 @@ func WriteLines(path string, lines []string) error {
 
 // AtomicWriteBytes writes data to path atomically using the
 // temporary-file-and-rename pattern: data is first flushed to a temporary
-// file located in the same directory as path, then the temporary file is
-// renamed to path.
+// file in the same directory as path, then renamed to path.
 //
-// On POSIX systems, os.Rename is atomic when the source and destination share
-// the same filesystem, so readers will never observe a partial write.
+// Atomicity guarantees by platform:
+//   - Linux / macOS (native FS): rename(2) atomically replaces the
+//     destination — readers never see a partial write.
+//   - Windows: MoveFileEx(MOVEFILE_REPLACE_EXISTING) provides the same
+//     guarantee on the same volume and works even when the destination
+//     already exists.
+//   - exFAT / FAT32 / SMB mounts: rename returns EEXIST when the destination
+//     already exists; a remove-then-rename fallback is used. This sacrifices
+//     strict atomicity on those filesystems, but prevents the EEXIST failure.
 //
 // Security note (CWE-732): os.CreateTemp creates the staging file with mode
-// 0600 (owner-only). After the atomic rename the final file is explicitly
-// chmod'd to 0644 so that group/other read access is predictable and
-// consistent with the documented behavior. Callers writing sensitive data
-// (credentials, private keys) should set restrictive permissions afterward
-// via os.Chmod.
+// 0600 (owner-only). After the rename the final file is explicitly chmod'd to
+// 0644. Callers writing sensitive data should call os.Chmod afterward.
 //
 // Parameters:
-//   - `path`: the destination file path.
+//   - `path`: the destination file path; parent directories are created automatically.
 //   - `data`: the bytes to write.
 //
 // Returns:
 //
-//	An error if the temporary file could not be created, written, renamed,
-//	or permission-adjusted; nil on success.
+//	An error if any step fails; nil on success.
 //
 // Example:
 //
@@ -240,6 +242,10 @@ func WriteLines(path string, lines []string) error {
 //	}
 func AtomicWriteBytes(path string, data []byte) error {
 	dir := filepath.Dir(path)
+	// Ensure the parent directory exists (idempotent, works on all OS).
+	if err := CreateDir(dir); err != nil {
+		return fmt.Errorf("sysx: AtomicWriteBytes: mkdir %q: %w", dir, err)
+	}
 	tmp, err := os.CreateTemp(dir, ".tmp_atomic_*")
 	if err != nil {
 		return err
@@ -258,14 +264,27 @@ func AtomicWriteBytes(path string, data []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(tmpPath, path); err != nil {
-		return err
+	// renameReplace is OS-specific:
+	//   - POSIX (Linux/macOS): delegates to os.Rename, which is atomic.
+	//   - Windows: uses MoveFileEx(MOVEFILE_REPLACE_EXISTING), which is
+	//     atomic on the same volume and handles existing destinations.
+	if err := renameReplace(tmpPath, path); err != nil {
+		// Last-resort fallback for non-POSIX filesystems (exFAT, FAT32,
+		// some SMB mounts) where even renameReplace may fail with EEXIST.
+		if os.IsExist(err) {
+			if delErr := os.Remove(path); delErr != nil && !os.IsNotExist(delErr) {
+				return fmt.Errorf("sysx: AtomicWriteBytes: remove existing %q: %w", path, delErr)
+			}
+			if err = os.Rename(tmpPath, path); err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 	renamed = true
-	// Security fix (CWE-732): os.CreateTemp creates with 0600; explicitly
-	// set the intended 0644 permission after rename so the final file is
-	// predictably world-readable. Callers with stricter requirements
-	// (e.g. secrets) must call os.Chmod on the returned path themselves.
+	// Security fix (CWE-732): os.CreateTemp creates with 0600; set 0644 so
+	// group/other read access is predictable after the rename.
 	if err := os.Chmod(path, 0o644); err != nil {
 		return err
 	}

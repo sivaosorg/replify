@@ -5,6 +5,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/sivaosorg/replify/pkg/sysx"
 )
 
 // ///////////////////////////
@@ -295,6 +297,31 @@ type StreamingMetadata struct {
 
 	// Indicates if streaming can be resumed
 	IsResumable bool `json:"is_resumable"`
+}
+
+// Dump is the thread-safe result returned by [wrapper.Dump] and
+// [wrapper.DumpTo]. It owns the serialized response payload as a
+// seekable, re-readable stream and guarantees that the backing temporary
+// file is removed exactly once — even when Close is called concurrently.
+//
+// Typical usage:
+//
+//	dump, w := w.Dump()
+//	if w.IsError() {
+//	    log.Fatal(w.Error())
+//	}
+//	defer dump.Close()
+//
+//	// pipe the JSON into an HTTP response writer:
+//	io.Copy(httpResponseWriter, dump.Resource().Content())
+type Dump struct {
+	syr      *sysx.Resource
+	once     sync.Once
+	closeErr error
+
+	// filepath is non-empty when DumpTo wrote a permanent on-disk copy.
+	// That file is NOT removed on Close.
+	filepath string
 }
 
 // ///////////////////////////

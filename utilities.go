@@ -5,9 +5,11 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/slogger"
+	"github.com/sivaosorg/replify/pkg/sysx"
 )
 
 // calculateSize calculates the size of the marshaled data.
@@ -240,4 +242,18 @@ func safeBody(value any) any {
 	}
 
 	return result
+}
+
+// dumpResource creates a seekable in-process [sysx.Resource] backed by a
+// temporary file from an already-serialized JSON payload. It is the shared
+// core used by both [wrapper.Dump] and [wrapper.DumpTo], so the
+// [sysx.NewResource] call site exists in exactly one place.
+func dumpResource(payload []byte) (*sysx.Resource, error) {
+	return sysx.NewResource().
+		WithName("replify-dump-*.json").
+		WithContentType(sysx.MimeJSON).
+		FromTempFile(func(w io.Writer) error {
+			_, err := w.Write(payload)
+			return err
+		})
 }

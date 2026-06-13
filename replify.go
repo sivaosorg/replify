@@ -19,6 +19,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/slogger"
 	"github.com/sivaosorg/replify/pkg/strchain"
 	"github.com/sivaosorg/replify/pkg/strutil"
+	"github.com/sivaosorg/replify/pkg/sysx"
 )
 
 // Available checks whether the [wrapper] instance is non-nil.
@@ -2994,6 +2995,115 @@ func (w *wrapper) Slogging(logger ...*slogger.Logger) *wrapper {
 
 	slogAtLevel(child, httpStatusLevel(code), w.String())
 	return w
+}
+
+// Dump serializes the full [wrapper] response as pretty-printed JSON and
+// writes it into a self-cleaning temporary file. The returned [Dump] owns the
+// file — call Close (or defer it) to prevent disk leaks. Close is thread-safe
+// and idempotent.
+//
+// The temporary file lives in the OS default temp directory with the pattern
+// "replify-dump-*.json" and is removed automatically when Close is called.
+//
+// The serialized content matches [wrapper.JSONPretty] — the full response
+// envelope (status, headers, body, meta, pagination, debug).
+//
+// Both return values are always non-nil:
+//   - (*Dump, *wrapper) — Dump holds the file; wrapper carries the outcome so
+//     the caller can continue a fluent chain.
+//   - On error: Dump is nil, wrapper has InternalServerError + error detail.
+//
+// Example:
+//
+//	dump, w := w.Dump()
+//	if w.IsError() {
+//	    log.Fatal(w.Error())
+//	}
+//	defer dump.Close()
+//
+//	// pipe the JSON into an HTTP response writer:
+//	io.Copy(rw, dump.Resource().Content())
+func (w *wrapper) Dump() (*Dump, *wrapper) {
+	if !w.Available() {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithMessage("Dump: wrapper is required")
+	}
+	d, err := dumpResource(w.JSONBytes())
+	if err != nil {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessage("Dump: failed to create temp file")
+	}
+	return &Dump{syr: d}, New().
+		WithHeader(OK).
+		WithMessagef("Dump: succeeded and written to temp file %s", d.Name())
+}
+
+// DumpTo atomically writes the full [wrapper] response as pretty-printed JSON
+// to dst (via [sysx.AtomicWriteBytes] — temp-file-then-rename, so readers
+// never observe a partial write) and simultaneously returns a [Dump] holding
+// an in-process seekable copy for streaming or re-reading.
+//
+// Close on the returned Dump removes the in-process temp copy only. The
+// permanent file at dst is the caller's responsibility and is never removed
+// by this package.
+//
+// The serialized content matches [wrapper.JSONPretty] — the full response
+// envelope (status, headers, body, meta, pagination, debug).
+//
+// Parameters:
+//   - dst: destination file path; must not be empty.
+//
+// Both return values are always non-nil:
+//   - (*Dump, *wrapper) — Dump holds the streamable copy and the dst path;
+//     wrapper carries the outcome for continued fluent chaining.
+//   - On error: Dump is nil, wrapper has InternalServerError + error detail.
+//
+// Example:
+//
+//	dump, w := w.DumpTo("/var/log/app/response-20260613.json")
+//	if w.IsError() {
+//	    log.Fatal(w.Error())
+//	}
+//	defer dump.Close() // removes temp copy only; file at dst is kept
+//
+//	// re-read from the in-process temp copy:
+//	io.Copy(os.Stdout, dump.Resource().Content())
+func (w *wrapper) DumpTo(dst string) (*Dump, *wrapper) {
+	if !w.Available() {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithMessage("DumpTo: wrapper is required")
+	}
+	if strutil.IsEmpty(dst) {
+		return nil, New().
+			WithHeader(BadRequest).
+			WithMessage("DumpTo: destination path must not be empty")
+	}
+	payload := w.JSONBytes()
+
+	// 1. Atomically write the permanent on-disk copy.
+	if err := sysx.AtomicWriteBytes(dst, payload); err != nil {
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessagef("DumpTo: write to %q failed", dst)
+	}
+	// 2. Create an in-process seekable temp copy for streaming / re-reading.
+	d, err := dumpResource(payload)
+	if err != nil {
+		// Permanent file already written; surface only the temp-copy failure.
+		return nil, New().
+			WithHeader(InternalServerError).
+			WithErrorAck(err).
+			WithMessage("DumpTo: failed to create in-process temp copy")
+	}
+	return &Dump{syr: d, filepath: dst},
+		New().
+			WithHeader(OK).
+			WithMessagef("DumpTo: succeeded, written to %q", dst)
 }
 
 // autoAdjust automatically synchronizes the [wrapper]'s error field with its message

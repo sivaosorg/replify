@@ -1,5 +1,5 @@
 # Makefile for managing Go project tasks such as running, building, testing, and maintaining dependencies.
-.PHONY: dev run build test tidy deps-upgrade deps-clean-cache clean
+.PHONY: dev run build test tidy deps-upgrade deps-clean-cache clean tree tree-dirs
 
 LOG_DIR  := logs
 BIN_NAME := replify
@@ -52,7 +52,6 @@ tidy:
 # Cleans up the module after upgrade
 # Re-vendors dependencies after upgrade
 deps-upgrade:
-	# go get $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all)
 	go get -u -t -d -v ./...
 	go mod tidy
 	go mod vendor
@@ -62,17 +61,26 @@ deps-upgrade:
 deps-clean-cache:
 	go clean -modcache
 
-# Running code coverage
-# Generates code coverage report and logs the results
-coverage:
-	sh ./sh/go_deps.sh
-
 # Generating project file tree
 # Creates a text file representing the project's directory structure, excluding certain directories
 tree:
 	@mkdir -p $(LOG_DIR)
-	tree -I ".gradle|.idea|build|logs|.vscode|.git|.github|vendor" > ./$(LOG_DIR)/tree_source_oss.txt
-	cat ./$(LOG_DIR)/tree_source_oss.txt
+	if ! command -v tree &> /dev/null; then \
+		echo "The 'tree' command is not installed. Please install it to use this feature."; \
+		exit 1; \
+	fi
+	tree -I ".gradle|.idea|build|logs|.vscode|.git|.github|vendor" > ./$(LOG_DIR)/codebase.txt
+	cat ./$(LOG_DIR)/codebase.txt
+
+# Prints the directory structure only (no files), useful for a quick codebase overview
+tree-dirs:
+	@mkdir -p $(LOG_DIR)
+	if ! command -v tree &> /dev/null; then \
+		echo "The 'tree' command is not installed. Please install it to use this feature."; \
+		exit 1; \
+	fi
+	tree -d -I ".gradle|.idea|build|logs|.vscode|.git|.github|vendor" > ./$(LOG_DIR)/codebase_dirs.txt
+	cat ./$(LOG_DIR)/codebase_dirs.txt
 
 # ==============================================================================
 # Clean

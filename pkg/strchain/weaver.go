@@ -23,6 +23,9 @@ import "strings"
 //	result = sw.Append("Hello").Space().Append("World").Build()
 type Weaver interface {
 
+	// Bytes returns the current content as a byte slice.
+	Bytes() []byte
+
 	// Append adds a string and returns the builder for chaining.
 	Append(s string) Weaver
 

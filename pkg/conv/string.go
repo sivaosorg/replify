@@ -151,19 +151,19 @@ func (c *Converter) String(from any) (string, error) {
 		}
 		return strconv.FormatFloat(*v, 'f', -1, 64), nil
 	case complex64:
-		return fmt.Sprintf("%v", v), nil
+		return encodeComplexJSONToken(float64(real(v)), float64(imag(v)), true)
 	case *complex64:
 		if v == nil {
 			return "", nil
 		}
-		return fmt.Sprintf("%v", *v), nil
+		return encodeComplexJSONToken(float64(real(*v)), float64(imag(*v)), true)
 	case complex128:
-		return fmt.Sprintf("%v", v), nil
+		return encodeComplexJSONToken(real(v), imag(v), false)
 	case *complex128:
 		if v == nil {
 			return "", nil
 		}
-		return fmt.Sprintf("%v", *v), nil
+		return encodeComplexJSONToken(real(*v), imag(*v), false)
 	case time.Time:
 		return v.Format(time.RFC3339), nil
 	case *time.Time:
@@ -449,33 +449,6 @@ func formatFloatJSON(f float64, is32 bool) string {
 	// The -1 precision means that the smallest number of digits necessary to
 	// represent the float will be used.
 	return strconv.FormatFloat(f, 'g', -1, bitSize)
-}
-
-// encodeComplexJSON encodes a complex number to its JSON string representation.
-// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
-//
-// Parameters:
-//   - `realPart`: The real part of the complex number.
-//   - `imagPart`: The imaginary part of the complex number.
-//   - `is32`: A boolean indicating whether the complex number is a complex64 (true) or complex128 (false).
-//
-// Returns:
-//   - A string containing the JSON representation of the complex number.
-//
-// Example:
-//
-//	r := encodeComplexJSON(1.2345, 6.789, false)
-func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
-	// Use 'g' formatting like encoding/json; convert non-finite to null.
-	r := formatFloatJSON(realPart, is32)
-	i := formatFloatJSON(imagPart, is32)
-	if r == "" || i == "" {
-		return ""
-	}
-	// Format complex number as JSON object with "real" and "imag" fields.
-	// This is done to avoid the default JSON representation of complex numbers,
-	// which is not valid JSON.
-	return `{"real":` + r + `,"imag":` + i + `}`
 }
 
 // encodeComplexJSONToken encodes a complex number to its JSON string representation.

@@ -434,56 +434,58 @@ func (h *header) Slogging(logger ...*slogger.Logger) *header {
 	return h
 }
 
-// String returns the string representation of the HeaderType.
+// String returns the string representation of the [HeaderType].
 func (h HeaderType) String() string {
 	return string(h)
 }
 
-// String returns the string representation of the MediaType.
+// String returns the string representation of the [MediaType].
 func (m MediaType) String() string {
 	return string(m)
 }
 
-// Equal compares two HeaderType values for equality.
+// Equal compares two [HeaderType] values for equality.
 func (h HeaderType) Equal(other HeaderType) bool {
 	return h.String() == other.String()
 }
 
-// EqualsIgnoreCase compares two HeaderType values for equality, ignoring case differences.
+// EqualsIgnoreCase compares two [HeaderType] values for equality, ignoring case differences.
 // This method is useful when you want to check if two header types are the same without considering the case of the characters.
 func (h HeaderType) EqualsIgnoreCase(other HeaderType) bool {
 	return strutil.EqualsIgnoreCase(string(h), string(other))
 }
 
-// Equals checks if the current HeaderType is equal to any of the provided HeaderType values.
-// It returns true if the current HeaderType matches any of the provided values, and false otherwise.
+// Equals checks if the current [HeaderType] is equal to any of the provided [HeaderType] values.
+// It returns true if the current [HeaderType] matches any of the provided values, and false otherwise.
 // This method is useful for checking if a header type belongs to a set of predefined types.
 func (h HeaderType) Equals(o ...HeaderType) bool {
 	return slices.ContainsFunc(o, h.Equal)
 }
 
-// Equal compares two MediaType values for equality.
+// Equal compares two [MediaType] values for equality.
 func (m MediaType) Equal(other MediaType) bool {
 	return m.String() == other.String()
 }
 
-// EqualsIgnoreCase compares two MediaType values for equality, ignoring case differences.
+// EqualsIgnoreCase compares two [MediaType] values for equality, ignoring case differences.
 // This method is useful when you want to check if two media types are the same without considering the case of the characters.
 func (m MediaType) EqualsIgnoreCase(other MediaType) bool {
 	return strutil.EqualsIgnoreCase(string(m), string(other))
 }
 
-// Equals checks if the current MediaType is equal to any of the provided MediaType values.
-// It returns true if the current MediaType matches any of the provided values, and false otherwise.
+// Equals checks if the current [MediaType] is equal to any of the provided [MediaType] values.
+// It returns true if the current [MediaType] matches any of the provided values, and false otherwise.
 // This method is useful for checking if a media type belongs to a set of predefined types.
 func (m MediaType) Equals(o ...MediaType) bool {
 	return slices.ContainsFunc(o, m.Equal)
 }
 
+// IsEmpty checks if the [HeaderType] is empty (i.e., has no value).
 func (h HeaderType) IsEmpty() bool {
 	return strutil.IsEmpty(string(h))
 }
 
+// IsEmpty checks if the [MediaType] is empty (i.e., has no value).
 func (m MediaType) IsEmpty() bool {
 	return strutil.IsEmpty(string(m))
 }

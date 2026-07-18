@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 
+	"github.com/sivaosorg/replify/pkg/conv"
 	"github.com/sivaosorg/replify/pkg/encoding"
 	"github.com/sivaosorg/replify/pkg/slogger"
 	"github.com/sivaosorg/replify/pkg/sysx"
@@ -301,21 +302,20 @@ func dumpBodyStream(body any) (*sysx.Resource, error) {
 	errCh := make(chan error, 1)
 	go func() {
 		var err error
-		switch v := body.(type) {
-		case string:
-			_, err = io.WriteString(pw, v)
-		case []byte:
-			_, err = pw.Write(v)
-		case json.RawMessage:
-			_, err = pw.Write(v)
-		default:
-			// json.Encoder.Encode appends a trailing '\n', which is
-			// intentional: it acts as a record separator when multiple
-			// entries are appended to the same file later.
-			err = json.NewEncoder(pw).Encode(body)
+		v, err := conv.String(body)
+		if err != nil {
+			errCh <- err
+			pw.CloseWithError(err)
+			return
 		}
-		errCh <- err
-		pw.CloseWithError(err)
+		_, err = io.WriteString(pw, v)
+		if err != nil {
+			errCh <- err
+			pw.CloseWithError(err)
+			return
+		}
+		errCh <- nil
+		pw.Close()
 	}()
 
 	res, err := sysx.NewResource().

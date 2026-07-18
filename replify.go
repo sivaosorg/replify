@@ -21,6 +21,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/strchain"
 	"github.com/sivaosorg/replify/pkg/strutil"
 	"github.com/sivaosorg/replify/pkg/sysx"
+	"github.com/sivaosorg/replify/pkg/translit"
 )
 
 // Available checks whether the [wrapper] instance is non-nil.
@@ -1132,8 +1133,11 @@ func (w *wrapper) IsDebuggingKeyPresent(key string) bool {
 //   - `true` if `data` is not nil.
 //   - `false` if `data` is nil.
 func (w *wrapper) IsBodyPresent() bool {
+	if w == nil {
+		return false
+	}
 	value := reflect.ValueOf(w.data)
-	return w.Available() && !common.IsEmptyValue(value)
+	return !common.IsEmptyValue(value)
 }
 
 // IsJSONBody checks whether the body data is a valid JSON string.
@@ -1612,15 +1616,15 @@ func (w *wrapper) WithBody(v any) *wrapper {
 //
 // The method accepts any Go value and handles it according to its dynamic type:
 //
-//   - string        – the string is passed through encoding.NormalizeJSON, which
+//   - string        - the string is passed through encoding.NormalizeJSON, which
 //     strips common JSON corruption artifacts (BOM, null bytes, escaped structural
 //     quotes, trailing commas) before setting the result as the body.
-//   - []byte        – treated as a raw string; the same NormalizeJSON pipeline is
+//   - []byte        - treated as a raw string; the same NormalizeJSON pipeline is
 //     applied after converting to string.
-//   - json.RawMessage – validated directly; if invalid, an error is returned.
-//   - any other type – marshaled to JSON via encoding.JSONToken and set as the body,
+//   - json.RawMessage - validated directly; if invalid, an error is returned.
+//   - any other type - marshaled to JSON via encoding.JSONToken and set as the body,
 //     which is by definition already valid JSON.
-//   - nil           – returns an error; nil cannot be normalized.
+//   - nil           - returns an error; nil cannot be normalized.
 //
 // If normalization succeeds, the cleaned value is stored as the body and the method
 // returns the updated wrapper and nil.  If it fails, the body is left unchanged and
@@ -3289,6 +3293,27 @@ func (w *wrapper) DumpBodyTo(dst string) (*Dump, *wrapper) {
 		New().
 			WithHeader(OK).
 			WithMessagef("DumpBodyTo: succeeded, written to %q", dst)
+}
+
+// UnidecodeBody returns a transliterated version of the [wrapper]'s body content.
+//
+// This method uses the [translit.Unidecode] function to convert the body content into a
+// plain ASCII representation, which can be useful for logging, debugging, or displaying
+// content in environments that do not support Unicode.
+//
+// If the body is not present, it returns an empty string. If the body is JSON, it
+// first serializes the JSON content before applying transliteration.
+//
+// Returns:
+//   - A string containing the transliterated body content, or an empty string if the body is not present.
+func (w *wrapper) UnidecodeBody() string {
+	if !w.IsBodyPresent() {
+		return ""
+	}
+	if w.IsJSONBody() {
+		return translit.Unidecode(w.JSON())
+	}
+	return translit.Unidecode(w.BodyString())
 }
 
 // autoAdjust automatically synchronizes the [wrapper]'s error field with its message

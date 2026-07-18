@@ -9,7 +9,7 @@ import "github.com/sivaosorg/replify/pkg/translit"
 `translit` is a from-scratch, performance-oriented reimplementation of
 [`github.com/mozillazg/go-unidecode`](https://github.com/mozillazg/go-unidecode).
 It produces **byte-for-byte identical output** to the original library while
-eliminating all heap allocations on the hot path and running **2.4x–10x faster**
+eliminating all heap allocations on the hot path and running **2.4x-10x faster**
 across every script category.
 
 ---
@@ -153,7 +153,7 @@ transliterating can do so here.
 
 ## Behavior notes
 
-- **ASCII identity**: bytes U+0000–U+007E pass through unchanged.
+- **ASCII identity**: bytes U+0000-U+007E pass through unchanged.
 - **DEL (U+007F)**: dropped in `ModeSkip`, matching the original library's
   `unicode.MaxASCII` fast-path boundary.
 - **Invalid UTF-8**: malformed bytes are skipped in `ModeSkip` and emitted as
@@ -189,8 +189,8 @@ The `Append`/`AppendBytes` hot path is `0 B/op, 0 allocs/op` for every category,
 confirmed both by benchmark output and by `TestZeroAllocations`, which uses
 `testing.AllocsPerRun` and fails the build if this ever regresses.
 
-The `Unidecode` convenience wrapper beats the original by **1.5x–3.2x** while
-using 2 allocations instead of 5–23, because it sizes its single allocation
+The `Unidecode` convenience wrapper beats the original by **1.5x-3.2x** while
+using 2 allocations instead of 5-23, because it sizes its single allocation
 exactly via `SizeHint` rather than growing a `strings.Builder` repeatedly.
 
 ---

@@ -78,10 +78,25 @@ func (c *Converter) String(from any) (string, error) {
 		return strconv.Itoa(*v), nil
 	case int8:
 		return strconv.FormatInt(int64(v), 10), nil
+	case *int8:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatInt(int64(*v), 10), nil
 	case int16:
 		return strconv.FormatInt(int64(v), 10), nil
+	case *int16:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatInt(int64(*v), 10), nil
 	case int32:
 		return strconv.FormatInt(int64(v), 10), nil
+	case *int32:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatInt(int64(*v), 10), nil
 	case int64:
 		return strconv.FormatInt(v, 10), nil
 	case *int64:
@@ -91,12 +106,27 @@ func (c *Converter) String(from any) (string, error) {
 		return strconv.FormatInt(*v, 10), nil
 	case uint:
 		return strconv.FormatUint(uint64(v), 10), nil
+	case *uint:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatUint(uint64(*v), 10), nil
 	case uint8:
 		return strconv.FormatUint(uint64(v), 10), nil
+	case *uint8:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatUint(uint64(*v), 10), nil
 	case uint16:
 		return strconv.FormatUint(uint64(v), 10), nil
 	case uint32:
 		return strconv.FormatUint(uint64(v), 10), nil
+	case *uint32:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatUint(uint64(*v), 10), nil
 	case uint64:
 		return strconv.FormatUint(v, 10), nil
 	case *uint64:
@@ -106,6 +136,11 @@ func (c *Converter) String(from any) (string, error) {
 		return strconv.FormatUint(*v, 10), nil
 	case float32:
 		return strconv.FormatFloat(float64(v), 'f', -1, 32), nil
+	case *float32:
+		if v == nil {
+			return "", nil
+		}
+		return strconv.FormatFloat(float64(*v), 'f', -1, 32), nil
 	case float64:
 		return strconv.FormatFloat(v, 'f', -1, 64), nil
 	case *float64:
@@ -115,26 +150,41 @@ func (c *Converter) String(from any) (string, error) {
 		return strconv.FormatFloat(*v, 'f', -1, 64), nil
 	case complex64:
 		return fmt.Sprintf("%v", v), nil
+	case *complex64:
+		if v == nil {
+			return "", nil
+		}
+		return fmt.Sprintf("%v", *v), nil
 	case complex128:
 		return fmt.Sprintf("%v", v), nil
+	case *complex128:
+		if v == nil {
+			return "", nil
+		}
+		return fmt.Sprintf("%v", *v), nil
 	case time.Time:
 		return v.Format(time.RFC3339), nil
 	case *time.Time:
 		if v == nil {
 			return "", nil
 		}
-		return v.Format(time.RFC3339), nil
+		return (*v).Format(time.RFC3339), nil
 	case time.Duration:
 		return v.String(), nil
 	case *time.Duration:
 		if v == nil {
 			return "", nil
 		}
-		return v.String(), nil
+		return (*v).String(), nil
 	case error:
 		return v.Error(), nil
 	case fmt.Stringer:
 		return v.String(), nil
+	case *fmt.Stringer:
+		if v == nil {
+			return "", nil
+		}
+		return (*v).String(), nil
 	case json.RawMessage:
 		if !json.Valid(v) {
 			return "", newConvError(from, "invalid JSON")

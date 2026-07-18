@@ -1,6 +1,7 @@
 package strchain
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -1524,4 +1525,17 @@ func (sw *SafeStringWeaver) IndentOnlyLine(level int) Weaver {
 	}
 	sw.builder.WriteByte('\n')
 	return sw
+}
+
+// Bytes returns the built string as a byte slice.
+//
+// Example:
+//
+//	data := sw.Bytes()
+func (sw *SafeStringWeaver) Bytes() []byte {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	var buf bytes.Buffer
+	buf.WriteString(sw.builder.String())
+	return buf.Bytes()
 }

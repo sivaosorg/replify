@@ -324,6 +324,14 @@ type Dump struct {
 	filepath string
 }
 
+// HeaderType is a string type used to represent the type of a header in an API response.
+// It is used to categorize headers into different types, such as informational, error, or success headers.
+type HeaderType string
+
+// MediaType is a string type used to represent the media type (also known as MIME type) of a resource or content in an API response.
+// It is used to specify the format of the data being sent or received, such as "application/json", "text/html", or "image/png".
+type MediaType string
+
 // ///////////////////////////
 // Section unexported types
 // ///////////////////////////

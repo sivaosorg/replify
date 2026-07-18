@@ -4,434 +4,434 @@ package replify
 const (
 	// Accept specifies the media types that are acceptable for the response.
 	// 	Example: "application/json, text/html"
-	HeaderAccept = "Accept"
+	HeaderAccept HeaderType = "Accept"
 
 	// AcceptCharset specifies the character sets that are acceptable.
 	// 	Example: "utf-8, iso-8859-1"
-	HeaderAcceptCharset = "Accept-Charset"
+	HeaderAcceptCharset HeaderType = "Accept-Charset"
 
 	// AcceptEncoding specifies the content encodings that are acceptable.
 	//	Example: "gzip, deflate, br"
-	HeaderAcceptEncoding = "Accept-Encoding"
+	HeaderAcceptEncoding HeaderType = "Accept-Encoding"
 
 	// AcceptLanguage specifies the acceptable languages for the response.
 	// 	Example: "en-US, en;q=0.9, fr;q=0.8"
-	HeaderAcceptLanguage = "Accept-Language"
+	HeaderAcceptLanguage HeaderType = "Accept-Language"
 
 	// Authorization contains the credentials for authenticating the client with the server.
 	// 	Example: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6..."
-	HeaderAuthorization = "Authorization"
+	HeaderAuthorization HeaderType = "Authorization"
 
 	// CacheControl specifies directives for caching mechanisms in both requests and responses.
 	// 	Example: "no-cache, no-store, must-revalidate"
-	HeaderCacheControl = "Cache-Control"
+	HeaderCacheControl HeaderType = "Cache-Control"
 
 	// ContentDisposition specifies if the content should be displayed inline or treated as an attachment.
 	// 	Example: "attachment; filename=\"document.pdf\""
-	HeaderContentDisposition = "Content-Disposition"
+	HeaderContentDisposition HeaderType = "Content-Disposition"
 
 	// ContentEncoding specifies the encoding transformations that have been applied to the body of the response.
 	// 	Example: "gzip"
-	HeaderContentEncoding = "Content-Encoding"
+	HeaderContentEncoding HeaderType = "Content-Encoding"
 
 	// ContentLength specifies the size of the response body in octets.
 	// 	Example: "1024"
-	HeaderContentLength = "Content-Length"
+	HeaderContentLength HeaderType = "Content-Length"
 
 	// ContentType specifies the media type of the resource.
 	// 	Example: "application/json; charset=utf-8"
-	HeaderContentType = "Content-Type"
+	HeaderContentType HeaderType = "Content-Type"
 
 	// Cookie contains stored HTTP cookies sent to the server by the client.
 	// 	Example: "sessionId=abc123; userId=456"
-	HeaderCookie = "Cookie"
+	HeaderCookie HeaderType = "Cookie"
 
 	// Host specifies the domain name of the server (for virtual hosting) and the TCP port number.
 	// 	Example: "www.example.com:8080"
-	HeaderHost = "Host"
+	HeaderHost HeaderType = "Host"
 
 	// Origin specifies the origin of the cross-origin request or preflight request.
 	// 	Example: "https://www.example.com"
-	HeaderOrigin = "Origin"
+	HeaderOrigin HeaderType = "Origin"
 
 	// Referer contains the address of the previous web page from which a link to the currently requested page was followed.
 	// 	Example: "https://www.example.com/page1.html"
-	HeaderReferer = "Referer"
+	HeaderReferer HeaderType = "Referer"
 
 	// UserAgent contains information about the user agent (browser or client) making the request.
 	// 	Example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-	HeaderUserAgent = "User-Agent"
+	HeaderUserAgent HeaderType = "User-Agent"
 
 	// IfMatch makes the request conditional on the target resource having the same entity tag as the one provided.
 	// 	Example: "\"686897696a7c876b7e\""
-	HeaderIfMatch = "If-Match"
+	HeaderIfMatch HeaderType = "If-Match"
 
 	// IfNoneMatch makes the request conditional on the target resource not having the same entity tag as the one provided.
 	// 	Example: "\"686897696a7c876b7e\""
-	HeaderIfNoneMatch = "If-None-Match"
+	HeaderIfNoneMatch HeaderType = "If-None-Match"
 
 	// ETag provides the entity tag for the resource.
 	// 	Example: "\"33a64df551425fcc55e4d42a148795d9f25f89d4\""
-	HeaderETag = "ETag"
+	HeaderETag HeaderType = "ETag"
 
 	// LastModified specifies the last modified date of the resource.
 	// 	Example: "Wed, 21 Oct 2015 07:28:00 GMT"
-	HeaderLastModified = "Last-Modified"
+	HeaderLastModified HeaderType = "Last-Modified"
 
 	// Location specifies the URL to redirect a client to.
 	// 	Example: "https://www.example.com/new-location"
-	HeaderLocation = "Location"
+	HeaderLocation HeaderType = "Location"
 
 	// Pragma specifies implementation-specific directives that might affect caching.
 	// 	Example: "no-cache"
-	HeaderPragma = "Pragma"
+	HeaderPragma HeaderType = "Pragma"
 
 	// RetryAfter specifies the time after which the client should retry the request after receiving a 503 Service Unavailable status code.
 	// 	Example: "120" or "Fri, 07 Nov 2014 23:59:59 GMT"
-	HeaderRetryAfter = "Retry-After"
+	HeaderRetryAfter HeaderType = "Retry-After"
 
 	// Server contains information about the software used by the origin server to handle the request.
 	// 	Example: "Apache/2.4.41 (Ubuntu)"
-	HeaderServer = "Server"
+	HeaderServer HeaderType = "Server"
 
 	// WWWAuthenticate indicates that the client must authenticate to access the requested resource.
 	// 	Example: "Basic realm=\"Access to staging site\""
-	HeaderWWWAuthenticate = "WWW-Authenticate"
+	HeaderWWWAuthenticate HeaderType = "WWW-Authenticate"
 
 	// Date specifies the date and time at which the message was sent.
 	// 	Example: "Tue, 15 Nov 1994 08:12:31 GMT"
-	HeaderDate = "Date"
+	HeaderDate HeaderType = "Date"
 
 	// Expires specifies the date/time after which the response is considered stale.
 	// 	Example: "Thu, 01 Dec 1994 16:00:00 GMT"
-	HeaderExpires = "Expires"
+	HeaderExpires HeaderType = "Expires"
 
 	// Age specifies the age of the response in seconds.
 	// 	Example: "3600"
-	HeaderAge = "Age"
+	HeaderAge HeaderType = "Age"
 
 	// Connection specifies control options for the current connection (e.g., keep-alive or close).
 	// 	Example: "keep-alive"
-	HeaderConnection = "Connection"
+	HeaderConnection HeaderType = "Connection"
 
 	// ContentLanguage specifies the language of the content.
 	// 	Example: "en-US"
-	HeaderContentLanguage = "Content-Language"
+	HeaderContentLanguage HeaderType = "Content-Language"
 
 	// Forwarded contains information about intermediate proxies or gateways that have forwarded the request.
 	// 	Example: "for=192.0.2.60;proto=http;by=203.0.113.43"
-	HeaderForwarded = "Forwarded"
+	HeaderForwarded HeaderType = "Forwarded"
 
 	// IfModifiedSince makes the request conditional on the target resource being modified since the specified date.
 	// 	Example: "Wed, 21 Oct 2015 07:28:00 GMT"
-	HeaderIfModifiedSince = "If-Modified-Since"
+	HeaderIfModifiedSince HeaderType = "If-Modified-Since"
 
 	// Upgrade requests the server to switch to a different protocol.
 	// 	Example: "websocket"
-	HeaderUpgrade = "Upgrade"
+	HeaderUpgrade HeaderType = "Upgrade"
 
 	// Via provides information about intermediate protocols and recipients between the user agent and the server.
 	// 	Example: "1.1 proxy1.example.com, 1.0 proxy2.example.org"
-	HeaderVia = "Via"
+	HeaderVia HeaderType = "Via"
 
 	// Warning carries additional information about the status or transformation of a message.
 	// 	Example: "110 anderson/1.3.37 \"Response is stale\""
-	HeaderWarning = "Warning"
+	HeaderWarning HeaderType = "Warning"
 
 	// XForwardedFor contains the originating IP address of a client connecting to a web server through an HTTP proxy or load balancer.
 	// 	Example: "203.0.113.195, 70.41.3.18, 150.172.238.178"
-	HeaderXForwardedFor = "X-Forwarded-For"
+	HeaderXForwardedFor HeaderType = "X-Forwarded-For"
 
 	// XForwardedHost contains the original host requested by the client in the Host HTTP request header.
 	// 	Example: "example.com"
-	HeaderXForwardedHost = "X-Forwarded-Host"
+	HeaderXForwardedHost HeaderType = "X-Forwarded-Host"
 
 	// XForwardedProto specifies the protocol (HTTP or HTTPS) used by the client.
 	// 	Example: "https"
-	HeaderXForwardedProto = "X-Forwarded-Proto"
+	HeaderXForwardedProto HeaderType = "X-Forwarded-Proto"
 
 	// XRequestedWith identifies the type of request being made (e.g., Ajax requests).
 	// 	Example: "XMLHttpRequest"
-	HeaderXRequestedWith = "X-Requested-With"
+	HeaderXRequestedWith HeaderType = "X-Requested-With"
 
 	// XFrameOptions specifies whether the browser should be allowed to render the page in a <frame>, <iframe>, <object>, <embed>, or <applet>.
 	// 	Example: "DENY" or "SAMEORIGIN"
-	HeaderXFrameOptions = "X-Frame-Options"
+	HeaderXFrameOptions HeaderType = "X-Frame-Options"
 
 	// XXSSProtection controls browser's built-in XSS (Cross-Site Scripting) filter.
 	// 	Example: "1; mode=block"
-	HeaderXXSSProtection = "X-XSS-Protection"
+	HeaderXXSSProtection HeaderType = "X-XSS-Protection"
 
 	// XContentTypeOpts prevents browsers from interpreting files as a different MIME type than what is specified.
 	// 	Example: "nosniff"
-	HeaderXContentTypeOpts = "X-Content-Type-Options"
+	HeaderXContentTypeOpts HeaderType = "X-Content-Type-Options"
 
 	// ContentSecurity specifies security policy for web applications, helping to prevent certain types of attacks.
 	// 	Example: "default-src 'self'; script-src 'self' 'unsafe-inline'"
-	HeaderContentSecurity = "Content-Security-Policy"
+	HeaderContentSecurity HeaderType = "Content-Security-Policy"
 
 	// StrictTransport enforces the use of HTTPS for the website to reduce security risks.
 	// 	Example: "max-age=31536000; includeSubDomains"
-	HeaderStrictTransport = "Strict-Transport-Security"
+	HeaderStrictTransport HeaderType = "Strict-Transport-Security"
 
 	// PublicKeyPins specifies public key pins to prevent man-in-the-middle attacks.
 	// 	Example: "pin-sha256=\"base64+primary==\"; pin-sha256=\"base64+backup==\"; max-age=5184000"
-	HeaderPublicKeyPins = "Public-Key-Pins"
+	HeaderPublicKeyPins HeaderType = "Public-Key-Pins"
 
 	// ExpectCT allows websites to specify a Certificate Transparency policy.
 	// 	Example: "max-age=86400, enforce"
-	HeaderExpectCT = "Expect-CT"
+	HeaderExpectCT HeaderType = "Expect-CT"
 
 	// AccessControlAllowOrigin specifies which domains are allowed to access the resources.
 	// 	Example: "*" or "https://example.com"
-	HeaderAccessControlAllowOrigin = "Access-Control-Allow-Origin"
+	HeaderAccessControlAllowOrigin HeaderType = "Access-Control-Allow-Origin"
 
 	// AccessControlAllowMethods specifies which HTTP methods are allowed when accessing the resource.
 	// 	Example: "GET, POST, PUT, DELETE"
-	HeaderAccessControlAllowMethods = "Access-Control-Allow-Methods"
+	HeaderAccessControlAllowMethods HeaderType = "Access-Control-Allow-Methods"
 
 	// AccessControlAllowHeaders specifies which HTTP headers can be used during the actual request.
 	// 	Example: "Content-Type, Authorization"
-	HeaderAccessControlAllowHeaders = "Access-Control-Allow-Headers"
+	HeaderAccessControlAllowHeaders HeaderType = "Access-Control-Allow-Headers"
 
 	// AccessControlMaxAge specifies how long the results of a preflight request can be cached.
 	// 	Example: "86400"
-	HeaderAccessControlMaxAge = "Access-Control-Max-Age"
+	HeaderAccessControlMaxAge HeaderType = "Access-Control-Max-Age"
 
 	// AccessControlExposeHeaders specifies which headers can be exposed as part of the response.
 	// 	Example: "Content-Length, X-JSON"
-	HeaderAccessControlExposeHeaders = "Access-Control-Expose-Headers"
+	HeaderAccessControlExposeHeaders HeaderType = "Access-Control-Expose-Headers"
 
 	// AccessControlRequestMethod indicates which HTTP method will be used during the actual request.
 	// 	Example: "POST"
-	HeaderAccessControlRequestMethod = "Access-Control-Request-Method"
+	HeaderAccessControlRequestMethod HeaderType = "Access-Control-Request-Method"
 
 	// AccessControlRequestHeaders specifies which headers can be sent with the actual request.
 	// 	Example: "Content-Type, X-Custom-Header"
-	HeaderAccessControlRequestHeaders = "Access-Control-Request-Headers"
+	HeaderAccessControlRequestHeaders HeaderType = "Access-Control-Request-Headers"
 
 	// AcceptPatch specifies which patch document formats are acceptable in the response.
 	// 	Example: "application/json-patch+json"
-	HeaderAcceptPatch = "Accept-Patch"
+	HeaderAcceptPatch HeaderType = "Accept-Patch"
 
 	// DeltaBase specifies the URI of the delta information.
 	// 	Example: "\"abc123\""
-	HeaderDeltaBase = "Delta-Base"
+	HeaderDeltaBase HeaderType = "Delta-Base"
 
 	// IfUnmodifiedSince makes the request conditional on the resource not being modified since the specified date.
 	// 	Example: "Wed, 21 Oct 2015 07:28:00 GMT"
-	HeaderIfUnmodifiedSince = "If-Unmodified-Since"
+	HeaderIfUnmodifiedSince HeaderType = "If-Unmodified-Since"
 
 	// AcceptRanges specifies the range of the resource that the client is requesting.
 	// 	Example: "bytes"
-	HeaderAcceptRanges = "Accept-Ranges"
+	HeaderAcceptRanges HeaderType = "Accept-Ranges"
 
 	// ContentRange specifies the range of the resource being sent in the response.
 	// 	Example: "bytes 200-1000/5000"
-	HeaderContentRange = "Content-Range"
+	HeaderContentRange HeaderType = "Content-Range"
 
 	// Allow specifies the allowed methods for a resource.
 	// 	Example: "GET, HEAD, PUT"
-	HeaderAllow = "Allow"
+	HeaderAllow HeaderType = "Allow"
 
 	// AccessControlAllowCredentials indicates whether the response to the request can expose credentials.
 	// 	Example: "true"
-	HeaderAccessControlAllowCredentials = "Access-Control-Allow-Credentials"
+	HeaderAccessControlAllowCredentials HeaderType = "Access-Control-Allow-Credentials"
 
 	// XCSRFToken is used to prevent Cross-Site Request Forgery (CSRF) attacks.
 	// 	Example: "i8XNjC4b8KVok4uw5RftR38Wgp2BF"
-	HeaderXCSRFToken = "X-CSRF-Token"
+	HeaderXCSRFToken HeaderType = "X-CSRF-Token"
 
 	// XRealIP contains the real IP address of the client, often used in proxies or load balancers.
 	// 	Example: "203.0.113.195"
-	HeaderXRealIP = "X-Real-IP"
+	HeaderXRealIP HeaderType = "X-Real-IP"
 
 	// ContentSecurityPolicy specifies content security policies to prevent certain attacks.
 	// 	Example: "default-src 'self'; img-src *; media-src media1.com media2.com"
-	HeaderContentSecurityPolicy = "Content-Security-Policy"
+	HeaderContentSecurityPolicy HeaderType = "Content-Security-Policy"
 
 	// ReferrerPolicy controls how much information about the referring page is sent.
 	// 	Example: "no-referrer-when-downgrade"
-	HeaderReferrerPolicy = "Referrer-Policy"
+	HeaderReferrerPolicy HeaderType = "Referrer-Policy"
 
 	// ExpectCt specifies a Certificate Transparency policy for the web server.
 	// 	Example: "max-age=86400, enforce, report-uri=\"https://example.com/report\""
-	HeaderExpectCt = "Expect-CT"
+	HeaderExpectCt HeaderType = "Expect-CT"
 
 	// StrictTransportSecurity enforces HTTPS to reduce the chance of security breaches.
 	// 	Example: "max-age=63072000; includeSubDomains; preload"
-	HeaderStrictTransportSecurity = "Strict-Transport-Security"
+	HeaderStrictTransportSecurity HeaderType = "Strict-Transport-Security"
 
 	// UpgradeInsecureRequests requests the browser to upgrade any insecure requests to secure HTTPS requests.
 	// 	Example: "1"
-	HeaderUpgradeInsecureRequests = "Upgrade-Insecure-Requests"
+	HeaderUpgradeInsecureRequests HeaderType = "Upgrade-Insecure-Requests"
 )
 
 // Media Type constants define commonly used MIME types for different content types in HTTP requests and responses.
 const (
 	// ApplicationJSON specifies that the content is JSON-formatted data.
 	//  Example: "application/json"
-	MediaTypeApplicationJSON = "application/json"
+	MediaTypeApplicationJSON MediaType = "application/json"
 
 	// ApplicationJSONUTF8 specifies that the content is JSON-formatted data with UTF-8 character encoding.
 	//  Example: "application/json; charset=utf-8"
-	MediaTypeApplicationJSONUTF8 = "application/json; charset=utf-8"
+	MediaTypeApplicationJSONUTF8 MediaType = "application/json; charset=utf-8"
 
 	// ApplicationXML specifies that the content is XML-formatted data.
 	//  Example: "application/xml"
-	MediaTypeApplicationXML = "application/xml"
+	MediaTypeApplicationXML MediaType = "application/xml"
 
 	// ApplicationForm specifies that the content is URL-encoded form data.
 	//  Example: "application/x-www-form-urlencoded"
-	MediaTypeApplicationForm = "application/x-www-form-urlencoded"
+	MediaTypeApplicationForm MediaType = "application/x-www-form-urlencoded"
 
 	// ApplicationOctetStream specifies that the content is binary data (not interpreted by the browser).
 	//  Example: "application/octet-stream"
-	MediaTypeApplicationOctetStream = "application/octet-stream"
+	MediaTypeApplicationOctetStream MediaType = "application/octet-stream"
 
 	// TextPlain specifies that the content is plain text.
 	//  Example: "text/plain"
-	MediaTypeTextPlain = "text/plain"
+	MediaTypeTextPlain MediaType = "text/plain"
 
 	// TextHTML specifies that the content is HTML-formatted data.
 	//  Example: "text/html"
-	MediaTypeTextHTML = "text/html"
+	MediaTypeTextHTML MediaType = "text/html"
 
 	// ImageJPEG specifies that the content is a JPEG image.
 	//  Example: "image/jpeg"
-	MediaTypeImageJPEG = "image/jpeg"
+	MediaTypeImageJPEG MediaType = "image/jpeg"
 
 	// ImagePNG specifies that the content is a PNG image.
 	//  Example: "image/png"
-	MediaTypeImagePNG = "image/png"
+	MediaTypeImagePNG MediaType = "image/png"
 
 	// ImageGIF specifies that the content is a GIF image.
 	//  Example: "image/gif"
-	MediaTypeImageGIF = "image/gif"
+	MediaTypeImageGIF MediaType = "image/gif"
 
 	// AudioMP3 specifies that the content is an MP3 audio file.
 	//  Example: "audio/mpeg"
-	MediaTypeAudioMP3 = "audio/mpeg"
+	MediaTypeAudioMP3 MediaType = "audio/mpeg"
 
 	// AudioWAV specifies that the content is a WAV audio file.
 	//  Example: "audio/wav"
-	MediaTypeAudioWAV = "audio/wav"
+	MediaTypeAudioWAV MediaType = "audio/wav"
 
 	// VideoMP4 specifies that the content is an MP4 video file.
 	//  Example: "video/mp4"
-	MediaTypeVideoMP4 = "video/mp4"
+	MediaTypeVideoMP4 MediaType = "video/mp4"
 
 	// VideoAVI specifies that the content is an AVI video file.
 	//  Example: "video/x-msvideo"
-	MediaTypeVideoAVI = "video/x-msvideo"
+	MediaTypeVideoAVI MediaType = "video/x-msvideo"
 
 	// ApplicationPDF specifies that the content is a PDF file.
 	//  Example: "application/pdf"
-	MediaTypeApplicationPDF = "application/pdf"
+	MediaTypeApplicationPDF MediaType = "application/pdf"
 
 	// ApplicationMSWord specifies that the content is a Microsoft Word document (.doc).
 	//  Example: "application/msword"
-	MediaTypeApplicationMSWord = "application/msword"
+	MediaTypeApplicationMSWord MediaType = "application/msword"
 
 	// ApplicationMSPowerPoint specifies that the content is a Microsoft PowerPoint presentation (.ppt).
 	//  Example: "application/vnd.ms-powerpoint"
-	MediaTypeApplicationMSPowerPoint = "application/vnd.ms-powerpoint"
+	MediaTypeApplicationMSPowerPoint MediaType = "application/vnd.ms-powerpoint"
 
 	// ApplicationExcel specifies that the content is a Microsoft Excel spreadsheet (.xls).
 	//  Example: "application/vnd.ms-excel"
-	MediaTypeApplicationExcel = "application/vnd.ms-excel"
+	MediaTypeApplicationExcel MediaType = "application/vnd.ms-excel"
 
 	// ApplicationZip specifies that the content is a ZIP archive.
 	//  Example: "application/zip"
-	MediaTypeApplicationZip = "application/zip"
+	MediaTypeApplicationZip MediaType = "application/zip"
 
 	// ApplicationGzip specifies that the content is a GZIP-compressed file.
 	//  Example: "application/gzip"
-	MediaTypeApplicationGzip = "application/gzip"
+	MediaTypeApplicationGzip MediaType = "application/gzip"
 
 	// MultipartFormData specifies that the content is a multipart form, typically used for file uploads.
 	//  Example: "multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW"
-	MediaTypeMultipartFormData = "multipart/form-data"
+	MediaTypeMultipartFormData MediaType = "multipart/form-data"
 
 	// ImageBMP specifies that the content is a BMP image.
 	//  Example: "image/bmp"
-	MediaTypeImageBMP = "image/bmp"
+	MediaTypeImageBMP MediaType = "image/bmp"
 
 	// ImageTIFF specifies that the content is a TIFF image.
 	//  Example: "image/tiff"
-	MediaTypeImageTIFF = "image/tiff"
+	MediaTypeImageTIFF MediaType = "image/tiff"
 
 	// TextCSS specifies that the content is CSS (Cascading Style Sheets).
 	//  Example: "text/css"
-	MediaTypeTextCSS = "text/css"
+	MediaTypeTextCSS MediaType = "text/css"
 
 	// TextJavaScript specifies that the content is JavaScript code.
 	//  Example: "text/javascript"
-	MediaTypeTextJavaScript = "text/javascript"
+	MediaTypeTextJavaScript MediaType = "text/javascript"
 
 	// ApplicationJSONLD specifies that the content is a JSON-LD (JSON for Linked Data) document.
 	//  Example: "application/ld+json"
-	MediaTypeApplicationJSONLD = "application/ld+json"
+	MediaTypeApplicationJSONLD MediaType = "application/ld+json"
 
 	// ApplicationRDFXML specifies that the content is in RDF (Resource Description Framework) XML format.
 	//  Example: "application/rdf+xml"
-	MediaTypeApplicationRDFXML = "application/rdf+xml"
+	MediaTypeApplicationRDFXML MediaType = "application/rdf+xml"
 
 	// ApplicationGeoJSON specifies that the content is a GeoJSON (geostatics data) document.
 	//  Example: "application/geo+json"
-	MediaTypeApplicationGeoJSON = "application/geo+json"
+	MediaTypeApplicationGeoJSON MediaType = "application/geo+json"
 
 	// ApplicationMsgpack specifies that the content is in MessagePack format (binary JSON).
 	//  Example: "application/msgpack"
-	MediaTypeApplicationMsgpack = "application/msgpack"
+	MediaTypeApplicationMsgpack MediaType = "application/msgpack"
 
 	// ApplicationOgg specifies that the content is an Ogg multimedia container format.
 	//  Example: "application/ogg"
-	MediaTypeApplicationOgg = "application/ogg"
+	MediaTypeApplicationOgg MediaType = "application/ogg"
 
 	// ApplicationGraphQL specifies that the content is in GraphQL format.
 	//  Example: "application/graphql"
-	MediaTypeApplicationGraphQL = "application/graphql"
+	MediaTypeApplicationGraphQL MediaType = "application/graphql"
 
 	// ApplicationProtobuf specifies that the content is in Protocol Buffers format (binary serialization).
 	//  Example: "application/protobuf"
-	MediaTypeApplicationProtobuf = "application/protobuf"
+	MediaTypeApplicationProtobuf MediaType = "application/protobuf"
 
 	// ImageWebP specifies that the content is a WebP image.
 	//  Example: "image/webp"
-	MediaTypeImageWebP = "image/webp"
+	MediaTypeImageWebP MediaType = "image/webp"
 
 	// FontWOFF specifies that the content is a WOFF (Web Open Font Format) font.
 	//  Example: "font/woff"
-	MediaTypeFontWOFF = "font/woff"
+	MediaTypeFontWOFF MediaType = "font/woff"
 
 	// FontWOFF2 specifies that the content is a WOFF2 (Web Open Font Format 2) font.
 	//  Example: "font/woff2"
-	MediaTypeFontWOFF2 = "font/woff2"
+	MediaTypeFontWOFF2 MediaType = "font/woff2"
 
 	// AudioFLAC specifies that the content is a FLAC audio file (Free Lossless Audio Codec).
 	//  Example: "audio/flac"
-	MediaTypeAudioFLAC = "audio/flac"
+	MediaTypeAudioFLAC MediaType = "audio/flac"
 
 	// VideoWebM specifies that the content is a WebM video file.
 	//  Example: "video/webm"
-	MediaTypeVideoWebM = "video/webm"
+	MediaTypeVideoWebM MediaType = "video/webm"
 
 	// ApplicationDart specifies that the content is a Dart programming language file.
 	//  Example: "application/dart"
-	MediaTypeApplicationDart = "application/dart"
+	MediaTypeApplicationDart MediaType = "application/dart"
 
 	// ApplicationXLSX specifies that the content is an Excel file in XLSX format.
 	//  Example: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	MediaTypeApplicationXLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	MediaTypeApplicationXLSX MediaType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 	// ApplicationPPTX specifies that the content is a PowerPoint file in PPTX format.
 	//  Example: "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-	MediaTypeApplicationPPTX = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+	MediaTypeApplicationPPTX MediaType = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 
 	// ApplicationGRPC specifies that the content is in gRPC format (a high-performance RPC framework).
 	//  Example: "application/grpc"
-	MediaTypeApplicationGRPC = "application/grpc"
+	MediaTypeApplicationGRPC MediaType = "application/grpc"
 )
 
 // HTTP status code constants typed as [StatusCode].

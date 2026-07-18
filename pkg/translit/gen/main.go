@@ -55,7 +55,7 @@ func main() {
 	}
 
 	c := strchain.New()
-	genHeader(c)
+	emitHeader(c)
 	c.AppendF("const maxSection = %d", maxSection).NewLines(2)
 	c.Append("// data holds every replacement string back to back, in the").NewLine()
 	c.Append("// order the (section, position) pairs below were emitted.").NewLine()
@@ -63,13 +63,13 @@ func main() {
 	c.AppendF("const data = %q", data.String()).NewLines(2)
 	c.Append("// sectionStart[s] is the index into entryOff/entryLen where").NewLine()
 	c.Append("// section s's positions begin, or -1 if section s has no data.").NewLine()
-	writeInt32Array(c, "sectionStart", sectionStart)
+	emitInt32(c, "sectionStart", sectionStart)
 	c.Append("// sectionLen[s] is the number of valid positions (0..255) in section s.").NewLine()
-	writeUint16Array(c, "sectionLen", sectionLen)
+	emitUint16(c, "sectionLen", sectionLen)
 	c.Append("// entryOff[i] is the byte offset into data of entry i.").NewLine()
-	writeUint32Array(c, "entryOff", entryOff)
+	emitUint32(c, "entryOff", entryOff)
 	c.Append("// entryLen[i] is the byte length within data of entry i.").NewLine()
-	writeUint8Array(c, "entryLen", entryLen)
+	emitUint8(c, "entryLen", entryLen)
 
 	out, err := format.Source(c.Bytes())
 	if err != nil {
@@ -81,11 +81,18 @@ func main() {
 		slogger.Fatalf("write tables_gen.go: %v", err)
 	}
 
-	slogger.Infof("wrote tables_gen.go: %d sections, %d entries, %d data bytes",
-		len(sections), len(entryOff), data.Len())
+	slogger.Infof("[translit/gen] tables_gen.go: sections=%d maxSection=0x%04x entries=%d dataBytes=%d",
+		len(sections), maxSection, len(entryOff), data.Len())
 }
 
-func writeRows(c *strchain.StringWeaver, n, perRow int, cell func(int) string) {
+// emitRows writes n comma-separated cells into c, inserting a newline every
+// perRow cells. The text for each cell at index i is produced by calling
+// cell(i). A final newline is always appended after the last element.
+//
+// emitRows is the shared row-formatting helper for all array-emission
+// functions; centralising the layout logic ensures consistent column width
+// across every generated array, regardless of element type.
+func emitRows(c *strchain.StringWeaver, n, perRow int, cell func(int) string) {
 	for i := 0; i < n; i++ {
 		c.Append(cell(i)).AppendByte(',')
 		if (i+1)%perRow == 0 {
@@ -95,39 +102,60 @@ func writeRows(c *strchain.StringWeaver, n, perRow int, cell func(int) string) {
 	c.NewLine()
 }
 
-func writeInt32Array(c *strchain.StringWeaver, name string, v []int32) {
+// emitInt32 writes a Go var declaration for a fixed-size [N]int32
+// array named name into c, where N is len(v). Elements are arranged
+// 16 per row by emitRows. A blank line is appended after the closing brace
+// to separate successive declarations in the generated file.
+func emitInt32(c *strchain.StringWeaver, name string, v []int32) {
 	c.AppendF("var %s = [%d]int32{", name, len(v)).NewLine()
-	writeRows(c, len(v), 16, func(i int) string {
+	emitRows(c, len(v), 16, func(i int) string {
 		return fmt.Sprintf("%d", v[i])
 	})
 	c.Append("}").NewLines(2)
 }
 
-func writeUint16Array(c *strchain.StringWeaver, name string, v []uint16) {
+// emitUint16 writes a Go var declaration for a fixed-size [N]uint16
+// array named name into c, where N is len(v). Elements are arranged
+// 16 per row by emitRows. A blank line is appended after the closing brace
+// to separate successive declarations in the generated file.
+func emitUint16(c *strchain.StringWeaver, name string, v []uint16) {
 	c.AppendF("var %s = [%d]uint16{", name, len(v)).NewLine()
-	writeRows(c, len(v), 16, func(i int) string {
+	emitRows(c, len(v), 16, func(i int) string {
 		return fmt.Sprintf("%d", v[i])
 	})
 	c.Append("}").NewLines(2)
 }
 
-func writeUint32Array(c *strchain.StringWeaver, name string, v []uint32) {
+// emitUint32 writes a Go var declaration for a fixed-size [N]uint32
+// array named name into c, where N is len(v). Elements are arranged
+// 12 per row by emitRows (narrower than 16 because uint32 decimal values
+// are wider on average). A blank line is appended after the closing brace.
+func emitUint32(c *strchain.StringWeaver, name string, v []uint32) {
 	c.AppendF("var %s = [%d]uint32{", name, len(v)).NewLine()
-	writeRows(c, len(v), 12, func(i int) string {
+	emitRows(c, len(v), 12, func(i int) string {
 		return fmt.Sprintf("%d", v[i])
 	})
 	c.Append("}").NewLines(2)
 }
 
-func writeUint8Array(c *strchain.StringWeaver, name string, v []uint8) {
+// emitUint8 writes a Go var declaration for a fixed-size [N]uint8
+// array named name into c, where N is len(v). Elements are arranged
+// 20 per row by emitRows (more per row than other types because uint8
+// values are at most 3 decimal digits wide). A blank line is appended
+// after the closing brace.
+func emitUint8(c *strchain.StringWeaver, name string, v []uint8) {
 	c.AppendF("var %s = [%d]uint8{", name, len(v)).NewLine()
-	writeRows(c, len(v), 20, func(i int) string {
+	emitRows(c, len(v), 20, func(i int) string {
 		return fmt.Sprintf("%d", v[i])
 	})
 	c.Append("}").NewLines(2)
 }
 
-func genHeader(c *strchain.StringWeaver) {
+// emitHeader writes the standard generated-file preamble into c:
+// the machine-readable "DO NOT EDIT" banner recognised by tools such as
+// go generate and gopls, the regeneration hint, and the package declaration.
+// It must be called before any other content is written to c.
+func emitHeader(c *strchain.StringWeaver) {
 	c.Append("// Code generated by gen/main.go; DO NOT EDIT.").NewLines(2)
 	c.Append("// Regenerate with: go generate ./...").NewLines(2)
 	c.Append("package translit").NewLines(2)

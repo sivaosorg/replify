@@ -2,7 +2,9 @@ package conv
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -363,8 +365,141 @@ func (c *Converter) stringFromReflect(from any) (string, error) {
 		if value.Type().Elem().Kind() == reflect.Uint8 {
 			return string(value.Bytes()), nil
 		}
+	case reflect.Complex64, reflect.Complex128:
+		// Encode as {"real":...,"imag":...}
+		r, i := realFrom(value), imagFrom(value)
+		s, err := encodeComplexJSONToken(r, i, value.Kind() == reflect.Complex64)
+		return s, err
 	}
 
 	// Fallback to fmt.Sprintf
 	return fmt.Sprintf("%v", from), nil
+}
+
+// realFrom extracts the real part of a complex number from a reflect.Value.
+//
+// Parameters:
+//   - `v`: The reflect.Value to extract the real part from.
+//
+// Returns:
+//   - The real part of the complex number as a float64.
+//
+// Example:
+//
+//	realPart := realFrom(reflect.ValueOf(complex(1.23, 4.56)))
+func realFrom(v reflect.Value) float64 {
+	switch v.Kind() {
+	case reflect.Complex64:
+		return float64(real(v.Complex()))
+	case reflect.Complex128:
+		return real(v.Complex())
+	default:
+		return 0
+	}
+}
+
+// imagFrom extracts the imaginary part of a complex number from a reflect.Value.
+//
+// Parameters:
+//   - `v`: The reflect.Value to extract the imaginary part from.
+//
+// Returns:
+//   - The imaginary part of the complex number as a float64.
+//
+// Example:
+//
+//	imagPart := imagFrom(reflect.ValueOf(complex(1.23, 4.56)))
+func imagFrom(v reflect.Value) float64 {
+	switch v.Kind() {
+	case reflect.Complex64:
+		return float64(imag(v.Complex()))
+	case reflect.Complex128:
+		return imag(v.Complex())
+	default:
+		return 0
+	}
+}
+
+// formatFloatJSON formats a float64 to its JSON string representation.
+// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
+//
+// Parameters:
+//   - `f`: The float64 value to format.
+//   - `is32`: A boolean indicating whether the float is a float32 (true) or float64 (false).
+//
+// Returns:
+//   - A string containing the JSON representation of the float.
+//
+// Example:
+//
+//	jsonFloat := formatFloatJSON(1.2345, false)
+func formatFloatJSON(f float64, is32 bool) string {
+	if math.IsNaN(f) || math.IsInf(f, 0) {
+		if true { // floatsUseNullForNonFinite, always true in this implementation
+			return "null"
+		}
+		return ""
+	}
+	bitSize := 64
+	if is32 {
+		bitSize = 32
+	}
+	// 'g' format is used for general-purpose formatting. It uses the shortest
+	// representation of the float, either in decimal or scientific notation.
+	// The -1 precision means that the smallest number of digits necessary to
+	// represent the float will be used.
+	return strconv.FormatFloat(f, 'g', -1, bitSize)
+}
+
+// encodeComplexJSON encodes a complex number to its JSON string representation.
+// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
+//
+// Parameters:
+//   - `realPart`: The real part of the complex number.
+//   - `imagPart`: The imaginary part of the complex number.
+//   - `is32`: A boolean indicating whether the complex number is a complex64 (true) or complex128 (false).
+//
+// Returns:
+//   - A string containing the JSON representation of the complex number.
+//
+// Example:
+//
+//	r := encodeComplexJSON(1.2345, 6.789, false)
+func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
+	// Use 'g' formatting like encoding/json; convert non-finite to null.
+	r := formatFloatJSON(realPart, is32)
+	i := formatFloatJSON(imagPart, is32)
+	if r == "" || i == "" {
+		return ""
+	}
+	// Format complex number as JSON object with "real" and "imag" fields.
+	// This is done to avoid the default JSON representation of complex numbers,
+	// which is not valid JSON.
+	return `{"real":` + r + `,"imag":` + i + `}`
+}
+
+// encodeComplexJSONToken encodes a complex number to its JSON string representation.
+// It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
+//
+// Parameters:
+//   - `realPart`: The real part of the complex number.
+//   - `imagPart`: The imaginary part of the complex number.
+//   - `is32`: A boolean indicating whether the complex number is a complex64 (true) or complex128 (false).
+//
+// Returns:
+//   - A string containing the JSON representation of the complex number.
+//   - An error if the marshalling fails.
+//
+// Example:
+//
+//	r := encodeComplexJSONToken(1.2345, 6.789, false)
+func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, error) {
+	r := formatFloatJSON(realPart, is32)
+	i := formatFloatJSON(imagPart, is32)
+	// formatFloatJSON returns "" only when floatsUseNullForNonFinite is false and the
+	// component is non-finite (NaN/Inf). In that case the token policy is to error.
+	if r == "" || i == "" {
+		return "", errors.New("non-finite float (NaN/Inf)")
+	}
+	return `{"real":` + r + `,"imag":` + i + `}`, nil
 }

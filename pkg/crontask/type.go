@@ -24,10 +24,10 @@ import (
 // Business-oriented aliases:
 //
 //	@businessDaily   — "0 9 * * 1-5"       (09:00 on weekdays)
-//	@businessHourly  — "0 9-17 * * 1-5"    (top of each hour, 09–17, weekdays)
+//	@businessHourly  — "0 9-17 * * 1-5"    (top of each hour, 09-17, weekdays)
 //	@quarterly       — "0 0 1 1,4,7,10 *"  (midnight, first day of each quarter)
 //	@semiMonthly     — "0 0 1,15 * *"      (midnight, 1st and 15th of each month)
-//	@workhours       — "* 9-17 * * 1-5"    (every minute 09:00–17:59, weekdays)
+//	@workhours       — "* 9-17 * * 1-5"    (every minute 09:00-17:59, weekdays)
 //	@marketOpen      — "30 9 * * 1-5"      (09:30, weekdays)
 //	@marketClose     — "0 16 * * 1-5"      (16:00, weekdays)
 //

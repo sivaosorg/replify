@@ -3,9 +3,10 @@ package crontask
 import (
 	"context"
 	"errors"
-	"log"
 	"sync/atomic"
 	"time"
+
+	"github.com/sivaosorg/replify/pkg/slogger"
 )
 
 // CustomHooks is a struct that implements the Hooks interface with custom
@@ -176,29 +177,29 @@ func LoggingHook() Hooks {
 //	    crontask.WithSchedulerHooks(crontask.LoggingHook()),
 //	)
 func (h *loggingHook) OnStart(_ context.Context, jobID string) {
-	log.Printf("[crontask] job %s: starting", jobID)
+	slogger.Infof("[crontask] job %s: starting", jobID)
 }
 
 func (h *loggingHook) OnSuccess(_ context.Context, jobID string, d time.Duration) {
-	log.Printf("[crontask] job %s: succeeded in %s", jobID, d.Round(time.Millisecond))
+	slogger.Infof("[crontask] job %s: succeeded in %s", jobID, d.Round(time.Millisecond))
 }
 
 func (h *loggingHook) OnFailure(_ context.Context, jobID string, d time.Duration, err error) {
-	log.Printf("[crontask] job %s: failed in %s: %v", jobID, d.Round(time.Millisecond), err)
+	slogger.Errorf("[crontask] job %s: failed in %s: %v", jobID, d.Round(time.Millisecond), err)
 }
 
 func (h *loggingHook) OnComplete(_ context.Context, jobID string, d time.Duration) {
-	log.Printf("[crontask] job %s: completed in %s", jobID, d.Round(time.Millisecond))
+	slogger.Infof("[crontask] job %s: completed in %s", jobID, d.Round(time.Millisecond))
 }
 
 // OnRetry implements RetryHook for loggingHook.
 func (h *loggingHook) OnRetry(_ context.Context, jobID string, attempt int, err error) {
-	log.Printf("[crontask] job %s: attempt %d failed, will retry: %v", jobID, attempt, err)
+	slogger.Warnf("[crontask] job %s: attempt %d failed, will retry: %v", jobID, attempt, err)
 }
 
 // OnPanic implements PanicHook for loggingHook.
 func (h *loggingHook) OnPanic(_ context.Context, jobID string, recovered any) {
-	log.Printf("[crontask] job %s: PANIC recovered: %v", jobID, recovered)
+	slogger.Errorf("[crontask] job %s: PANIC recovered: %v", jobID, recovered)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -271,7 +272,7 @@ func (m *MetricsHookInstance) OnPanic(_ context.Context, _ string, _ any) {
 //	s.Register("@daily", riskyFn, crontask.WithHooks(crontask.RecoverPanicHook()))
 func RecoverPanicHook() Hooks {
 	return RecoverPanicHookWithHandler(func(_ context.Context, jobID string, recovered any) {
-		log.Printf("[crontask] job %s: PANIC recovered: %v", jobID, recovered)
+		slogger.Errorf("[crontask] job %s: PANIC recovered: %v", jobID, recovered)
 	})
 }
 
@@ -317,7 +318,7 @@ func RetryLoggerHook() Hooks {
 
 // OnRetry implements RetryHook.
 func (h *retryLoggerHook) OnRetry(_ context.Context, jobID string, attempt int, err error) {
-	log.Printf("[crontask] job %s: attempt %d failed, retrying: %v", jobID, attempt, err)
+	slogger.Warnf("[crontask] job %s: attempt %d failed, retrying: %v", jobID, attempt, err)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -340,7 +341,7 @@ func TimeoutLoggerHook() Hooks {
 
 func (h *timeoutLoggerHook) OnFailure(_ context.Context, jobID string, d time.Duration, err error) {
 	if errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrJobTimeout) {
-		log.Printf("[crontask] job %s: timed out after %s: %v", jobID, d.Round(time.Millisecond), err)
+		slogger.Warnf("[crontask] job %s: timed out after %s: %v", jobID, d.Round(time.Millisecond), err)
 	}
 }
 

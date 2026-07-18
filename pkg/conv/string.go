@@ -1,6 +1,7 @@
 package conv
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -134,6 +135,34 @@ func (c *Converter) String(from any) (string, error) {
 		return v.Error(), nil
 	case fmt.Stringer:
 		return v.String(), nil
+	case json.RawMessage:
+		if !json.Valid(v) {
+			return "", newConvError(from, "invalid JSON")
+		}
+		return string(v), nil
+	case *json.RawMessage:
+		if v == nil {
+			return "", nil
+		}
+		if !json.Valid(*v) {
+			return "", newConvError(from, "invalid JSON")
+		}
+		return string(*v), nil
+	case json.Marshaler:
+		b, err := v.MarshalJSON()
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
+	case *json.Marshaler:
+		if v == nil {
+			return "", nil
+		}
+		b, err := (*v).MarshalJSON()
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
 	}
 
 	// Check for custom converter interfaces

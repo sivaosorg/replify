@@ -760,7 +760,7 @@ func TestNormalizeJSON_EscapedStructuralQuotes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(escaped structural quotes) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
 	}
 	want := `{"key": "value"}`
@@ -777,7 +777,7 @@ func TestNormalizeJSON_MixedEscapedKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(mixed escaped keys) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
 	}
 }
@@ -799,7 +799,7 @@ func TestNormalizeJSON_ObjectArray(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(object+array) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON result is not valid JSON: %q", got)
 	}
 }
@@ -874,7 +874,7 @@ func TestNormalizeJSON_BOM(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(BOM) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON(BOM) result is not valid JSON: %q", got)
 	}
 	if got != `{"key":"value"}` {
@@ -890,7 +890,7 @@ func TestNormalizeJSON_NullBytes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(null bytes) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON(null bytes) result is not valid JSON: %q", got)
 	}
 }
@@ -903,7 +903,7 @@ func TestNormalizeJSON_TrailingCommaObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(trailing comma object) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON(trailing comma object) result is not valid JSON: %q", got)
 	}
 }
@@ -916,7 +916,7 @@ func TestNormalizeJSON_TrailingCommaArray(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(trailing comma array) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON(trailing comma array) result is not valid JSON: %q", got)
 	}
 }
@@ -929,7 +929,7 @@ func TestNormalizeJSON_EscapedQuotesPlusTrailingComma(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NormalizeJSON(escaped+trailing comma) unexpected error: %v", err)
 	}
-	if !encoding.IsValidJSON(got) {
+	if !encoding.IsValidJSONString(got) {
 		t.Errorf("NormalizeJSON(escaped+trailing comma) result is not valid JSON: %q", got)
 	}
 }
@@ -1190,7 +1190,7 @@ func TestIsValidJSON_EdgeCases(t *testing.T) {
 		{`{bad}`, false},
 	}
 	for _, tc := range cases {
-		got := encoding.IsValidJSON(tc.input)
+		got := encoding.IsValidJSONString(tc.input)
 		if got != tc.want {
 			t.Errorf("IsValidJSON(%q) = %v; want %v", tc.input, got, tc.want)
 		}
@@ -1299,13 +1299,13 @@ func TestJSONToken_Uintptr(t *testing.T) {
 // TestIsValidJSONBytes_EdgeCases verifies IsValidJSONBytes handles empty and
 // invalid inputs without panicking.
 func TestIsValidJSONBytes_EdgeCases(t *testing.T) {
-	if encoding.IsValidJSONBytes(nil) {
+	if encoding.IsValidJSON(nil) {
 		t.Error("IsValidJSONBytes(nil) = true; want false")
 	}
-	if encoding.IsValidJSONBytes([]byte{}) {
+	if encoding.IsValidJSON([]byte{}) {
 		t.Error("IsValidJSONBytes(empty) = true; want false")
 	}
-	if !encoding.IsValidJSONBytes([]byte(`null`)) {
+	if !encoding.IsValidJSON([]byte(`null`)) {
 		t.Error("IsValidJSONBytes(null) = false; want true")
 	}
 }

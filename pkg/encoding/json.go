@@ -135,7 +135,7 @@ func StrictUnmarshalJSON(jsonValue []byte, v any) error {
 		return fmt.Errorf("%w: JSON data must not be empty", ErrEmptyInput)
 	}
 
-	if !IsValidJSONBytes(jsonValue) {
+	if !IsValidJSON(jsonValue) {
 		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
 	}
 
@@ -163,28 +163,14 @@ func StrictUnmarshalJSONString(json string, v any) error {
 		return fmt.Errorf("%w: JSON string must not be empty", ErrEmptyInput)
 	}
 
-	if !IsValidJSON(json) {
+	if !IsValidJSONString(json) {
 		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
 	}
 
 	return UnmarshalJSONString(json, v)
 }
 
-// IsValidJSON checks if a given string is a valid JSON format.
-//
-// This function uses the json.Valid method from the standard json library
-// to determine if the input string `s` is a valid JSON representation.
-//
-// Parameters:
-//   - `s`: The string to be validated as JSON.
-//
-// Returns:
-//   - A boolean indicating whether the input string is valid JSON.
-func IsValidJSON(s string) bool {
-	return json.Valid([]byte(s))
-}
-
-// IsValidJSONBytes checks if a given byte slice is a valid JSON format.
+// IsValidJSON checks if a given byte slice is a valid JSON format.
 //
 // This function uses the json.Valid method from the standard json library
 // to determine if the input byte slice `data` is a valid JSON representation.
@@ -194,8 +180,22 @@ func IsValidJSON(s string) bool {
 //
 // Returns:
 //   - A boolean indicating whether the input byte slice is valid JSON.
-func IsValidJSONBytes(data []byte) bool {
-	return json.Valid(data)
+func IsValidJSON(jsonValue []byte) bool {
+	return json.Valid(jsonValue)
+}
+
+// IsValidJSONString checks if a given string is a valid JSON format.
+//
+// This function uses the json.Valid method from the standard json library
+// to determine if the input string `s` is a valid JSON representation.
+//
+// Parameters:
+//   - `s`: The string to be validated as JSON.
+//
+// Returns:
+//   - A boolean indicating whether the input string is valid JSON.
+func IsValidJSONString(jsonValue string) bool {
+	return IsValidJSON([]byte(jsonValue))
 }
 
 // NormalizeJSON attempts to normalize a malformed JSON-like string into valid JSON.
@@ -234,7 +234,7 @@ func NormalizeJSON(s string) (string, error) {
 	}
 
 	// Fast path: already valid JSON — return as-is with no allocation.
-	if IsValidJSON(s) {
+	if IsValidJSONString(s) {
 		return s, nil
 	}
 
@@ -243,7 +243,7 @@ func NormalizeJSON(s string) (string, error) {
 	// Pass 1: Strip leading UTF-8 BOM (0xEF 0xBB 0xBF).
 	if strings.HasPrefix(candidate, "\xEF\xBB\xBF") {
 		candidate = candidate[3:]
-		if IsValidJSON(candidate) {
+		if IsValidJSONString(candidate) {
 			return candidate, nil
 		}
 	}
@@ -251,7 +251,7 @@ func NormalizeJSON(s string) (string, error) {
 	// Pass 2: Remove embedded null bytes.
 	if strings.Contains(candidate, "\x00") {
 		candidate = strings.ReplaceAll(candidate, "\x00", "")
-		if IsValidJSON(candidate) {
+		if IsValidJSONString(candidate) {
 			return candidate, nil
 		}
 	}
@@ -259,7 +259,7 @@ func NormalizeJSON(s string) (string, error) {
 	// Pass 3: Unescape literal \" → " (structural quote escape artifacts).
 	if strings.Contains(candidate, `\"`) {
 		candidate = strings.ReplaceAll(candidate, `\"`, `"`)
-		if IsValidJSON(candidate) {
+		if IsValidJSONString(candidate) {
 			return candidate, nil
 		}
 	}
@@ -267,7 +267,7 @@ func NormalizeJSON(s string) (string, error) {
 	// Pass 4: Remove trailing commas before } or ] (invalid in JSON grammar).
 	if noTrailing := normalizeTrailingCommaRe.ReplaceAllString(candidate, "$1"); noTrailing != candidate {
 		candidate = noTrailing
-		if IsValidJSON(candidate) {
+		if IsValidJSONString(candidate) {
 			return candidate, nil
 		}
 	}

@@ -1310,13 +1310,13 @@ func TestIsValidJSONBytes_EdgeCases(t *testing.T) {
 	}
 }
 
-// TestSpecInPlace verifies SpecInPlace removes single-line comments in-place.
-func TestSpecInPlace(t *testing.T) {
+// TestSpecUnsafe verifies SpecUnsafe removes single-line comments in-place.
+func TestSpecUnsafe(t *testing.T) {
 	input := []byte(`{"key": "value" // comment
 }`)
-	got := encoding.SpecInPlace(input)
+	got := encoding.SpecUnsafe(input)
 	if strings.Contains(string(got), "//") {
-		t.Errorf("SpecInPlace did not remove single-line comment; got: %s", got)
+		t.Errorf("SpecUnsafe did not remove single-line comment; got: %s", got)
 	}
 }
 

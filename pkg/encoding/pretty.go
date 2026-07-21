@@ -213,7 +213,7 @@ func Spec(source []byte) []byte {
 	return sanitizeJSON(source, nil)
 }
 
-// SpecInPlace strips out comments and trailing commas from the input JSON-like data
+// SpecUnsafe strips out comments and trailing commas from the input JSON-like data
 // and modifies the input slice in-place, converting it to valid JSON format according to
 // the official JSON specification (RFC 8259).
 //
@@ -244,9 +244,9 @@ func Spec(source []byte) []byte {
 // Example usage:
 //
 //	rawJSON := []byte(`{ // comment\n "key": "value", }`)
-//	SpecInPlace(rawJSON)
+//	SpecUnsafe(rawJSON)
 //	// rawJSON will be cleaned in-place and ready for parsing.
-func SpecInPlace(source []byte) []byte {
+func SpecUnsafe(source []byte) []byte {
 	return sanitizeJSON(source, source)
 }
 

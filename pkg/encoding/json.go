@@ -8,7 +8,7 @@ import (
 	"github.com/sivaosorg/replify/pkg/strutil"
 )
 
-// MarshalJSONb converts a Go value into its JSON byte representation.
+// MarshalJSON converts a Go value into its JSON byte representation.
 //
 // This function marshals the input value `v` using the standard json library.
 // The resulting JSON data is returned as a byte slice. If there is an error
@@ -23,12 +23,12 @@ import (
 //
 // Example:
 //
-//	jsonData, err := MarshalJSONb(myStruct)
-func MarshalJSONb(v any) ([]byte, error) {
+//	jsonData, err := MarshalJSON(myStruct)
+func MarshalJSON(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-// MarshalJSONs converts a Go value to its JSON string representation.
+// MarshalJSONString converts a Go value to its JSON string representation.
 //
 // This function utilizes the standard json library to marshal the input value `v`
 // into a JSON string. If the marshalling is successful, it returns the resulting
@@ -43,9 +43,9 @@ func MarshalJSONb(v any) ([]byte, error) {
 //
 // Example:
 //
-//	jsonString, err := MarshalJSONs(myStruct)
-func MarshalJSONs(v any) (string, error) {
-	data, err := MarshalJSONb(v)
+//	jsonString, err := MarshalJSONString(myStruct)
+func MarshalJSONString(v any) (string, error) {
+	data, err := MarshalJSON(v)
 	if err != nil {
 		return "", err
 	}

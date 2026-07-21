@@ -1230,9 +1230,9 @@ func TestPrettyOptions_SortKeys(t *testing.T) {
 // TestMarshalJSONb_Roundtrip verifies basic marshal / unmarshal roundtrip.
 func TestMarshalJSONb_Roundtrip(t *testing.T) {
 	original := sampleStruct{Name: "roundtrip", Age: 99}
-	b, err := encoding.MarshalJSONb(original)
+	b, err := encoding.MarshalJSON(original)
 	if err != nil {
-		t.Fatalf("MarshalJSONb unexpected error: %v", err)
+		t.Fatalf("MarshalJSON unexpected error: %v", err)
 	}
 	var recovered sampleStruct
 	if err := encoding.UnmarshalBytes(b, &recovered); err != nil {
@@ -1246,9 +1246,9 @@ func TestMarshalJSONb_Roundtrip(t *testing.T) {
 // TestMarshalJSONs_Roundtrip verifies basic string marshal / unmarshal roundtrip.
 func TestMarshalJSONs_Roundtrip(t *testing.T) {
 	original := sampleStruct{Name: "strtest", Age: 7}
-	s, err := encoding.MarshalJSONs(original)
+	s, err := encoding.MarshalJSONString(original)
 	if err != nil {
-		t.Fatalf("MarshalJSONs unexpected error: %v", err)
+		t.Fatalf("MarshalJSONString unexpected error: %v", err)
 	}
 	var recovered sampleStruct
 	if err := encoding.UnmarshalJSON(s, &recovered); err != nil {

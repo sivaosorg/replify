@@ -17,7 +17,7 @@ import (
 // It uses encoding.Marshal to marshal the data and returns the length of the resulting byte slice.
 // If an error occurs during marshaling, it returns 0.
 func calculateSize(data any) int {
-	_bytes, err := encoding.MarshalJSONb(data)
+	_bytes, err := encoding.MarshalJSON(data)
 	if err != nil {
 		return 0
 	}
@@ -29,7 +29,7 @@ func calculateSize(data any) int {
 // using gzip. The compressed data is then encoded in base64 and returned as a string.
 // If any error occurs during marshaling or compression, it returns an empty string.
 func compress(data any) string {
-	_bytes, err := encoding.MarshalJSONb(data)
+	_bytes, err := encoding.MarshalJSON(data)
 	if err != nil {
 		return ""
 	}
@@ -78,7 +78,7 @@ func decompress(data string) any {
 // This is useful for streaming large responses in smaller segments.
 // If the JSON encoding fails, it returns nil.
 func chunk(data map[string]any) [][]byte {
-	_bytes, err := encoding.MarshalJSONb(data)
+	_bytes, err := encoding.MarshalJSON(data)
 	if err != nil {
 		return nil
 	}

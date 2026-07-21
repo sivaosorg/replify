@@ -15,7 +15,7 @@ func init() {
 		Null:     [2]string{"\x1B[2m", "\x1B[0m"},
 		Escape:   [2]string{"\x1B[35m", "\x1B[0m"},
 		Brackets: [2]string{"\x1B[1m", "\x1B[0m"},
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 
 	VSCodeDarkStyle = &Style{
@@ -27,7 +27,7 @@ func init() {
 		Null:     [2]string{"\x1B[38;5;244m", "\x1B[0m"}, // gray
 		Escape:   [2]string{"\x1B[38;5;176m", "\x1B[0m"}, // purple
 		Brackets: [2]string{"\x1B[38;5;250m", "\x1B[0m"},
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 
 	DraculaStyle = &Style{
@@ -39,7 +39,7 @@ func init() {
 		Null:     [2]string{"\x1B[38;5;244m", "\x1B[0m"},
 		Escape:   [2]string{"\x1B[38;5;176m", "\x1B[0m"}, // purple
 		Brackets: [2]string{"\x1B[38;5;231m", "\x1B[0m"}, // white
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 
 	MonokaiStyle = &Style{
@@ -51,7 +51,7 @@ func init() {
 		Null:     [2]string{"\x1B[38;5;244m", "\x1B[0m"},
 		Escape:   [2]string{"\x1B[38;5;141m", "\x1B[0m"}, // purple
 		Brackets: [2]string{"\x1B[38;5;252m", "\x1B[0m"},
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 
 	SolarizedDarkStyle = &Style{
@@ -63,7 +63,7 @@ func init() {
 		Null:     [2]string{"\x1B[38;5;244m", "\x1B[0m"},
 		Escape:   [2]string{"\x1B[38;5;125m", "\x1B[0m"}, // violet
 		Brackets: [2]string{"\x1B[38;5;250m", "\x1B[0m"},
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 
 	MinimalGrayStyle = &Style{
@@ -75,7 +75,7 @@ func init() {
 		Null:     [2]string{"\x1B[2m", "\x1B[0m"},
 		Escape:   [2]string{"\x1B[90m", "\x1B[0m"},
 		Brackets: [2]string{"\x1B[37m", "\x1B[0m"},
-		Append:   defaultStyleAppend,
+		Append:   appendJSONByte,
 	}
 }
 

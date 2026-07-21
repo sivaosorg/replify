@@ -894,7 +894,7 @@ func unescapeJSONString(s []byte) []byte {
 	return nil
 }
 
-// sortPairs sorts JSON key-value pairs in a stable order, preserving original formatting,
+// sortObjectMembers sorts JSON key-value pairs in a stable order, preserving original formatting,
 // and returns the updated buffer containing the sorted pairs.
 //
 // This function takes the JSON data, a buffer to store formatted values, and a list of key-value pairs (`pairs`).
@@ -916,14 +916,14 @@ func unescapeJSONString(s []byte) []byte {
 //	json := []byte(`{"b":2, "a":1}`)
 //	pairs := []pair{ /* initialized with positions of keys and values */ }
 //	buf := make([]byte, len(json))
-//	result := sortPairs(json, buf, pairs)
+//	result := sortObjectMembers(json, buf, pairs)
 //	// result will contain sorted pairs by key.
 //
 // Notes:
 //   - If `pairs` is empty, `buf` is returned unchanged.
 //   - `sort.Stable` is used to ensure that pairs with identical keys maintain their original relative order.
 //   - If `byKeyVal` marks pairs as unsorted, it skips replacing the original buffer.
-func sortPairs(json, buf []byte, pairs []kvPairs) []byte {
+func sortObjectMembers(json, buf []byte, pairs []kvPairs) []byte {
 	if len(pairs) == 0 {
 		return buf
 	}
@@ -1192,7 +1192,7 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 		if json[i] == close {
 			if pretty {
 				if open == '{' && sortKeys {
-					buf = sortPairs(json, buf, pairs)
+					buf = sortObjectMembers(json, buf, pairs)
 				}
 				if n > 0 {
 					nl = len(buf)
@@ -1440,13 +1440,13 @@ func spec(source, destination []byte) []byte {
 	return destination
 }
 
-// defaultStyleAppend appends a byte `c` to the destination byte slice `dst`,
+// appendJSONByte appends a byte `c` to the destination byte slice `dst`,
 // handling special control characters by escaping them in Unicode format.
 // If `c` is a control character (ASCII value less than 32) and not one of the
 // common whitespace characters (`\r`, `\n`, `\t`, `\v`), it appends
 // the Unicode escape sequence `\u00XX` to `dst`, where `XX` is the hexadecimal
 // representation of `c`. Otherwise, it appends `c` directly to `dst`.
-func defaultStyleAppend(dst []byte, c byte) []byte {
+func appendJSONByte(dst []byte, c byte) []byte {
 	if c < ' ' && (c != '\r' && c != '\n' && c != '\t' && c != '\v') {
 		dst = append(dst, "\\u00"...)
 		dst = append(dst, hexDigit((c>>4)&0xF))

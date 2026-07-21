@@ -945,7 +945,7 @@ func sortObjectMembers(json, buf []byte, pairs []kvPairs) []byte {
 	return append(buf[:_valStart], n...)
 }
 
-// appendPrettyString appends a JSON string value from the input JSON byte slice (`json`) to a buffer (`buf`),
+// appendJSONString appends a JSON string value from the input JSON byte slice (`json`) to a buffer (`buf`),
 // handling any escaped characters within the string, and returns the updated buffer and indices.
 //
 // This function begins at a given index `i` within a JSON byte slice `json`, assuming the current character is
@@ -969,14 +969,14 @@ func sortObjectMembers(json, buf []byte, pairs []kvPairs) []byte {
 //
 //	json := []byte(`"example \"string\" value"`)
 //	buf := []byte{}
-//	buf, i, nl, processed := appendPrettyString(buf, json, 0, 0)
+//	buf, i, nl, processed := appendJSONString(buf, json, 0, 0)
 //	// buf will contain `example \"string\" value`, i will point to the next index after the closing quote,
 //	// nl remains the same, and processed is true.
 //
 // Notes:
 //   - The function counts consecutive backslashes before each closing quote to determine if it is escaped.
 //   - It appends the entire string (including quotes) to `buf` for easy integration in pretty-printing or formatting routines.
-func appendPrettyString(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
+func appendJSONString(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 	s := i
 	i++
 	for ; i < len(json); i++ {
@@ -1089,7 +1089,7 @@ func appendPrettyAny(buf, json []byte, i int, pretty bool, width int, prefix, in
 			continue
 		}
 		if json[i] == '"' {
-			return appendPrettyString(buf, json, i, nl)
+			return appendJSONString(buf, json, i, nl)
 		}
 		if (json[i] >= '0' && json[i] <= '9') || json[i] == '-' || isNaNOrInf(json[i:]) {
 			return appendPrettyNumber(buf, json, i, nl)
@@ -1231,7 +1231,7 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 				buf = appendTabs(buf, prefix, indent, tabs+1)
 			}
 			if open == '{' {
-				buf, i, nl, _ = appendPrettyString(buf, json, i, nl)
+				buf, i, nl, _ = appendJSONString(buf, json, i, nl)
 				if sortKeys {
 					p.keyEnd = i
 				}

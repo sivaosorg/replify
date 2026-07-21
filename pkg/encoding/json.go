@@ -296,7 +296,7 @@ func NormalizeJSON(s string) (string, error) {
 //	 }
 //		jsonString, err := JSON(myStruct)
 func JSON(data any) string {
-	return jsonSafe(data, false)
+	return marshalJSON(data, false)
 }
 
 // JSONToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
@@ -320,7 +320,7 @@ func JSON(data any) string {
 //	 }
 //		jsonString, err := JSONToken(myStruct)
 func JSONToken(data any) (string, error) {
-	return jsonSafeToken(data, false)
+	return marshalJSONE(data, false)
 }
 
 // JSONPretty converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
@@ -344,7 +344,7 @@ func JSONToken(data any) (string, error) {
 //	 }
 //		jsonString, err := JSONPretty(myStruct)
 func JSONPretty(data any) string {
-	return jsonSafe(data, true)
+	return marshalJSON(data, true)
 }
 
 // JSONPrettyToken converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
@@ -368,5 +368,5 @@ func JSONPretty(data any) string {
 //	 }
 //		jsonString, err := JSONPrettyToken(myStruct)
 func JSONPrettyToken(data any) (string, error) {
-	return jsonSafeToken(data, true)
+	return marshalJSONE(data, true)
 }

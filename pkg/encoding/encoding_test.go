@@ -1017,7 +1017,7 @@ func TestWithNormalizedBody_Map(t *testing.T) {
 // error wrapping ErrEmptyInput when given a nil/empty byte slice.
 func TestSafeUnmarshalBytes_EmptyInput(t *testing.T) {
 	var dst map[string]any
-	err := encoding.SafeUnmarshalBytes(nil, &dst)
+	err := encoding.StrictUnmarshalJSON(nil, &dst)
 	if err == nil {
 		t.Fatal("SafeUnmarshalBytes(nil) expected error; got nil")
 	}
@@ -1025,7 +1025,7 @@ func TestSafeUnmarshalBytes_EmptyInput(t *testing.T) {
 		t.Errorf("SafeUnmarshalBytes(nil) error = %v; want errors.Is(err, ErrEmptyInput) = true", err)
 	}
 
-	err = encoding.SafeUnmarshalBytes([]byte{}, &dst)
+	err = encoding.StrictUnmarshalJSON([]byte{}, &dst)
 	if err == nil {
 		t.Fatal("SafeUnmarshalBytes(empty) expected error; got nil")
 	}
@@ -1038,7 +1038,7 @@ func TestSafeUnmarshalBytes_EmptyInput(t *testing.T) {
 // error wrapping ErrInvalidJSON when given a non-JSON byte slice.
 func TestSafeUnmarshalBytes_InvalidJSON(t *testing.T) {
 	var dst map[string]any
-	err := encoding.SafeUnmarshalBytes([]byte("not json"), &dst)
+	err := encoding.StrictUnmarshalJSON([]byte("not json"), &dst)
 	if err == nil {
 		t.Fatal("SafeUnmarshalBytes(invalid) expected error; got nil")
 	}
@@ -1051,7 +1051,7 @@ func TestSafeUnmarshalBytes_InvalidJSON(t *testing.T) {
 // error wrapping ErrEmptyInput when given an empty string.
 func TestSafeUnmarshalJSON_EmptyInput(t *testing.T) {
 	var dst map[string]any
-	err := encoding.SafeUnmarshalJSON("", &dst)
+	err := encoding.StrictUnmarshalJSONString("", &dst)
 	if err == nil {
 		t.Fatal("SafeUnmarshalJSON(\"\") expected error; got nil")
 	}
@@ -1064,7 +1064,7 @@ func TestSafeUnmarshalJSON_EmptyInput(t *testing.T) {
 // error wrapping ErrInvalidJSON when given a non-JSON string.
 func TestSafeUnmarshalJSON_InvalidJSON(t *testing.T) {
 	var dst map[string]any
-	err := encoding.SafeUnmarshalJSON("{bad json}", &dst)
+	err := encoding.StrictUnmarshalJSONString("{bad json}", &dst)
 	if err == nil {
 		t.Fatal("SafeUnmarshalJSON(invalid) expected error; got nil")
 	}
@@ -1151,7 +1151,7 @@ func TestPretty_EmptyInput(t *testing.T) {
 func TestSafeUnmarshalBytes_Valid(t *testing.T) {
 	input := []byte(`{"name":"Alice","age":30}`)
 	var dst sampleStruct
-	if err := encoding.SafeUnmarshalBytes(input, &dst); err != nil {
+	if err := encoding.StrictUnmarshalJSON(input, &dst); err != nil {
 		t.Fatalf("SafeUnmarshalBytes(valid) unexpected error: %v", err)
 	}
 	if dst.Name != "Alice" || dst.Age != 30 {
@@ -1164,7 +1164,7 @@ func TestSafeUnmarshalBytes_Valid(t *testing.T) {
 func TestSafeUnmarshalJSON_Valid(t *testing.T) {
 	input := `{"name":"Bob","age":25}`
 	var dst sampleStruct
-	if err := encoding.SafeUnmarshalJSON(input, &dst); err != nil {
+	if err := encoding.StrictUnmarshalJSONString(input, &dst); err != nil {
 		t.Fatalf("SafeUnmarshalJSON(valid) unexpected error: %v", err)
 	}
 	if dst.Name != "Bob" || dst.Age != 25 {
@@ -1235,7 +1235,7 @@ func TestMarshalJSONb_Roundtrip(t *testing.T) {
 		t.Fatalf("MarshalJSON unexpected error: %v", err)
 	}
 	var recovered sampleStruct
-	if err := encoding.UnmarshalBytes(b, &recovered); err != nil {
+	if err := encoding.UnmarshalJSON(b, &recovered); err != nil {
 		t.Fatalf("UnmarshalBytes unexpected error: %v", err)
 	}
 	if recovered != original {
@@ -1251,7 +1251,7 @@ func TestMarshalJSONs_Roundtrip(t *testing.T) {
 		t.Fatalf("MarshalJSONString unexpected error: %v", err)
 	}
 	var recovered sampleStruct
-	if err := encoding.UnmarshalJSON(s, &recovered); err != nil {
+	if err := encoding.UnmarshalJSONString(s, &recovered); err != nil {
 		t.Fatalf("UnmarshalJSON unexpected error: %v", err)
 	}
 	if recovered != original {

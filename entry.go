@@ -90,7 +90,7 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	}
 
 	var data map[string]any
-	err = encoding.UnmarshalJSON(nJSON, &data)
+	err = encoding.UnmarshalJSONString(nJSON, &data)
 	if err != nil {
 		return nil, NewErrorAck(err)
 	}

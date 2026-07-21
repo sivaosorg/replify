@@ -208,7 +208,7 @@ func UglyInPlace(json []byte) []byte { return compactJSON(json, json) }
 //	validJSON := Spec(rawJSON)
 //	// validJSON will be cleaned and ready for parsing.
 func Spec(source []byte) []byte {
-	return spec(source, nil)
+	return sanitizeJSON(source, nil)
 }
 
 // SpecInPlace strips out comments and trailing commas from the input JSON-like data
@@ -245,7 +245,7 @@ func Spec(source []byte) []byte {
 //	SpecInPlace(rawJSON)
 //	// rawJSON will be cleaned in-place and ready for parsing.
 func SpecInPlace(source []byte) []byte {
-	return spec(source, source)
+	return sanitizeJSON(source, source)
 }
 
 // Color takes a JSON source in the form of a byte slice and applies syntax highlighting based on the provided style.

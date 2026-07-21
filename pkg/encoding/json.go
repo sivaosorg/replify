@@ -74,7 +74,7 @@ func MarshalJSONIndent(v any, prefix, indent string) ([]byte, error) {
 	return json.MarshalIndent(v, prefix, indent)
 }
 
-// UnmarshalBytes parses JSON-encoded data and stores the result in the value pointed to by `v`.
+// UnmarshalJSON parses JSON-encoded data and stores the result in the value pointed to by `v`.
 //
 // This function uses the standard json library to unmarshal JSON data
 // (given as a byte slice) into the specified Go value `v`. If the unmarshalling
@@ -89,40 +89,12 @@ func MarshalJSONIndent(v any, prefix, indent string) ([]byte, error) {
 //
 // Example:
 //
-//	err := UnmarshalBytes(jsonData, &myStruct)
-func UnmarshalBytes(data []byte, v any) error {
-	return json.Unmarshal(data, v)
+//	err := UnmarshalJSON(jsonData, &myStruct)
+func UnmarshalJSON(jsonValue []byte, v any) error {
+	return json.Unmarshal(jsonValue, v)
 }
 
-// SafeUnmarshalBytes parses JSON-encoded data and stores the result in the value pointed to by `v`.
-//
-// This function uses the standard json library to unmarshal JSON data
-// (given as a byte slice) into the specified Go value `v`. If the unmarshalling
-// is successful, it populates the value `v`. If an error occurs, it returns the error.
-//
-// Parameters:
-//   - `data`: A byte slice containing JSON data to be unmarshalled.
-//   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
-//
-// Returns:
-//   - An error if the unmarshalling fails.
-//
-// Example:
-//
-//	err := SafeUnmarshalBytes(jsonData, &myStruct)
-func SafeUnmarshalBytes(data []byte, v any) error {
-	if len(data) == 0 {
-		return fmt.Errorf("%w: JSON data must not be empty", ErrEmptyInput)
-	}
-
-	if !IsValidJSONBytes(data) {
-		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
-	}
-
-	return UnmarshalBytes(data, v)
-}
-
-// UnmarshalJSON parses JSON-encoded string and stores the result in the value pointed to by `v`.
+// UnmarshalJSONString parses JSON-encoded string and stores the result in the value pointed to by `v`.
 //
 // This function utilizes the standard json library to unmarshal JSON data
 // from a string into the specified Go value `v`. If the unmarshalling is
@@ -137,12 +109,40 @@ func SafeUnmarshalBytes(data []byte, v any) error {
 //
 // Example:
 //
-//	err := UnmarshalJSON(jsonString, &myStruct)
-func UnmarshalJSON(jsonStr string, v any) error {
-	return json.Unmarshal([]byte(jsonStr), v)
+//	err := UnmarshalJSONString(jsonString, &myStruct)
+func UnmarshalJSONString(jsonValue string, v any) error {
+	return UnmarshalJSON([]byte(jsonValue), v)
 }
 
-// SafeUnmarshalJSON parses JSON-encoded string and stores the result in the value pointed to by `v`.
+// StrictUnmarshalJSON parses JSON-encoded data and stores the result in the value pointed to by `v`.
+//
+// This function uses the standard json library to unmarshal JSON data
+// (given as a byte slice) into the specified Go value `v`. If the unmarshalling
+// is successful, it populates the value `v`. If an error occurs, it returns the error.
+//
+// Parameters:
+//   - `data`: A byte slice containing JSON data to be unmarshalled.
+//   - `v`: A pointer to the Go value where the unmarshalled data will be stored.
+//
+// Returns:
+//   - An error if the unmarshalling fails.
+//
+// Example:
+//
+//	err := StrictUnmarshalJSON(jsonData, &myStruct)
+func StrictUnmarshalJSON(jsonValue []byte, v any) error {
+	if len(jsonValue) == 0 {
+		return fmt.Errorf("%w: JSON data must not be empty", ErrEmptyInput)
+	}
+
+	if !IsValidJSONBytes(jsonValue) {
+		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
+	}
+
+	return UnmarshalJSON(jsonValue, v)
+}
+
+// StrictUnmarshalJSONString parses JSON-encoded string and stores the result in the value pointed to by `v`.
 //
 // This function uses the standard json library to unmarshal JSON data
 // (given as a string) into the specified Go value `v`. If the unmarshalling
@@ -157,17 +157,17 @@ func UnmarshalJSON(jsonStr string, v any) error {
 //
 // Example:
 //
-//	err := SafeUnmarshalJSON(jsonString, &myStruct)
-func SafeUnmarshalJSON(jsonStr string, v any) error {
-	if strutil.IsEmpty(jsonStr) {
+//	err := StrictUnmarshalJSONString(jsonString, &myStruct)
+func StrictUnmarshalJSONString(json string, v any) error {
+	if strutil.IsEmpty(json) {
 		return fmt.Errorf("%w: JSON string must not be empty", ErrEmptyInput)
 	}
 
-	if !IsValidJSON(jsonStr) {
+	if !IsValidJSON(json) {
 		return fmt.Errorf("%w: input is not valid JSON", ErrInvalidJSON)
 	}
 
-	return UnmarshalJSON(jsonStr, v)
+	return UnmarshalJSONString(json, v)
 }
 
 // IsValidJSON checks if a given string is a valid JSON format.

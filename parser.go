@@ -40,7 +40,7 @@ func (w *wrapper) JSONBodyCast(v any) error {
 		return NewError("value must be a pointer")
 	}
 	json := jsonpass(w.data)
-	err := encoding.SafeUnmarshalJSON(json, v)
+	err := encoding.StrictUnmarshalJSONString(json, v)
 	return NewErrorAck(err)
 }
 

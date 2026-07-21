@@ -67,7 +67,7 @@ func decompress(data string) any {
 		return nil
 	}
 	var result any
-	if err := encoding.UnmarshalBytes(buf.Bytes(), &result); err != nil {
+	if err := encoding.UnmarshalJSON(buf.Bytes(), &result); err != nil {
 		return nil
 	}
 	return result

@@ -485,7 +485,7 @@ func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, erro
 	return `{"real":` + r + `,"imag":` + i + `}`, nil
 }
 
-// jsonSafe converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// marshalJSON converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -498,8 +498,8 @@ func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, erro
 //
 // Example:
 //
-//	jsonString, err := jsonSafe(myStruct, false)
-func jsonSafe(data any, pretty bool) string {
+//	jsonString, err := marshalJSON(myStruct, false)
+func marshalJSON(data any, pretty bool) string {
 	if data == nil {
 		return ""
 	}
@@ -603,7 +603,7 @@ func jsonSafe(data any, pretty bool) string {
 	return s
 }
 
-// jsonSafeToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// marshalJSONE converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -616,8 +616,8 @@ func jsonSafe(data any, pretty bool) string {
 //
 // Example:
 //
-//	jsonString, err := jsonSafeToken(myStruct, false)
-func jsonSafeToken(data any, pretty bool) (string, error) {
+//	jsonString, err := marshalJSONE(myStruct, false)
+func marshalJSONE(data any, pretty bool) (string, error) {
 	if data == nil {
 		return "", ErrNilInterface
 	}

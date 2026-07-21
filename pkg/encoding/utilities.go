@@ -331,7 +331,7 @@ func safeMarshalJSONString(v any, pretty bool) (out string, err error) {
 	if pretty {
 		b, err = MarshalJSONIndent(v, "", "    ")
 	} else {
-		b, err = MarshalJSONb(v)
+		b, err = MarshalJSON(v)
 	}
 	if err == nil {
 		return string(b), nil

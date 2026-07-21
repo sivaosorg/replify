@@ -551,7 +551,7 @@ func applyMerge(json, arg string) string {
 //	fj.Get(`{"a":1}`, `@valid`) → "true"
 //	fj.Get(`{bad}`,   `@valid`) → "false"
 func applyValidityCheck(json, arg string) string {
-	if !IsValidJSON(json) {
+	if !IsValidJSONString(json) {
 		return "false"
 	}
 	return "true"
@@ -723,7 +723,7 @@ func applyValues(json, arg string) string {
 //   - If the input string is valid JSON, the `Parse` function is used to parse and format it, ensuring it is returned in the proper JSON format.
 //   - If the input is invalid, an empty string is returned, indicating that the transformation failed.
 func applyToJSON(json, arg string) string {
-	if !IsValidJSON(json) {
+	if !IsValidJSONString(json) {
 		return ""
 	}
 	return Parse(json).String()

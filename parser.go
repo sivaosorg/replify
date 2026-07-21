@@ -88,7 +88,7 @@ func (w *wrapper) QueryJSONBodyMulti(paths ...string) []fj.Context {
 //	    log.Println("body is not valid JSON")
 //	}
 func (w *wrapper) ValidJSONBody() bool {
-	return fj.IsValidJSON(jsonpass(w.data))
+	return fj.IsValidJSONString(jsonpass(w.data))
 }
 
 // SearchJSONBody performs a full-tree scan of the body JSON and returns all scalar

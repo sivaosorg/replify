@@ -247,7 +247,7 @@ func (f *TextFormatter) Format(e *Entry) ([]byte, error) {
 		b.WriteString(fld.key)
 		b.WriteByte('=')
 		v := fld.Value()
-		if encoding.IsValidJSONString(v) && fj.IsValidJSON(v) {
+		if encoding.IsValidJSONString(v) && fj.IsValidJSONString(v) {
 			b.WriteString(v)
 		} else {
 			if shouldQuoting(v) {

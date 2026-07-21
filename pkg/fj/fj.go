@@ -311,7 +311,7 @@ func Get(json, path string) Context {
 							}
 							if kind == '{' {
 								if len(sub.name) > 0 {
-									if sub.name[0] == '"' && IsValidJSON(sub.name) {
+									if sub.name[0] == '"' && IsValidJSONString(sub.name) {
 										b = append(b, sub.name...)
 									} else {
 										b = appendJSONString(b, sub.name)
@@ -524,42 +524,7 @@ func Foreach(json string, iterator func(line Context) bool) {
 	}
 }
 
-// IsValidJSON checks whether the provided string contains valid JSON data.
-// It attempts to parse the JSON and returns a boolean indicating if the JSON is well-formed.
-//
-// Parameters:
-//   - `json`: A string representing the JSON data that needs to be validated.
-//
-// Returns:
-//   - A boolean value (`true` or `false`):
-//   - `true`: The provided JSON string is valid and well-formed.
-//   - `false`: The provided JSON string is invalid or malformed.
-//
-// Notes:
-//   - This function utilizes the `fromStr2Bytes` function to efficiently convert the input string
-//     into a byte slice without allocating new memory. It then passes the byte slice to the
-//     `verifyJSON` function to check if the string conforms to valid JSON syntax.
-//   - If the input JSON is invalid, the function will return `false`, indicating that the JSON
-//     cannot be parsed or is improperly structured.
-//   - The function does not perform deep validation of the content of the JSON, but merely
-//     checks if the string is syntactically correct according to JSON rules.
-//
-// Example Usage:
-//
-//	json := `{"name": {"first": "Alice", "last": "Johnson"}, "age": 30}`
-//	if !IsValidJSON(json) {
-//	    fmt.Println("Invalid JSON")
-//	} else {
-//	    fmt.Println("IsValidJSON JSON")
-//	}
-//
-//	// Output: "IsValidJSON JSON"
-func IsValidJSON(json string) bool {
-	_, ok := expectJSON(UnsafeBytes(json), 0)
-	return ok
-}
-
-// IsValidJSONBytes checks whether the provided byte slice contains valid JSON data.
+// IsValidJSON checks whether the provided byte slice contains valid JSON data.
 // It attempts to parse the JSON and returns a boolean indicating if the JSON is well-formed.
 //
 // Parameters:
@@ -583,15 +548,50 @@ func IsValidJSON(json string) bool {
 // Example Usage:
 //
 //	jsonBytes := []byte(`{"name": {"first": "Alice", "last": "Johnson"}, "age": 30}`)
-//	if !IsValidJSONBytes(jsonBytes) {
+//	if !IsValidJSON(jsonBytes) {
 //	    fmt.Println("Invalid JSON")
 //	} else {
 //	    fmt.Println("Valid JSON")
 //	}
 //
 //	// Output: "Valid JSON"
-func IsValidJSONBytes(json []byte) bool {
+func IsValidJSON(json []byte) bool {
 	_, ok := expectJSON(json, 0)
+	return ok
+}
+
+// IsValidJSONString checks whether the provided string contains valid JSON data.
+// It attempts to parse the JSON and returns a boolean indicating if the JSON is well-formed.
+//
+// Parameters:
+//   - `json`: A string representing the JSON data that needs to be validated.
+//
+// Returns:
+//   - A boolean value (`true` or `false`):
+//   - `true`: The provided JSON string is valid and well-formed.
+//   - `false`: The provided JSON string is invalid or malformed.
+//
+// Notes:
+//   - This function utilizes the `fromStr2Bytes` function to efficiently convert the input string
+//     into a byte slice without allocating new memory. It then passes the byte slice to the
+//     `verifyJSON` function to check if the string conforms to valid JSON syntax.
+//   - If the input JSON is invalid, the function will return `false`, indicating that the JSON
+//     cannot be parsed or is improperly structured.
+//   - The function does not perform deep validation of the content of the JSON, but merely
+//     checks if the string is syntactically correct according to JSON rules.
+//
+// Example Usage:
+//
+//	json := `{"name": {"first": "Alice", "last": "Johnson"}, "age": 30}`
+//	if !IsValidJSONString(json) {
+//	    fmt.Println("Invalid JSON")
+//	} else {
+//	    fmt.Println("IsValidJSONString JSON")
+//	}
+//
+//	// Output: "IsValidJSONString JSON"
+func IsValidJSONString(json string) bool {
+	_, ok := expectJSON(UnsafeBytes(json), 0)
 	return ok
 }
 

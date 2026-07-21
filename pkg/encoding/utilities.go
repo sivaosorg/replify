@@ -284,7 +284,7 @@ func encodeMap(v reflect.Value) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// marshalToStrRecover marshals a Go value to its JSON string representation or returns an error if the marshalling fails.
+// safeMarshalJSONString marshals a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -297,8 +297,8 @@ func encodeMap(v reflect.Value) ([]byte, error) {
 //
 // Example:
 //
-//	jsonString, err := marshalToStrRecover(myStruct, false)
-func marshalToStrRecover(v any, pretty bool) (out string, err error) {
+//	jsonString, err := safeMarshalJSONString(myStruct, false)
+func safeMarshalJSONString(v any, pretty bool) (out string, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%w: %v", ErrMarshalPanicRecovered, r)
@@ -596,7 +596,7 @@ func marshalJSON(data any, pretty bool) string {
 	}
 
 	// 5) Everything else: marshal with panic protection and optional pretty indent.
-	s, err := marshalToStrRecover(data, pretty)
+	s, err := safeMarshalJSONString(data, pretty)
 	if err != nil {
 		return ""
 	}
@@ -711,7 +711,7 @@ func marshalJSONE(data any, pretty bool) (string, error) {
 	}
 
 	// 5) Everything else: marshal with panic protection and optional pretty indent.
-	return marshalToStrRecover(data, pretty)
+	return safeMarshalJSONString(data, pretty)
 }
 
 // ugly processes a source byte slice and removes unwanted characters, returning a new cleaned-up byte slice.

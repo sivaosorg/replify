@@ -401,7 +401,7 @@ func imagFrom(v reflect.Value) float64 {
 	}
 }
 
-// formatFloatJSON formats a float64 to its JSON string representation.
+// formatJSONFloat formats a float64 to its JSON string representation.
 // It uses 'g' formatting like encoding/json and converts non-finite numbers to null.
 //
 // Parameters:
@@ -413,8 +413,8 @@ func imagFrom(v reflect.Value) float64 {
 //
 // Example:
 //
-//	jsonFloat := formatFloatJSON(1.2345, false)
-func formatFloatJSON(f float64, is32 bool) string {
+//	jsonFloat := formatJSONFloat(1.2345, false)
+func formatJSONFloat(f float64, is32 bool) string {
 	if math.IsNaN(f) || math.IsInf(f, 0) {
 		if floatsUseNullForNonFinite {
 			return "null"
@@ -448,8 +448,8 @@ func formatFloatJSON(f float64, is32 bool) string {
 //	r := encodeComplexJSON(1.2345, 6.789, false)
 func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
 	// Use 'g' formatting like encoding/json; convert non-finite to null.
-	r := formatFloatJSON(realPart, is32)
-	i := formatFloatJSON(imagPart, is32)
+	r := formatJSONFloat(realPart, is32)
+	i := formatJSONFloat(imagPart, is32)
 	if r == "" || i == "" {
 		return ""
 	}
@@ -475,8 +475,8 @@ func encodeComplexJSON(realPart, imagPart float64, is32 bool) string {
 //
 //	r := encodeComplexJSONToken(1.2345, 6.789, false)
 func encodeComplexJSONToken(realPart, imagPart float64, is32 bool) (string, error) {
-	r := formatFloatJSON(realPart, is32)
-	i := formatFloatJSON(imagPart, is32)
+	r := formatJSONFloat(realPart, is32)
+	i := formatJSONFloat(imagPart, is32)
 	// formatFloatJSON returns "" only when floatsUseNullForNonFinite is false and the
 	// component is non-finite (NaN/Inf). In that case the token policy is to error.
 	if r == "" || i == "" {

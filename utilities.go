@@ -227,13 +227,13 @@ func safeBody(value any) any {
 	var result any
 	switch v := value.(type) {
 	case string:
-		if encoding.IsValidJSON(v) {
+		if encoding.IsValidJSONString(v) {
 			result = json.RawMessage(encoding.Ugly([]byte(v)))
 		} else {
 			result = v
 		}
 	case []byte:
-		if encoding.IsValidJSONBytes(v) {
+		if encoding.IsValidJSON(v) {
 			result = json.RawMessage(encoding.Ugly(v))
 		} else {
 			result = v

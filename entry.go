@@ -85,7 +85,7 @@ func UnwrapJSON(jsonStr string) (w *wrapper, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if !encoding.IsValidJSON(nJSON) || !fj.IsValidJSON(nJSON) {
+	if !encoding.IsValidJSONString(nJSON) || !fj.IsValidJSON(nJSON) {
 		return nil, NewErrorf("invalid JSON string: %s", jsonStr) // keep original JSON string
 	}
 

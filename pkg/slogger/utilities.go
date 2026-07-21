@@ -258,7 +258,7 @@ func writeJSONKey(b *strings.Builder, key string) {
 //	var b strings.Builder
 //	writeJSONString(&b, "hello") // writes "\"hello\""
 func writeJSONString(b *strings.Builder, s string) {
-	if encoding.IsValidJSON(s) && fj.IsValidJSON(s) {
+	if encoding.IsValidJSONString(s) && fj.IsValidJSON(s) {
 		b.Write([]byte(s))
 		return
 	}

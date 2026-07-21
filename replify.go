@@ -1154,7 +1154,7 @@ func (w *wrapper) IsJSONBody() bool {
 		return false
 	}
 	json := encoding.JSON(w.data)
-	return fj.IsValidJSON(json) && encoding.IsValidJSON(json)
+	return fj.IsValidJSON(json) && encoding.IsValidJSONString(json)
 }
 
 // IsHeaderPresent checks whether header information is present in the [wrapper] instance.

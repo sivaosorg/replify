@@ -8,7 +8,281 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
+	"sync"
 )
+
+// _jsonMarshalerType is the reflect.Type of the json.Marshaler interface.
+// Used to detect types that implement their own JSON serialisation so that
+// toJSONCompatible can leave them untouched.
+var _jsonMarshalerType = reflect.TypeFor[json.Marshaler]()
+
+// _complexTypeCache caches typeContainsComplex results keyed by reflect.Type.
+// After the first reflection walk for a given type every subsequent call is O(1).
+var _complexTypeCache sync.Map
+
+// containsComplex reports whether t or any type structurally reachable from t
+// contains a complex64 or complex128 field. Results are cached per type, so
+// repeated marshaling of the same struct pays only a single sync.Map lookup.
+func containsComplex(t reflect.Type) bool {
+	if v, ok := _complexTypeCache.Load(t); ok {
+		return v.(bool)
+	}
+	result := typeContainsComplex(t, make(map[reflect.Type]bool))
+	_complexTypeCache.Store(t, result)
+	return result
+}
+
+// typeContainsComplex is the recursive worker for containsComplex.
+// seen prevents infinite loops for self-referential types.
+func typeContainsComplex(t reflect.Type, seen map[reflect.Type]bool) bool {
+	switch t.Kind() {
+	case reflect.Complex64, reflect.Complex128:
+		return true
+	case reflect.Ptr, reflect.Slice, reflect.Array, reflect.Chan:
+		return typeContainsComplex(t.Elem(), seen)
+	case reflect.Map:
+		return typeContainsComplex(t.Key(), seen) || typeContainsComplex(t.Elem(), seen)
+	case reflect.Struct:
+		if seen[t] {
+			return false // recursive type — avoid infinite loop
+		}
+		seen[t] = true
+		for i := 0; i < t.NumField(); i++ {
+			if typeContainsComplex(t.Field(i).Type, seen) {
+				return true
+			}
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+// parseJSONTag extracts the effective JSON key name, the omitempty flag, and
+// whether the field should be omitted entirely ("-") from a struct field's tag.
+func parseJSONTag(sf reflect.StructField) (name string, omitempty, skip bool) {
+	tag := sf.Tag.Get("json")
+	if tag == "" {
+		return sf.Name, false, false
+	}
+	if tag == "-" {
+		return "", false, true
+	}
+	before, after, ok := strings.Cut(tag, ",")
+	if !ok {
+		return tag, false, false
+	}
+	name = before
+	if name == "" {
+		name = sf.Name
+	}
+	omitempty = strings.Contains(after, "omitempty")
+	return name, omitempty, false
+}
+
+// encodeValue encodes a reflect.Value to compact JSON bytes, handling
+// complex64/complex128 at any depth and preserving struct field declaration
+// order. Types that implement json.Marshaler are handed off directly so that
+// their custom serialisation (e.g. time.Time → RFC3339) is preserved.
+func encodeValue(v reflect.Value) ([]byte, error) {
+	// Dereference pointer chain.
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return []byte("null"), nil
+		}
+		v = v.Elem()
+	}
+	// Unwrap interface layers.
+	for v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return []byte("null"), nil
+		}
+		v = v.Elem()
+	}
+	if !v.IsValid() {
+		return []byte("null"), nil
+	}
+
+	t := v.Type()
+	// Honour custom JSON marshaling (e.g. time.Time, json.RawMessage…).
+	if t.Implements(_jsonMarshalerType) || reflect.PointerTo(t).Implements(_jsonMarshalerType) {
+		return json.Marshal(v.Interface())
+	}
+
+	switch v.Kind() {
+	case reflect.Complex64, reflect.Complex128:
+		r, i := realFrom(v), imagFrom(v)
+		return json.Marshal(map[string]float64{"real": r, "imag": i})
+
+	case reflect.Struct:
+		return encodeStruct(v)
+
+	case reflect.Slice:
+		if v.IsNil() {
+			return []byte("null"), nil
+		}
+		return encodeSlice(v)
+
+	case reflect.Array:
+		return encodeSlice(v)
+
+	case reflect.Map:
+		if v.IsNil() {
+			return []byte("null"), nil
+		}
+		return encodeMap(v)
+
+	default:
+		return json.Marshal(v.Interface())
+	}
+}
+
+// isAnonymousPromoted reports whether sf is an anonymous (embedded) struct field
+// whose sub-fields should be promoted into the parent JSON object — i.e. it
+// carries no explicit JSON key name. This mirrors encoding/json promotion rules.
+func isAnonymousPromoted(sf reflect.StructField) bool {
+	if !sf.Anonymous {
+		return false
+	}
+	tag := sf.Tag.Get("json")
+	if tag == "" {
+		return true
+	}
+	if tag == "-" {
+		return false
+	}
+	// `json:",omitempty"` — comma is the first character, no explicit name → promote.
+	// `json:"name"` or `json:"name,omitempty"` — has explicit name → do not promote.
+	return strings.IndexByte(tag, ',') == 0
+}
+
+// writeStructFields writes the exported fields of struct v to buf in declaration
+// order, honouring json struct tags. Anonymous (embedded) struct fields whose
+// tag carries no explicit name are promoted — their sub-fields are written
+// inline, matching encoding/json embedding semantics.
+func writeStructFields(v reflect.Value, buf *bytes.Buffer, first *bool) error {
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		sf := t.Field(i)
+		if !sf.IsExported() {
+			continue
+		}
+		fv := v.Field(i)
+
+		if isAnonymousPromoted(sf) {
+			// Dereference an embedded pointer; skip the whole embed if nil.
+			fw := fv
+			nilPtr := false
+			for fw.Kind() == reflect.Ptr {
+				if fw.IsNil() {
+					nilPtr = true
+					break
+				}
+				fw = fw.Elem()
+			}
+			if !nilPtr && fw.Kind() == reflect.Struct {
+				if err := writeStructFields(fw, buf, first); err != nil {
+					return err
+				}
+			}
+			continue
+		}
+
+		name, omitempty, skip := parseJSONTag(sf)
+		if skip {
+			continue
+		}
+		if omitempty && fv.IsZero() {
+			continue
+		}
+		if !*first {
+			buf.WriteByte(',')
+		}
+		*first = false
+		keyBytes, err := json.Marshal(name)
+		if err != nil {
+			return err
+		}
+		buf.Write(keyBytes)
+		buf.WriteByte(':')
+		valBytes, err := encodeValue(fv)
+		if err != nil {
+			return err
+		}
+		buf.Write(valBytes)
+	}
+	return nil
+}
+
+// encodeStruct serialises a struct to compact JSON bytes in field declaration
+// order, honouring json struct tags (name, omitempty, "-") and promoting
+// anonymous (embedded) struct fields that carry no explicit JSON name.
+func encodeStruct(v reflect.Value) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	first := true
+	if err := writeStructFields(v, &buf, &first); err != nil {
+		return nil, err
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+// encodeSlice serialises a slice or array to compact JSON bytes.
+func encodeSlice(v reflect.Value) ([]byte, error) {
+	var buf bytes.Buffer
+	buf.WriteByte('[')
+	for i := 0; i < v.Len(); i++ {
+		if i > 0 {
+			buf.WriteByte(',')
+		}
+		b, err := encodeValue(v.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(b)
+	}
+	buf.WriteByte(']')
+	return buf.Bytes(), nil
+}
+
+// encodeMap serialises a map to compact JSON bytes.
+// It first attempts a direct json.Marshal; on UnsupportedTypeError (complex
+// values) it falls back to encoding each value individually.
+func encodeMap(v reflect.Value) ([]byte, error) {
+	// Fast path: no complex values — let json.Marshal handle it.
+	b, err := json.Marshal(v.Interface())
+	if err == nil {
+		return b, nil
+	}
+	if _, ok := err.(*json.UnsupportedTypeError); !ok {
+		return nil, err
+	}
+	// Slow path: at least one value is a complex type.
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	first := true
+	for _, key := range v.MapKeys() {
+		if !first {
+			buf.WriteByte(',')
+		}
+		first = false
+		keyBytes, err := json.Marshal(fmt.Sprintf("%v", key.Interface()))
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(keyBytes)
+		buf.WriteByte(':')
+		valBytes, err := encodeValue(v.MapIndex(key))
+		if err != nil {
+			return nil, err
+		}
+		buf.Write(valBytes)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
 
 // marshalToStrRecover marshals a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
@@ -32,16 +306,55 @@ func marshalToStrRecover(v any, pretty bool) (out string, err error) {
 		}
 	}()
 
+	rv := reflect.ValueOf(v)
+
+	// Static fast-path: if the concrete type is known to contain complex numbers
+	// skip the doomed json.Marshal attempt entirely. containsComplex is O(1)
+	// after the first call per type thanks to the sync.Map cache.
+	if rv.IsValid() && containsComplex(rv.Type()) {
+		b, encErr := encodeValue(rv)
+		if encErr != nil {
+			return "", encErr
+		}
+		if pretty {
+			var indented bytes.Buffer
+			if indentErr := json.Indent(&indented, b, "", "    "); indentErr != nil {
+				return "", indentErr
+			}
+			b = indented.Bytes()
+		}
+		return string(b), nil
+	}
+
+	// No statically known complex fields — attempt direct marshal.
 	var b []byte
 	if pretty {
 		b, err = MarshalJSONIndent(v, "", "    ")
 	} else {
 		b, err = MarshalJSONb(v)
 	}
-	if err != nil {
-		return "", err
+	if err == nil {
+		return string(b), nil
 	}
-	return string(b), nil
+
+	// Dynamic fallback: an any-typed field holding a complex value can only be
+	// detected at runtime. Retry once with the order-preserving encoder.
+	if _, ok := err.(*json.UnsupportedTypeError); ok {
+		b, err = encodeValue(rv)
+		if err != nil {
+			return "", err
+		}
+		if pretty {
+			var indented bytes.Buffer
+			if indentErr := json.Indent(&indented, b, "", "    "); indentErr != nil {
+				return "", indentErr
+			}
+			b = indented.Bytes()
+		}
+		return string(b), nil
+	}
+
+	return "", err
 }
 
 // realFrom extracts the real part of a complex number from a reflect.Value.
@@ -492,7 +805,7 @@ func isNaNOrInf(src []byte) bool {
 		(src[0] == 'n' && len(src) > 1 && src[1] != 'u') // nan
 }
 
-// getJsonType identifies the JSON type of a given byte slice based on its first character.
+// getJSONType identifies the JSON type of a given byte slice based on its first character.
 //
 // This function analyzes the first character in the byte slice `v` to determine which JSON data type it represents.
 // Based on the initial character, it categorizes the input as one of the following types:
@@ -511,16 +824,16 @@ func isNaNOrInf(src []byte) bool {
 //	value3 := []byte("123")
 //	value4 := []byte("null")
 //	value5 := []byte("[1, 2, 3]")
-//	result1 := getJsonType(value1) // result1 will be jsonString
-//	result2 := getJsonType(value2) // result2 will be jsonFalse
-//	result3 := getJsonType(value3) // result3 will be jNumber
-//	result4 := getJsonType(value4) // result4 will be jsonNull
-//	result5 := getJsonType(value5) // result5 will be jsonJson
+//	result1 := getJSONType(value1) // result1 will be jsonString
+//	result2 := getJSONType(value2) // result2 will be jsonFalse
+//	result3 := getJSONType(value3) // result3 will be jNumber
+//	result4 := getJSONType(value4) // result4 will be jsonNull
+//	result5 := getJSONType(value5) // result5 will be jsonJson
 //
 // Notes:
 //   - If the byte slice is empty, the function returns `jsonNull`.
 //   - The function uses the initial character of `v` to distinguish types, assuming `true`, `false`, and `null` are valid JSON values.
-func getJsonType(v []byte) jsonType {
+func getJSONType(v []byte) jsonType {
 	if len(v) == 0 {
 		return jsonNull
 	}

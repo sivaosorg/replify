@@ -462,8 +462,8 @@ func (a *kvSorter) isLess(i, j int, kind sortCriteria) bool {
 			v2 = bytes.TrimSpace(v2[len(k2)+1:])
 		}
 	}
-	t1 := getJsonType(v1)
-	t2 := getJsonType(v2)
+	t1 := getJSONType(v1)
+	t2 := getJSONType(v2)
 	if t1 < t2 {
 		return true
 	}

@@ -999,7 +999,7 @@ func appendJSONString(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 	return append(buf, json[s:i]...), i, nl, true
 }
 
-// appendPrettyNumber appends a JSON number value from the input JSON byte slice (`json`) to a buffer (`buf`),
+// appendJSONNumber appends a JSON number value from the input JSON byte slice (`json`) to a buffer (`buf`),
 // and returns the updated buffer and indices.
 //
 // This function starts at a given index `i` within a JSON byte slice `json` (assuming the current character is the start
@@ -1022,7 +1022,7 @@ func appendJSONString(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 //
 //	json := []byte(`12345`)
 //	buf := []byte{}
-//	buf, i, nl, processed := appendPrettyNumber(buf, json, 0, 0)
+//	buf, i, nl, processed := appendJSONNumber(buf, json, 0, 0)
 //	// buf will contain `12345`, i will point to the next index after the number,
 //	// nl remains unchanged, and processed will be true.
 //
@@ -1030,7 +1030,7 @@ func appendJSONString(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 //   - The function scans for all characters that are part of the number (digits, decimal point, etc.) until it
 //     encounters a character that is not part of a valid number, such as a space, comma, colon, or closing bracket/braces.
 //   - It assumes that the number is well-formed and does not handle error cases like invalid numbers.
-func appendPrettyNumber(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
+func appendJSONNumber(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 	s := i // Record the start index of the number
 	i++    // Move past the initial digit (or minus sign if present)
 	for ; i < len(json); i++ {
@@ -1092,7 +1092,7 @@ func appendPrettyAny(buf, json []byte, i int, pretty bool, width int, prefix, in
 			return appendJSONString(buf, json, i, nl)
 		}
 		if (json[i] >= '0' && json[i] <= '9') || json[i] == '-' || isNaNOrInf(json[i:]) {
-			return appendPrettyNumber(buf, json, i, nl)
+			return appendJSONNumber(buf, json, i, nl)
 		}
 		if json[i] == '{' {
 			return appendPrettyObject(buf, json, i, '{', '}', pretty, width, prefix, indent, sortKeys, tabs, nl, max)

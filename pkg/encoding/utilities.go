@@ -1134,7 +1134,7 @@ func appendJSONContainer(buf, json []byte, i int, open, close byte, pretty bool,
 					}
 				}
 				if buf[len(buf)-1] != open {
-					buf = appendTabs(buf, prefix, indent, tabs)
+					buf = appendIndent(buf, prefix, indent, tabs)
 				}
 			}
 			buf = append(buf, close)
@@ -1159,7 +1159,7 @@ func appendJSONContainer(buf, json []byte, i int, open, close byte, pretty bool,
 					p.keyStart = i
 					p.valueStart = len(buf)
 				}
-				buf = appendTabs(buf, prefix, indent, tabs+1)
+				buf = appendIndent(buf, prefix, indent, tabs+1)
 			}
 			if open == '{' {
 				buf, i, nl, _ = appendJSONString(buf, json, i, nl)
@@ -1189,6 +1189,21 @@ func appendJSONContainer(buf, json []byte, i int, open, close byte, pretty bool,
 		}
 	}
 	return buf, i, nl, open != '{'
+}
+
+// appendJSONByte appends a byte `c` to the destination byte slice `dst`,
+// handling special control characters by escaping them in Unicode format.
+// If `c` is a control character (ASCII value less than 32) and not one of the
+// common whitespace characters (`\r`, `\n`, `\t`, `\v`), it appends
+// the Unicode escape sequence `\u00XX` to `dst`, where `XX` is the hexadecimal
+// representation of `c`. Otherwise, it appends `c` directly to `dst`.
+func appendJSONByte(dst []byte, c byte) []byte {
+	if c < ' ' && (c != '\r' && c != '\n' && c != '\t' && c != '\v') {
+		dst = append(dst, "\\u00"...)
+		dst = append(dst, hexDigit((c>>4)&0xF))
+		return append(dst, hexDigit(c&0xF))
+	}
+	return append(dst, c)
 }
 
 // appendJSONValue processes the next JSON value in the input JSON byte slice (`json`) and appends it to the buffer (`buf`),
@@ -1260,7 +1275,7 @@ func appendJSONValue(buf, json []byte, i int, pretty bool, width int, prefix, in
 	return buf, i, nl, true
 }
 
-// appendTabs appends indentation to the provided buffer (`buf`) based on the specified `prefix`, `indent`,
+// appendIndent appends indentation to the provided buffer (`buf`) based on the specified `prefix`, `indent`,
 // and the number of `tabs` to insert.
 //
 // This function adds a specific number of tab or space-based indents to the `buf`, depending on the `indent` value.
@@ -1283,13 +1298,13 @@ func appendJSONValue(buf, json []byte, i int, pretty bool, width int, prefix, in
 //	prefix := "  "
 //	indent := "\t"
 //	tabs := 3
-//	buf = appendTabs(buf, prefix, indent, tabs)
+//	buf = appendIndent(buf, prefix, indent, tabs)
 //	// buf will be `{"  "\t\t\t` (prefix followed by 3 tab characters).
 //
 // Notes:
 //   - If the `indent` string is exactly two spaces (`"  "`), the function will append two spaces for each `tab`.
 //   - If the `indent` string is anything else, it will be appended `tabs` times.
-func appendTabs(buf []byte, prefix, indent string, tabs int) []byte {
+func appendIndent(buf []byte, prefix, indent string, tabs int) []byte {
 	if len(prefix) != 0 { // Append prefix if it's not an empty string
 		buf = append(buf, prefix...)
 	}
@@ -1343,7 +1358,7 @@ func hexDigit(p byte) byte {
 	}
 }
 
-// spec processes a source byte slice (source) and removes or replaces comment sections,
+// sanitizeJSON processes a source byte slice (source) and removes or replaces comment sections,
 // formatting them into a cleaned-up destination byte slice (destination).
 // It handles both single-line (`//`) and multi-line (`/* */`) comments and strips them out,
 // replacing them with spaces or newlines as appropriate.
@@ -1361,7 +1376,7 @@ func hexDigit(p byte) byte {
 // Example:
 //
 //	source := []byte("int x = 10; // initialize x\n/* multi-line\n comment */")
-//	destination := spec(source, []byte{})
+//	destination := sanitizeJSON(source, []byte{})
 //	// destination will contain: "int x = 10;    \n   "
 //
 // Notes:
@@ -1370,7 +1385,7 @@ func hexDigit(p byte) byte {
 //   - Multi-line comments enclosed in `/* */`, even if they span multiple lines.
 //   - Strings inside double quotes (`"`) and special characters like `}` or `]` are preserved as is,
 //     with careful handling of quotes and escape sequences within the string.
-func spec(source, destination []byte) []byte {
+func sanitizeJSON(source, destination []byte) []byte {
 	destination = destination[:0]
 	for i := 0; i < len(source); i++ {
 		if source[i] == '/' {
@@ -1438,19 +1453,4 @@ func spec(source, destination []byte) []byte {
 		}
 	}
 	return destination
-}
-
-// appendJSONByte appends a byte `c` to the destination byte slice `dst`,
-// handling special control characters by escaping them in Unicode format.
-// If `c` is a control character (ASCII value less than 32) and not one of the
-// common whitespace characters (`\r`, `\n`, `\t`, `\v`), it appends
-// the Unicode escape sequence `\u00XX` to `dst`, where `XX` is the hexadecimal
-// representation of `c`. Otherwise, it appends `c` directly to `dst`.
-func appendJSONByte(dst []byte, c byte) []byte {
-	if c < ' ' && (c != '\r' && c != '\n' && c != '\t' && c != '\v') {
-		dst = append(dst, "\\u00"...)
-		dst = append(dst, hexDigit((c>>4)&0xF))
-		return append(dst, hexDigit(c&0xF))
-	}
-	return append(dst, c)
 }

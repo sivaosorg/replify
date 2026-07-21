@@ -148,7 +148,7 @@ func PrettyOptions(json []byte, option *OptionsConfig) []byte {
 //   - The buffer created (`buf`) is pre-allocated with a capacity equal to the length of the input, optimizing memory allocation.
 func Ugly(json []byte) []byte {
 	buf := make([]byte, 0, len(json))
-	return ugly(buf, json)
+	return compactJSON(buf, json)
 }
 
 // UglyInPlace removes unwanted characters from a JSON byte slice in-place and returns the modified byte slice.
@@ -174,7 +174,7 @@ func Ugly(json []byte) []byte {
 // Notes:
 //   - This function is intended for cases where in-place modification of the input is acceptable.
 //   - The underlying `ugly` function processes each character, handling escaped double quotes to avoid breaking quoted substrings.
-func UglyInPlace(json []byte) []byte { return ugly(json, json) }
+func UglyInPlace(json []byte) []byte { return compactJSON(json, json) }
 
 // Spec strips out comments and trailing commas and converts the input to a valid JSON format
 // according to the official JSON specification (RFC 8259).

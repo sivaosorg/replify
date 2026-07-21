@@ -714,7 +714,7 @@ func marshalJSONE(data any, pretty bool) (string, error) {
 	return safeMarshalJSONString(data, pretty)
 }
 
-// ugly processes a source byte slice and removes unwanted characters, returning a new cleaned-up byte slice.
+// compactJSON processes a source byte slice and removes unwanted characters, returning a new cleaned-up byte slice.
 //
 // This function processes the input `src` byte slice and appends characters to the `dst` byte slice based on certain criteria.
 // It specifically filters out characters that are not printable (i.e., characters with ASCII values greater than `' '`).
@@ -731,7 +731,7 @@ func marshalJSONE(data any, pretty bool) (string, error) {
 // Example:
 //
 //	src := []byte(`hello "world" 1234`)
-//	dst := ugly([]byte{}, src)
+//	dst := compactJSON([]byte{}, src)
 //	// dst will be []byte{'h', 'e', 'l', 'l', 'o', ' ', '"', 'w', 'o', 'r', 'l', 'd', '"', ' ', '1', '2', '3', '4'},
 //	// as the function preserves only printable characters and properly handles quoted substrings.
 //
@@ -740,7 +740,7 @@ func marshalJSONE(data any, pretty bool) (string, error) {
 //   - When encountering a double quote (`"`), the function ensures that it correctly handles escaped quotes, skipping characters
 //     until a valid closing quote is found. If an odd number of backslashes precede the closing quote, it breaks the loop to avoid
 //     incorrect parsing of the quotes.
-func ugly(dst, src []byte) []byte {
+func compactJSON(dst, src []byte) []byte {
 	dst = dst[:0] // Reset destination slice to an empty state
 	for i := 0; i < len(src); i++ {
 		if src[i] > ' ' { // Only include characters that are printable

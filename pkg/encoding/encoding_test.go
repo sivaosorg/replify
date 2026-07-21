@@ -1107,18 +1107,18 @@ func TestNormalizeJSON_UnfixableInputWrapsErrInvalidJSON(t *testing.T) {
 
 // TestUgly_EmptyInput verifies that Ugly does not panic on empty input.
 func TestUgly_EmptyInput(t *testing.T) {
-	got := encoding.Ugly([]byte{})
+	got := encoding.CompactJSON([]byte{})
 	if len(got) != 0 {
-		t.Errorf("Ugly(empty) = %q; want empty slice", got)
+		t.Errorf("CompactJSON(empty) = %q; want empty slice", got)
 	}
 }
 
 // TestUglyInPlace_EmptyInput verifies that UglyInPlace does not panic on empty input.
 func TestUglyInPlace_EmptyInput(t *testing.T) {
 	input := []byte{}
-	got := encoding.UglyInPlace(input)
+	got := encoding.CompactJSONUnsafe(input)
 	if len(got) != 0 {
-		t.Errorf("UglyInPlace(empty) = %q; want empty slice", got)
+		t.Errorf("CompactJSONUnsafe(empty) = %q; want empty slice", got)
 	}
 }
 

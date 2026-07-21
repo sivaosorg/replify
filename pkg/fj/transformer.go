@@ -258,7 +258,7 @@ func applyPrettyFormat(json, arg string) string {
 //     whitespace from the JSON data.
 //   - This function is often used to reduce the size of JSON data for storage or transmission.
 func applyMinify(json, arg string) string {
-	return strutil.SafeStr(encoding.Ugly(UnsafeBytes(json)))
+	return strutil.SafeStr(encoding.CompactJSON(UnsafeBytes(json)))
 }
 
 // applyReverse reverses the order of elements in an array or the order of key-value

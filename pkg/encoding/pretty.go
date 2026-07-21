@@ -122,12 +122,12 @@ func PrettyOptions(json []byte, option *OptionsConfig) []byte {
 	return buf
 }
 
-// Ugly removes unwanted characters from a JSON byte slice, returning a cleaned-up copy.
+// CompactJSON removes unwanted characters from a JSON byte slice, returning a cleaned-up copy.
 //
 // This function creates a new byte buffer to hold a "cleaned" version of the input JSON, then calls the
-// `ugly` function to process the input `json` byte slice. The `ugly` function filters out non-printable
+// `compactJSON` function to process the input `json` byte slice. The `compactJSON` function filters out non-printable
 // characters (characters with ASCII values less than or equal to ' '), preserving quoted substrings within
-// the JSON. Unlike `UglyInPlace`, this function does not modify the original input and instead returns a
+// the JSON. Unlike `CompactJSONUnsafe`, this function does not modify the original input and instead returns a
 // new byte slice.
 //
 // Parameters:
@@ -138,23 +138,23 @@ func PrettyOptions(json []byte, option *OptionsConfig) []byte {
 //
 // Example:
 //
-//	json := []byte(`hello "world" 1234`)
-//	cleanedJson := Ugly(json)
-//	// cleanedJson will be []byte{'h', 'e', 'l', 'l', 'o', ' ', '"', 'w', 'o', 'r', 'l', 'd', '"', ' ', '1', '2', '3', '4'}
+//	json := []byte(`{"hello": "world", "number": 1234}`)
+//	cleanedJson := CompactJSON(json)
+//	// cleanedJson will be []byte{'{', '"', 'h', 'e', 'l', 'l', 'o', '"', ':', ' ', '"', 'w', 'o', 'r', 'l', 'd', '"', ',', ' ', '"', 'n', 'u', 'm', 'b', 'e', 'r', '"', ':', ' ', '1', '2', '3', '4', '}'}
 //	// as the function preserves printable characters and properly handles quoted substrings.
 //
 // Notes:
 //   - This function is useful when you need a cleaned copy of the original JSON data without modifying the original byte slice.
 //   - The buffer created (`buf`) is pre-allocated with a capacity equal to the length of the input, optimizing memory allocation.
-func Ugly(json []byte) []byte {
+func CompactJSON(json []byte) []byte {
 	buf := make([]byte, 0, len(json))
 	return compactJSON(buf, json)
 }
 
-// UglyInPlace removes unwanted characters from a JSON byte slice in-place and returns the modified byte slice.
+// CompactJSONUnsafe removes unwanted characters from a JSON byte slice in-place and returns the modified byte slice.
 //
-// This function is a wrapper around the `ugly` function, which processes a byte slice and removes non-printable characters
-// (i.e., characters with ASCII values less than or equal to ' '), preserving quoted substrings. `UglyInPlace` calls `ugly`
+// This function is a wrapper around the `compactJSON` function, which processes a byte slice and removes non-printable characters
+// (i.e., characters with ASCII values less than or equal to ' '), preserving quoted substrings. `CompactJSONUnsafe` calls `compactJSON`
 // with the same slice as both the source (`src`) and the destination (`dst`), effectively performing the cleaning operation
 // in place.
 //
@@ -166,15 +166,17 @@ func Ugly(json []byte) []byte {
 //
 // Example:
 //
-//	json := []byte(`hello "world" 1234`)
-//	cleanedJson := UglyInPlace(json)
-//	// cleanedJson will be []byte{'h', 'e', 'l', 'l', 'o', ' ', '"', 'w', 'o', 'r', 'l', 'd', '"', ' ', '1', '2', '3', '4'}
+//	json := []byte(`{"hello": "world", "number": 1234}`)
+//	cleanedJson := CompactJSONUnsafe(json)
+//	// cleanedJson will be []byte{'{', '"', 'h', 'e', 'l', 'l', 'o', '"', ':', ' ', '"', 'w', 'o', 'r', 'l', 'd', '"', ',', ' ', '"', 'n', 'u', 'm', 'b', 'e', 'r', '"', ':', ' ', '1', '2', '3', '4', '}'}
 //	// as the function preserves printable characters and quoted substrings.
 //
 // Notes:
 //   - This function is intended for cases where in-place modification of the input is acceptable.
-//   - The underlying `ugly` function processes each character, handling escaped double quotes to avoid breaking quoted substrings.
-func UglyInPlace(json []byte) []byte { return compactJSON(json, json) }
+//   - The underlying `compactJSON` function processes each character, handling escaped double quotes to avoid breaking quoted substrings.
+func CompactJSONUnsafe(json []byte) []byte {
+	return compactJSON(json, json)
+}
 
 // Spec strips out comments and trailing commas and converts the input to a valid JSON format
 // according to the official JSON specification (RFC 8259).

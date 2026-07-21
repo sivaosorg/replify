@@ -1043,76 +1043,7 @@ func appendJSONNumber(buf, json []byte, i, nl int) ([]byte, int, int, bool) {
 	return append(buf, json[s:i]...), i, nl, true
 }
 
-// appendPrettyAny processes the next JSON value in the input JSON byte slice (`json`) and appends it to the buffer (`buf`),
-// while handling different types of JSON values (strings, numbers, objects, arrays, and literals).
-// It returns the updated buffer and indices, as well as a boolean flag indicating whether a value was processed.
-//
-// This function is responsible for recognizing the type of the next JSON value and delegating the task of appending that value
-// to the appropriate helper function (such as `appendPrettyString` for strings, `appendPrettyNumber` for numbers, and others
-// for objects, arrays, and literals). It processes the JSON byte slice one element at a time and handles all value types
-// correctly, ensuring that each value is pretty-printed if required.
-//
-// Parameters:
-//   - `buf`: The destination byte slice to which the processed JSON value will be appended.
-//   - `json`: The source JSON byte slice containing the entire JSON structure.
-//   - `i`: The starting index in `json` from where the next value should be processed.
-//   - `pretty`: A boolean flag indicating whether pretty-printing should be applied (i.e., adding newlines and indentation).
-//   - `width`: The width used for pretty-printing (not used in this function, but passed for consistency in pretty-printing logic).
-//   - `prefix`: A string prefix (used in pretty-printing to add leading indentation, not used here).
-//   - `indent`: The string used for indentation (not used here but part of the pretty-printing configuration).
-//   - `sortKeys`: A boolean flag indicating whether the keys in objects should be sorted (not used here but passed for consistency).
-//   - `tabs`: The number of tabs for indentation (not used here but passed for consistency in pretty-printing logic).
-//   - `nl`: The current newline position (used for pretty-printing, ensuring line breaks are maintained correctly).
-//   - `max`: The maximum number of characters to pretty-print before breaking into a new line (not used in this function).
-//
-// Returns:
-//   - `buf`: The updated buffer, containing the appended JSON value (pretty-printed if the `pretty` flag is true).
-//   - `i`: The updated index in `json`, pointing to the position after the processed value.
-//   - `nl`: The unchanged newline position (used for pretty-printing in the larger context).
-//   - `true`: A boolean flag indicating that a JSON value was successfully processed.
-//
-// Example usage:
-//
-//	json := []byte(`{ "key1": 123, "key2": "value", "key3": [1, 2, 3] }`)
-//	buf := []byte{}
-//	buf, i, nl, processed := appendPrettyAny(buf, json, 0, true, 0, "", "  ", false, 0, 0, 0)
-//	// buf will contain the pretty-printed JSON value, i will point to the next index,
-//	// nl remains unchanged, and processed will be true.
-//
-// Notes:
-//   - This function processes and appends various JSON data types, including strings, numbers, objects, arrays,
-//     and literals (`true`, `false`, `null`).
-//   - The function assumes the JSON is valid and well-formed; it does not handle parsing errors for invalid JSON.
-func appendPrettyAny(buf, json []byte, i int, pretty bool, width int, prefix, indent string, sortKeys bool, tabs, nl, max int) ([]byte, int, int, bool) {
-	for ; i < len(json); i++ {
-		if json[i] <= ' ' {
-			continue
-		}
-		if json[i] == '"' {
-			return appendJSONString(buf, json, i, nl)
-		}
-		if (json[i] >= '0' && json[i] <= '9') || json[i] == '-' || isNaNOrInf(json[i:]) {
-			return appendJSONNumber(buf, json, i, nl)
-		}
-		if json[i] == '{' {
-			return appendPrettyObject(buf, json, i, '{', '}', pretty, width, prefix, indent, sortKeys, tabs, nl, max)
-		}
-		if json[i] == '[' {
-			return appendPrettyObject(buf, json, i, '[', ']', pretty, width, prefix, indent, sortKeys, tabs, nl, max)
-		}
-		switch json[i] {
-		case 't':
-			return append(buf, 't', 'r', 'u', 'e'), i + 4, nl, true
-		case 'f':
-			return append(buf, 'f', 'a', 'l', 's', 'e'), i + 5, nl, true
-		case 'n':
-			return append(buf, 'n', 'u', 'l', 'l'), i + 4, nl, true
-		}
-	}
-	return buf, i, nl, true
-}
-
-// appendPrettyObject processes the next JSON object or array in the input JSON byte slice (`json`)
+// appendJSONContainer processes the next JSON object or array in the input JSON byte slice (`json`)
 // and appends it to the buffer (`buf`), while handling pretty-printing, sorting of object keys, and enforcing width constraints.
 //
 // This function handles the parsing and formatting of JSON objects (`{}`) and arrays (`[]`), adding appropriate indentation,
@@ -1148,7 +1079,7 @@ func appendPrettyAny(buf, json []byte, i int, pretty bool, width int, prefix, in
 //
 //	json := []byte(`{ "key1": 123, "key2": "value", "key3": [1, 2, 3] }`)
 //	buf := []byte{}
-//	buf, i, nl, processed := appendPrettyObject(buf, json, 0, '{', '}', true, 80, "", "  ", false, 0, 0, -1)
+//	buf, i, nl, processed := appendJSONContainer(buf, json, 0, '{', '}', true, 80, "", "  ", false, 0, 0, -1)
 //	// buf will contain the pretty-printed JSON object, i will point to the next index,
 //	// nl will be adjusted for newlines, and processed will be true.
 //
@@ -1159,7 +1090,7 @@ func appendPrettyAny(buf, json []byte, i int, pretty bool, width int, prefix, in
 //   - If `sortKeys` is set to true, the keys in the JSON object will be sorted lexicographically before being appended to the buffer.
 //   - The `max` value helps control the number of characters in a single line for arrays, ensuring that arrays are properly wrapped into multiple lines if necessary.
 //   - The function can also handle arrays and objects with nested structures, ensuring the formatting remains correct throughout.
-func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, width int, prefix, indent string, sortKeys bool, tabs, nl, max int) ([]byte, int, int, bool) {
+func appendJSONContainer(buf, json []byte, i int, open, close byte, pretty bool, width int, prefix, indent string, sortKeys bool, tabs, nl, max int) ([]byte, int, int, bool) {
 	var ok bool
 	if width > 0 {
 		if pretty && open == '[' && max == -1 {
@@ -1167,7 +1098,7 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 			max := width - (len(buf) - nl)
 			if max > 3 {
 				s1, s2 := len(buf), i
-				buf, i, _, ok = appendPrettyObject(buf, json, i, '[', ']', false, width, prefix, "", sortKeys, 0, 0, max)
+				buf, i, _, ok = appendJSONContainer(buf, json, i, '[', ']', false, width, prefix, "", sortKeys, 0, 0, max)
 				if ok && len(buf)-s1 <= max {
 					return buf, i, nl, true
 				}
@@ -1240,7 +1171,7 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 					buf = append(buf, ' ')
 				}
 			}
-			buf, i, nl, ok = appendPrettyAny(buf, json, i, pretty, width, prefix, indent, sortKeys, tabs+1, nl, max)
+			buf, i, nl, ok = appendJSONValue(buf, json, i, pretty, width, prefix, indent, sortKeys, tabs+1, nl, max)
 			if max != -1 && !ok {
 				return buf, i, nl, false
 			}
@@ -1258,6 +1189,75 @@ func appendPrettyObject(buf, json []byte, i int, open, close byte, pretty bool, 
 		}
 	}
 	return buf, i, nl, open != '{'
+}
+
+// appendJSONValue processes the next JSON value in the input JSON byte slice (`json`) and appends it to the buffer (`buf`),
+// while handling different types of JSON values (strings, numbers, objects, arrays, and literals).
+// It returns the updated buffer and indices, as well as a boolean flag indicating whether a value was processed.
+//
+// This function is responsible for recognizing the type of the next JSON value and delegating the task of appending that value
+// to the appropriate helper function (such as `appendPrettyString` for strings, `appendPrettyNumber` for numbers, and others
+// for objects, arrays, and literals). It processes the JSON byte slice one element at a time and handles all value types
+// correctly, ensuring that each value is pretty-printed if required.
+//
+// Parameters:
+//   - `buf`: The destination byte slice to which the processed JSON value will be appended.
+//   - `json`: The source JSON byte slice containing the entire JSON structure.
+//   - `i`: The starting index in `json` from where the next value should be processed.
+//   - `pretty`: A boolean flag indicating whether pretty-printing should be applied (i.e., adding newlines and indentation).
+//   - `width`: The width used for pretty-printing (not used in this function, but passed for consistency in pretty-printing logic).
+//   - `prefix`: A string prefix (used in pretty-printing to add leading indentation, not used here).
+//   - `indent`: The string used for indentation (not used here but part of the pretty-printing configuration).
+//   - `sortKeys`: A boolean flag indicating whether the keys in objects should be sorted (not used here but passed for consistency).
+//   - `tabs`: The number of tabs for indentation (not used here but passed for consistency in pretty-printing logic).
+//   - `nl`: The current newline position (used for pretty-printing, ensuring line breaks are maintained correctly).
+//   - `max`: The maximum number of characters to pretty-print before breaking into a new line (not used in this function).
+//
+// Returns:
+//   - `buf`: The updated buffer, containing the appended JSON value (pretty-printed if the `pretty` flag is true).
+//   - `i`: The updated index in `json`, pointing to the position after the processed value.
+//   - `nl`: The unchanged newline position (used for pretty-printing in the larger context).
+//   - `true`: A boolean flag indicating that a JSON value was successfully processed.
+//
+// Example usage:
+//
+//	json := []byte(`{ "key1": 123, "key2": "value", "key3": [1, 2, 3] }`)
+//	buf := []byte{}
+//	buf, i, nl, processed := appendJSONValue(buf, json, 0, true, 0, "", "  ", false, 0, 0, 0)
+//	// buf will contain the pretty-printed JSON value, i will point to the next index,
+//	// nl remains unchanged, and processed will be true.
+//
+// Notes:
+//   - This function processes and appends various JSON data types, including strings, numbers, objects, arrays,
+//     and literals (`true`, `false`, `null`).
+//   - The function assumes the JSON is valid and well-formed; it does not handle parsing errors for invalid JSON.
+func appendJSONValue(buf, json []byte, i int, pretty bool, width int, prefix, indent string, sortKeys bool, tabs, nl, max int) ([]byte, int, int, bool) {
+	for ; i < len(json); i++ {
+		if json[i] <= ' ' {
+			continue
+		}
+		if json[i] == '"' {
+			return appendJSONString(buf, json, i, nl)
+		}
+		if (json[i] >= '0' && json[i] <= '9') || json[i] == '-' || isNaNOrInf(json[i:]) {
+			return appendJSONNumber(buf, json, i, nl)
+		}
+		if json[i] == '{' {
+			return appendJSONContainer(buf, json, i, '{', '}', pretty, width, prefix, indent, sortKeys, tabs, nl, max)
+		}
+		if json[i] == '[' {
+			return appendJSONContainer(buf, json, i, '[', ']', pretty, width, prefix, indent, sortKeys, tabs, nl, max)
+		}
+		switch json[i] {
+		case 't':
+			return append(buf, 't', 'r', 'u', 'e'), i + 4, nl, true
+		case 'f':
+			return append(buf, 'f', 'a', 'l', 's', 'e'), i + 5, nl, true
+		case 'n':
+			return append(buf, 'n', 'u', 'l', 'l'), i + 4, nl, true
+		}
+	}
+	return buf, i, nl, true
 }
 
 // appendTabs appends indentation to the provided buffer (`buf`) based on the specified `prefix`, `indent`,

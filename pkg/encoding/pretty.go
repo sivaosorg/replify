@@ -113,7 +113,7 @@ func PrettyOptions(json []byte, option *OptionsConfig) []byte {
 	if len(option.Prefix) != 0 {
 		buf = append(buf, option.Prefix...)
 	}
-	buf, _, _, _ = appendPrettyAny(buf, json, 0, true,
+	buf, _, _, _ = appendJSONValue(buf, json, 0, true,
 		option.Width, option.Prefix, option.Indent, option.SortKeys,
 		0, 0, -1)
 	if len(buf) > 0 {

@@ -1667,7 +1667,7 @@ func (w *wrapper) WithJSONBody(v any) (*wrapper, error) {
 		}
 		w.data = string(val)
 	default:
-		s, err := encoding.JSONToken(val)
+		s, err := encoding.JSONE(val)
 		if err != nil {
 			return w, AppendError(err, "cannot marshal to JSON")
 		}

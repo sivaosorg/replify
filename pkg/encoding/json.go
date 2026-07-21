@@ -299,7 +299,7 @@ func JSON(data any) string {
 	return marshalJSON(data, false)
 }
 
-// JSONToken converts a Go value to its JSON string representation or returns an error if the marshalling fails.
+// JSONE converts a Go value to its JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -318,8 +318,8 @@ func JSON(data any) string {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONToken(myStruct)
-func JSONToken(data any) (string, error) {
+//		jsonString, err := JSONE(myStruct)
+func JSONE(data any) (string, error) {
 	return marshalJSONE(data, false)
 }
 
@@ -347,7 +347,7 @@ func JSONPretty(data any) string {
 	return marshalJSON(data, true)
 }
 
-// JSONPrettyToken converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
+// JSONPrettyE converts a Go value to its pretty-printed JSON string representation or returns an error if the marshalling fails.
 // It uses a deferred function to recover from any panics that may occur during marshalling.
 //
 // Parameters:
@@ -366,7 +366,7 @@ func JSONPretty(data any) string {
 //	 	Name: "John",
 //	 	Age:  30,
 //	 }
-//		jsonString, err := JSONPrettyToken(myStruct)
-func JSONPrettyToken(data any) (string, error) {
+//		jsonString, err := JSONPrettyE(myStruct)
+func JSONPrettyE(data any) (string, error) {
 	return marshalJSONE(data, true)
 }

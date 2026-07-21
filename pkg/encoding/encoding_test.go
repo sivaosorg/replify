@@ -184,7 +184,7 @@ func TestJSON_RawMessageNil(t *testing.T) {
 // ///////////////////////////
 
 func TestJSONToken_Nil(t *testing.T) {
-	got, err := encoding.JSONToken(nil)
+	got, err := encoding.JSONE(nil)
 	if err == nil {
 		t.Error("JSONToken(nil) expected error, got nil")
 	}
@@ -195,7 +195,7 @@ func TestJSONToken_Nil(t *testing.T) {
 
 func TestJSONToken_String(t *testing.T) {
 	// Strings are returned as-is (no quoting) in jsonSafeToken.
-	got, err := encoding.JSONToken("hello")
+	got, err := encoding.JSONE("hello")
 	if err != nil {
 		t.Fatalf("JSONToken(string) unexpected error: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestJSONToken_String(t *testing.T) {
 }
 
 func TestJSONToken_Bool(t *testing.T) {
-	got, err := encoding.JSONToken(true)
+	got, err := encoding.JSONE(true)
 	if err != nil {
 		t.Fatalf("JSONToken(true) unexpected error: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestJSONToken_IntegerScalars(t *testing.T) {
 		{uint64(999), "999"},
 	}
 	for _, tc := range cases {
-		got, err := encoding.JSONToken(tc.input)
+		got, err := encoding.JSONE(tc.input)
 		if err != nil {
 			t.Errorf("JSONToken(%v) unexpected error: %v", tc.input, err)
 			continue
@@ -243,7 +243,7 @@ func TestJSONToken_IntegerScalars(t *testing.T) {
 }
 
 func TestJSONToken_Float64(t *testing.T) {
-	got, err := encoding.JSONToken(float64(2.718))
+	got, err := encoding.JSONE(float64(2.718))
 	if err != nil {
 		t.Fatalf("JSONToken(float64) unexpected error: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestJSONToken_Float64(t *testing.T) {
 
 func TestJSONToken_NaN(t *testing.T) {
 	// floatsUseNullForNonFinite == true => "null", no error
-	got, err := encoding.JSONToken(math.NaN())
+	got, err := encoding.JSONE(math.NaN())
 	if err != nil {
 		t.Fatalf("JSONToken(NaN) unexpected error: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestJSONToken_NaN(t *testing.T) {
 }
 
 func TestJSONToken_Inf(t *testing.T) {
-	got, err := encoding.JSONToken(math.Inf(1))
+	got, err := encoding.JSONE(math.Inf(1))
 	if err != nil {
 		t.Fatalf("JSONToken(+Inf) unexpected error: %v", err)
 	}
@@ -274,7 +274,7 @@ func TestJSONToken_Inf(t *testing.T) {
 }
 
 func TestJSONToken_Complex128(t *testing.T) {
-	got, err := encoding.JSONToken(complex(1.0, 2.0))
+	got, err := encoding.JSONE(complex(1.0, 2.0))
 	if err != nil {
 		t.Fatalf("JSONToken(complex128) unexpected error: %v", err)
 	}
@@ -285,7 +285,7 @@ func TestJSONToken_Complex128(t *testing.T) {
 
 func TestJSONToken_Struct(t *testing.T) {
 	s := sampleStruct{Name: "Bob", Age: 25}
-	got, err := encoding.JSONToken(s)
+	got, err := encoding.JSONE(s)
 	if err != nil {
 		t.Fatalf("JSONToken(struct) unexpected error: %v", err)
 	}
@@ -296,7 +296,7 @@ func TestJSONToken_Struct(t *testing.T) {
 }
 
 func TestJSONToken_Slice(t *testing.T) {
-	got, err := encoding.JSONToken([]string{"a", "b"})
+	got, err := encoding.JSONE([]string{"a", "b"})
 	if err != nil {
 		t.Fatalf("JSONToken(slice) unexpected error: %v", err)
 	}
@@ -307,7 +307,7 @@ func TestJSONToken_Slice(t *testing.T) {
 
 func TestJSONToken_NilPointer(t *testing.T) {
 	var p *sampleStruct
-	got, err := encoding.JSONToken(p)
+	got, err := encoding.JSONE(p)
 	if err != nil {
 		t.Fatalf("JSONToken(nil pointer) unexpected error: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestJSONToken_NilPointer(t *testing.T) {
 
 func TestJSONToken_NilMap(t *testing.T) {
 	var m map[string]int
-	got, err := encoding.JSONToken(m)
+	got, err := encoding.JSONE(m)
 	if err != nil {
 		t.Fatalf("JSONToken(nil map) unexpected error: %v", err)
 	}
@@ -329,7 +329,7 @@ func TestJSONToken_NilMap(t *testing.T) {
 
 func TestJSONToken_RawMessageValid(t *testing.T) {
 	rm := json.RawMessage(`[1,2,3]`)
-	got, err := encoding.JSONToken(rm)
+	got, err := encoding.JSONE(rm)
 	if err != nil {
 		t.Fatalf("JSONToken(RawMessage valid) unexpected error: %v", err)
 	}
@@ -340,7 +340,7 @@ func TestJSONToken_RawMessageValid(t *testing.T) {
 
 func TestJSONToken_RawMessageInvalid(t *testing.T) {
 	rm := json.RawMessage(`{bad json}`)
-	_, err := encoding.JSONToken(rm)
+	_, err := encoding.JSONE(rm)
 	if err == nil {
 		t.Error("JSONToken(invalid RawMessage) expected error, got nil")
 	}
@@ -348,7 +348,7 @@ func TestJSONToken_RawMessageInvalid(t *testing.T) {
 
 func TestJSONToken_RawMessageNil(t *testing.T) {
 	var rm json.RawMessage
-	got, err := encoding.JSONToken(rm)
+	got, err := encoding.JSONE(rm)
 	if err != nil {
 		t.Fatalf("JSONToken(nil RawMessage) unexpected error: %v", err)
 	}
@@ -449,14 +449,14 @@ func TestJSONPretty_IntegerScalar(t *testing.T) {
 // ///////////////////////////
 
 func TestJSONPrettyToken_Nil(t *testing.T) {
-	_, err := encoding.JSONPrettyToken(nil)
+	_, err := encoding.JSONPrettyE(nil)
 	if err == nil {
 		t.Error("JSONPrettyToken(nil) expected error, got nil")
 	}
 }
 
 func TestJSONPrettyToken_String(t *testing.T) {
-	got, err := encoding.JSONPrettyToken("test")
+	got, err := encoding.JSONPrettyE("test")
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(string) unexpected error: %v", err)
 	}
@@ -466,7 +466,7 @@ func TestJSONPrettyToken_String(t *testing.T) {
 }
 
 func TestJSONPrettyToken_Bool(t *testing.T) {
-	got, err := encoding.JSONPrettyToken(true)
+	got, err := encoding.JSONPrettyE(true)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(bool) unexpected error: %v", err)
 	}
@@ -476,7 +476,7 @@ func TestJSONPrettyToken_Bool(t *testing.T) {
 }
 
 func TestJSONPrettyToken_IntegerScalar(t *testing.T) {
-	got, err := encoding.JSONPrettyToken(int(100))
+	got, err := encoding.JSONPrettyE(int(100))
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(int) unexpected error: %v", err)
 	}
@@ -486,7 +486,7 @@ func TestJSONPrettyToken_IntegerScalar(t *testing.T) {
 }
 
 func TestJSONPrettyToken_Float64(t *testing.T) {
-	got, err := encoding.JSONPrettyToken(float64(1.23))
+	got, err := encoding.JSONPrettyE(float64(1.23))
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(float64) unexpected error: %v", err)
 	}
@@ -496,7 +496,7 @@ func TestJSONPrettyToken_Float64(t *testing.T) {
 }
 
 func TestJSONPrettyToken_NaN(t *testing.T) {
-	got, err := encoding.JSONPrettyToken(math.NaN())
+	got, err := encoding.JSONPrettyE(math.NaN())
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(NaN) unexpected error: %v", err)
 	}
@@ -507,7 +507,7 @@ func TestJSONPrettyToken_NaN(t *testing.T) {
 
 func TestJSONPrettyToken_Struct_IsIndented(t *testing.T) {
 	s := sampleStruct{Name: "Dave", Age: 20}
-	got, err := encoding.JSONPrettyToken(s)
+	got, err := encoding.JSONPrettyE(s)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(struct) unexpected error: %v", err)
 	}
@@ -523,7 +523,7 @@ func TestJSONPrettyToken_Struct_IsIndented(t *testing.T) {
 }
 
 func TestJSONPrettyToken_Slice_IsIndented(t *testing.T) {
-	got, err := encoding.JSONPrettyToken([]int{4, 5, 6})
+	got, err := encoding.JSONPrettyE([]int{4, 5, 6})
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(slice) unexpected error: %v", err)
 	}
@@ -534,7 +534,7 @@ func TestJSONPrettyToken_Slice_IsIndented(t *testing.T) {
 
 func TestJSONPrettyToken_NilPointer(t *testing.T) {
 	var p *sampleStruct
-	got, err := encoding.JSONPrettyToken(p)
+	got, err := encoding.JSONPrettyE(p)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(nil pointer) unexpected error: %v", err)
 	}
@@ -545,7 +545,7 @@ func TestJSONPrettyToken_NilPointer(t *testing.T) {
 
 func TestJSONPrettyToken_NilMap(t *testing.T) {
 	var m map[string]int
-	got, err := encoding.JSONPrettyToken(m)
+	got, err := encoding.JSONPrettyE(m)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(nil map) unexpected error: %v", err)
 	}
@@ -556,7 +556,7 @@ func TestJSONPrettyToken_NilMap(t *testing.T) {
 
 func TestJSONPrettyToken_RawMessageValid_IsIndented(t *testing.T) {
 	rm := json.RawMessage(`{"c":3}`)
-	got, err := encoding.JSONPrettyToken(rm)
+	got, err := encoding.JSONPrettyE(rm)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(RawMessage) unexpected error: %v", err)
 	}
@@ -567,7 +567,7 @@ func TestJSONPrettyToken_RawMessageValid_IsIndented(t *testing.T) {
 
 func TestJSONPrettyToken_RawMessageInvalid(t *testing.T) {
 	rm := json.RawMessage(`{not valid}`)
-	_, err := encoding.JSONPrettyToken(rm)
+	_, err := encoding.JSONPrettyE(rm)
 	if err == nil {
 		t.Error("JSONPrettyToken(invalid RawMessage) expected error, got nil")
 	}
@@ -575,7 +575,7 @@ func TestJSONPrettyToken_RawMessageInvalid(t *testing.T) {
 
 func TestJSONPrettyToken_RawMessageNil(t *testing.T) {
 	var rm json.RawMessage
-	got, err := encoding.JSONPrettyToken(rm)
+	got, err := encoding.JSONPrettyE(rm)
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(nil RawMessage) unexpected error: %v", err)
 	}
@@ -585,7 +585,7 @@ func TestJSONPrettyToken_RawMessageNil(t *testing.T) {
 }
 
 func TestJSONPrettyToken_Complex128(t *testing.T) {
-	got, err := encoding.JSONPrettyToken(complex(2.0, 3.0))
+	got, err := encoding.JSONPrettyE(complex(2.0, 3.0))
 	if err != nil {
 		t.Fatalf("JSONPrettyToken(complex128) unexpected error: %v", err)
 	}
@@ -1287,7 +1287,7 @@ func TestJSON_Uintptr(t *testing.T) {
 // TestJSONToken_Uintptr verifies the Token variant also produces a quoted hex address.
 func TestJSONToken_Uintptr(t *testing.T) {
 	var p uintptr = 0xc0ffee
-	got, err := encoding.JSONToken(p)
+	got, err := encoding.JSONE(p)
 	if err != nil {
 		t.Fatalf("JSONToken(uintptr) unexpected error: %v", err)
 	}
@@ -1323,7 +1323,7 @@ func TestSpecInPlace(t *testing.T) {
 // TestJSONToken_NilRawMessage verifies that a nil json.RawMessage returns "null".
 func TestJSONToken_NilRawMessage(t *testing.T) {
 	var rm json.RawMessage // nil by default
-	got, err := encoding.JSONToken(rm)
+	got, err := encoding.JSONE(rm)
 	if err != nil {
 		t.Fatalf("JSONToken(nil RawMessage) unexpected error: %v", err)
 	}

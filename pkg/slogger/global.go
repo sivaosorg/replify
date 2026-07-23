@@ -29,8 +29,19 @@ func SetGlobalLogger(l *Logger) {
 // Returns:
 //
 // the active *Logger used by all package-level functions.
+//
+// Deprecated: Use S() instead. This function is retained for backward compatibility.
 func GlobalLogger() *Logger {
 	return (*Logger)(atomic.LoadPointer(&global))
+}
+
+// S returns the package-level logger, equivalent to GlobalLogger().
+//
+// Returns:
+//
+// the active *Logger used by all package-level functions.
+func S() *Logger {
+	return GlobalLogger()
 }
 
 // Trace logs a TRACE-level message via the global logger.

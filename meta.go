@@ -1426,7 +1426,7 @@ func (m *meta) Logging(logger ...*slogger.Logger) *meta {
 	if m == nil {
 		return m
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}
@@ -1484,7 +1484,7 @@ func (m *meta) Slogging(logger ...*slogger.Logger) *meta {
 	if m == nil {
 		return m
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}

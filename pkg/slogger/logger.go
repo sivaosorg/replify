@@ -82,11 +82,58 @@ func (l *Logger) Named(name string) *Logger {
 	l.mu.RUnlock()
 	child.level.Store(l.level.Load())
 	if strutil.IsNotEmpty(l.name) {
-		child.name = l.name + "." + name
+		child.name = fmt.Sprintf("%s.%s", l.name, name)
 	} else {
 		child.name = name
 	}
 	return child
+}
+
+// Namedf returns a child Logger whose name extends the parent name with a dot separator and a formatted segment.
+//
+// Parameters:
+//   - `format`: a format string for the child logger segment
+//   - `args`: arguments to format into the name
+//
+// Returns:
+//
+// a new *Logger with the composed name.
+func (l *Logger) Namedf(format string, args ...any) *Logger {
+	var name = fmt.Sprintf(format, args...)
+	return l.Named(name)
+}
+
+// NamedIf returns a child Logger with the given name if the condition is true; otherwise, it returns the original logger.
+//
+// Parameters:
+//   - `condition`: a boolean that determines whether to name the logger
+//   - `name`: the child logger segment to use if condition is true
+//
+// Returns:
+//
+// a new *Logger with the composed name if condition is true; otherwise, the original *Logger.
+func (l *Logger) NamedIf(condition bool, name string) *Logger {
+	if condition {
+		return l.Named(name)
+	}
+	return l
+}
+
+// NamedfIf returns a child Logger with a formatted name if the condition is true; otherwise, it returns the original logger.
+//
+// Parameters:
+//   - `condition`: a boolean that determines whether to name the logger
+//   - `format`: a format string for the child logger segment
+//   - `args`: arguments to format into the name
+//
+// Returns:
+//
+// a new *Logger with the composed name if condition is true; otherwise, the original *Logger.
+func (l *Logger) NamedfIf(condition bool, format string, args ...any) *Logger {
+	if condition {
+		return l.Namedf(format, args...)
+	}
+	return l
 }
 
 // SetLevel atomically updates the minimum log level.

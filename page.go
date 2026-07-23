@@ -369,7 +369,7 @@ func (p *pagination) Logging(logger ...*slogger.Logger) *pagination {
 	if p == nil {
 		return p
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}
@@ -426,7 +426,7 @@ func (p *pagination) Slogging(logger ...*slogger.Logger) *pagination {
 	if p == nil {
 		return p
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}

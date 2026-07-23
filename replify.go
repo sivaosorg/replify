@@ -2919,7 +2919,7 @@ func (w *wrapper) Logging(logger ...*slogger.Logger) *wrapper {
 		return w
 	}
 	w.autoAdjust()
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}
@@ -2984,7 +2984,7 @@ func (w *wrapper) Slogging(logger ...*slogger.Logger) *wrapper {
 		return w
 	}
 	w.autoAdjust()
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}

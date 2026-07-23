@@ -364,7 +364,7 @@ func (h *header) Logging(logger ...*slogger.Logger) *header {
 	if h == nil {
 		return h
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}
@@ -422,7 +422,7 @@ func (h *header) Slogging(logger ...*slogger.Logger) *header {
 	if h == nil {
 		return h
 	}
-	l := slogger.GlobalLogger()
+	l := slogger.S()
 	if len(logger) > 0 && logger[0] != nil {
 		l = logger[0]
 	}
